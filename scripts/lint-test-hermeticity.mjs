@@ -819,7 +819,11 @@ export const UNRESOLVED_BASELINE = Object.freeze({
   // before the production build; the exact unresolved count stays unchanged.
   // 2026-09-03 Terminal/Fable closure: project-scoped active-model guards and
   // corrupt/invalid-store HOLD tests replace the final fail-open execution edge.
-  digest: '56379ad555f8321c992bbe59bbb3b0ebedc0d1dbfe516e455d32c1304304ab2a',
+  // 2026-09-04 (3331 RECOVERY-BORN-NATIVE-DO-SLASH-PROVIDER-BOOTSTRAP-001): +1 i18n key
+  // `do.slash_no_providers` shifted messages.ts production:eager-call-unresolved callsite
+  // digests — same 18132 count, digest only (HEAD-vs-tree diff: only messages.ts
+  // identities moved, no new unresolved edge).
+  digest: '36336895d901c2317b776f41b21bad3115322e37103ebc0f618db523abf94572',
   // 2026-08-27 04:0x: ayni 16514, digest-only — full-suite hizalama batch'i
   // (pin/mock/census guncellemeleri + sync guard).
   // 2026-08-27 03:1x: ayni 16514, digest-only — CI-hizalama paketi
@@ -1377,7 +1381,9 @@ export const PRODUCTION_INVENTORY_BASELINE = Object.freeze({
   // the provider-neutral Terminal control, rendering, picker, evidence and
   // model-catalog modules reached by the final source graph. Inventory and
   // content edges are scanner-derived; no module is manually listed here.
-  count: 1420,
+  // 2026-09-04 (3331 RECOVERY-BORN-NATIVE-DO-SLASH-PROVIDER-BOOTSTRAP-001): +1 production
+  // module src/cli/repl/provider-bootstrap.ts (the ONE lazy provider-bootstrap seam). Prior: 1420.
+  count: 1421,
   // 2026-08-29 OPERATION-COVERAGE-MODEL-001 bounded ADR-D-007 recovery:
   // count unchanged; digest records the canonical catalog-backed semantic
   // inventory and comparative schema-3 baseline authority.
@@ -1485,7 +1491,7 @@ export const PRODUCTION_INVENTORY_BASELINE = Object.freeze({
   // activation is enforced at task, XVerify and native ingresses; an existing
   // but unreadable/invalid authority is a typed HOLD rather than implicit
   // activation; absent-store detection is race-safe.
-  digest: '6b7704db401c4a5850f02614580f6ffb0beca44ff407e3367b8231f260d23847',
+  digest: 'f9ee5fc1be5d52e913198b3aef0fb99a265fe4011741494a53bc3c838d7d9e42',
   // 2026-08-27 04:0x: ayni 1339, digest-only — sync workspace-guard + drift-normalize.
   // 2026-08-27 03:1x: ayni 1339, digest-only — skill-pool readJsonSafe donusumu.
   // 2026-08-27 02:0x: ayni 1339, digest-only — Dalga-3 src kaymalari

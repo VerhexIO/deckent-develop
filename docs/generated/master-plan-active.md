@@ -5,19 +5,19 @@
 
 **Schema:** 3
 
-**Source digest:** `sha256(normalized-lf-utf8):9337610185fdde98a9c2505b18348c907c377278870a7caef723a3db3148d432`
+**Source digest:** `sha256(normalized-lf-utf8):ccce817b8221e5feb8ac49d49786e2002c4131d56fd6b39f2de1a600204f023c`
 
-**Rows:** 569 total · 481 active · 88 terminal
+**Rows:** 574 total · 486 active · 88 terminal
 
 ## State summary
 
 | State | Count |
 |---|---:|
-| OPEN | 362 |
+| OPEN | 366 |
 | READY | 0 |
 | IN_PROGRESS | 0 |
 | BLOCKED | 69 |
-| VERIFY | 48 |
+| VERIFY | 49 |
 | DONE | 88 |
 | DEFERRED | 2 |
 | DISPOSED | 0 |
@@ -285,6 +285,7 @@
 | 3327 | `RECOVERY-BORN-711-LINUX-INSTALLED-CUSTODY-PROOF-001` | VERIFY | P0 | XPLAT | — | — | Linux installed-package native custody zinciri gerçek Linux userspace ve filesystem üzerinde kapanır |
 | 3328 | `RECOVERY-BORN-711-WSL2-NATIVE-CUSTODY-PROOF-001` | VERIFY | P0 | XPLAT | `RECOVERY-BORN-711-LINUX-INSTALLED-CUSTODY-PROOF-001` | — | WSL2 host native custody ve filesystem capability sonucu gerçek compiled binary ile kanıtlanır |
 | 3329 | `RECOVERY-BORN-711-WSL2-DOCKER-CUSTODY-CANARY-001` | VERIFY | P0 | ASSURANCE | `RECOVERY-BORN-711-LINUX-INSTALLED-CUSTODY-PROOF-001`, `RECOVERY-BORN-711-WSL2-NATIVE-CUSTODY-PROOF-001` | — | WSL2 üzerindeki gerçek Docker Engine normal task custody zincirini ağsız compiled canary ile uçtan uca kanıtlar |
+| 3331 | `RECOVERY-BORN-NATIVE-DO-SLASH-PROVIDER-BOOTSTRAP-001` | VERIFY | P0 | TERMINAL | — | — | Native terminal slash `/do` yolu boş provider registry ile planlayıcıya ulaşır (`Provider not found: "codex"`); 557-003 lazy bootstrap'ı yalnız `deckent_propose_run` tool handler'ında kaldı, slash yolu bootstrap'sız — tek lazy-idempotent bootstrap seam'i controller'a alınır, kalan eksik typed `NO_PROVIDERS` HOLD olur (ADR-D-007 bounded recovery, feature yok) |
 | 3343 | `PLATFORM-CLEAN-IDENTITY-ADAPTER-001` | OPEN | P1 | KERNEL | — | — | identity-stable delete adapter'ı Linux-only (/proc/self/fd + fdinfo mnt_id): macOS ve Windows'ta clean.mjs dürüst HOLD (E_CLEAN_IDENTITY_STABLE_DELETE_UNSUPPORTED) — cross-platform-e2e'nin TÜM macos/windows job'ları npm run clean'de düşüyor (08-03'ten beri 40/40 kırmızı aile) |
 | 3345 | `COMPOSITE-WORKER-001` | OPEN | P1 | KERNEL | `KERNEL-ATTEMPT-001` | — | Composite worker / nested team delegasyon kontratı: parent-child execution, authority tavanı, bütçe tavanı, concurrency limiti, completion/failure policy ve nested evidence tree |
 | 3347 | `PLATFORM-EXEC-AUTH-W3-DARWIN-001` | OPEN | P1 | KERNEL | `PLATFORM-EXEC-AUTH-W1-INTERFACE-001`, `PLATFORM-EXEC-AUTH-W2-PROBE-001` | — | Darwin execution-authority adapter'ı: native openat-ailesi N-API modülü + W1 arayüzünün darwin impl'i + gerçek-Mac real-binary clean/lock kanıtı (W2 ölçümü: /dev/fd yolu ölü — native tek yol) |
@@ -435,6 +436,10 @@
 | 7098 | `SKILL-ROUTING-RESIDUAL-MICRO-001` | OPEN | P2 | KERNEL | — | — | **Debt-561-002/003 residual'larinin owner-onayli MASTER'a tasinmasi (Alperen 2026-08-19: "debtleri onerdigim gibi yonet, mikro isi MASTER'a tasi"):** (1) tests/orchestra/brain-skill.test.ts:187 civari test-local `profileVersion: 3` literal'i kaldirilip kanonik sabitten okunur (0-hardcode KANUN 10 hijyeni, test-locali); (2) assignedSkills WHOLESALE-overwrite kaynak-tarafi duzeltmesi — src/orchestra/routing-plan-adapter.ts:150 ve src/orchestra/task-mode-runner.ts:330 V3 kararini `task.assignedSkills`e toptan yazarken force-skill'leri ezebiliyor; buildWorkerPrompt guard'i bugun downstream onariyor (561-003 kaniti), kaynak-tarafi merge/force-koruma buraya gelir |
 | 7099 | `TERMINAL-OPERATOR-SURFACE-CLOSURE-001` | VERIFY | P0 | PRODUCT | `MODEL-ACTIVATION-001` | — | **Owner-admitted Terminal operator-surface closure (Alperen 2026-09-03):** TERMINAL-PICKER-001…007, TERMINAL-POSTURE-001, TERMINAL-READABILITY-001/002, PROVIDER-VOCAB-001, PROVIDER-EVIDENCE-001, SESSION-AUTHORITY-001, TERMINAL-I18N-NATIVE-001, TERMINAL-I18N-MODELS-001, CLI-INTERACTIVE-001 ve Claude Fable 5.1 model-katalog/XVerify yürütme zincirini tek production-surface kapanışında uzlaştır |
 | 7100 | `DEP-SUPPLY-DEFENSE-001` | OPEN | P1 | SECURITY | — | — | npm dependency supply-chain savunmasını ürün özelliği olarak değerlendir: worker/CI install yollarında install-script guard, lockfile-integrity gate, bilinen-IOC taraması ve editör-hook (workspace-trust) koruması |
+| 7101 | `USAGE-PROVIDER-NEUTRAL-001` | OPEN | P1 | COST | `TERMINAL-OPERATOR-SURFACE-CLOSURE-001` | — | `/usage` ve `deckent usage` provider-neutral gözlem deposundan (provider-execution-observation-store) beslenir; Claude Code transkripti yalnız host-usage alt-görünümüdür (owner karar 2026-09-04) |
+| 7102 | `TERMINAL-MASCOT-STATUS-001` | OPEN | P1 | TERMINAL | `TERMINAL-OPERATOR-SURFACE-CLOSURE-001` | — | Maskot decke: 5 durumlu mini Kraken + canlı durum satırı birleşimi (owner yön A, 2026-09-04); önce ADR-G-010 amendment 'maskot = durum taşıyıcı', sonra `terminal.mascot` flag-gated uygulama |
+| 7103 | `TERMINAL-STARTUP-PERF-001` | OPEN | P1 | TERMINAL | `TERMINAL-OPERATOR-SURFACE-CLOSURE-001` | — | Native terminal ilk boyama maliyeti: modül-kapsamı worktree binary authority hash'i, çift MemoryStore açılışı, üçlü loadConfig ve await'li auth probe kaldırılır veya ertelenir |
+| 7104 | `SYNC-PROVENANCE-TRUTH-001` | OPEN | P1 | TRUTH | `TERMINAL-OPERATOR-SURFACE-CLOSURE-001` | — | `deckent sync` ve `/sync` özeti: 'önceki sync imzası yok' ile gerçek 3-yollu çakışma ayrışır; aggregate özet export edilir ve REPL kartında gösterilir |
 | 7110 | `A2A-INTEROP-001` | OPEN | P2 | ECOSYSTEM | — | — | A2A v1.0 interop yönü: inbound A2A server (Agent Card + task-lifecycle projection) ve outbound A2A provider adapter için owner kararı ve plan admission |
 | 7120 | `SKILLMD-INGEST-001` | BLOCKED | P1 | ECOSYSTEM | — | `SKILL_V3_PROFILE_RECONCILIATION_REQUIRED` | Anthropic Agent-Skills (SKILL.md) open-standard ingest: `deckent skill import --format=skill-md` converter, typed `source` provenance ve frontmatter parser sertleştirmesi |
 | 7121 | `SKILLMD-V3-RECONCILIATION-001` | OPEN | P0 | ECOSYSTEM | `SKILL-CATALOG-AUTHORITY-001`, `SKILL-ROUTING-ELIGIBILITY-001`, `SKILL-SUPPLY-CHAIN-INGRESS-001` | — | SKILLMD-INGEST-001'in immutable V2 activation kabulünü production V3 SkillProfile ve fail-closed package ingress contractıyla lossless uzlaştır |

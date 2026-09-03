@@ -3,26 +3,26 @@
   "generatedFrom": "docs/MASTER-PLAN.md",
   "sourceDigest": {
     "algorithm": "sha256(normalized-lf-utf8)",
-    "value": "9337610185fdde98a9c2505b18348c907c377278870a7caef723a3db3148d432"
+    "value": "ccce817b8221e5feb8ac49d49786e2002c4131d56fd6b39f2de1a600204f023c"
   },
   "summary": {
-    "total": 569,
-    "active": 481,
+    "total": 574,
+    "active": 486,
     "terminal": 88,
-    "receipts": 214,
+    "receipts": 215,
     "byState": {
-      "OPEN": 362,
+      "OPEN": 366,
       "READY": 0,
       "IN_PROGRESS": 0,
       "BLOCKED": 69,
-      "VERIFY": 48,
+      "VERIFY": 49,
       "DONE": 88,
       "DEFERRED": 2,
       "DISPOSED": 0
     },
     "byPriority": {
-      "P0": 362,
-      "P1": 157,
+      "P0": 363,
+      "P1": 161,
       "P2": 50
     },
     "byProgram": {
@@ -31,7 +31,7 @@
       "AUTHORITY": 67,
       "CODEX": 44,
       "CONNECTOR": 3,
-      "COST": 5,
+      "COST": 6,
       "DASHBOARD": 2,
       "DATA": 3,
       "DESKTOP": 7,
@@ -57,9 +57,9 @@
       "SCALE": 1,
       "SECURITY": 8,
       "SURFACE": 1,
-      "TERMINAL": 22,
+      "TERMINAL": 25,
       "TOOL": 1,
-      "TRUTH": 106,
+      "TRUTH": 107,
       "XPLAT": 7
     }
   },
@@ -3618,6 +3618,17 @@
       "terminalClosureDigest": "f08557f23a15b060a73fad5c3d500b5010b7130e5c88a6472e15a449623c08fd"
     },
     {
+      "order": 3331,
+      "id": "RECOVERY-BORN-NATIVE-DO-SLASH-PROVIDER-BOOTSTRAP-001",
+      "program": "TERMINAL",
+      "priority": "P0",
+      "state": "VERIFY",
+      "updated": "2026-09-03",
+      "definitionDigest": "d62f67fdcf1376c3a2abe614ee30f07db52464f89ba3ff9a58bec0aa6faeabae",
+      "progressDigest": "2d0ac30f7ef096526b84fd374758e1376bc27c00a7b267a4562546042998ce08",
+      "terminalClosureDigest": null
+    },
+    {
       "order": 3335,
       "id": "PROD-BINARY-IDENTITY-EAGER-CRASH-001",
       "program": "KERNEL",
@@ -5251,9 +5262,9 @@
       "program": "TERMINAL",
       "priority": "P0",
       "state": "OPEN",
-      "updated": "2026-08-18",
+      "updated": "2026-09-03",
       "definitionDigest": "12c6f0590d94cc29c73929047b7896a27894a3b3ea8a48c931399379c1670220",
-      "progressDigest": "0f9643ea8614cb3c19360388731355141c463a089f7957b6fab5815acf7c55ac",
+      "progressDigest": "5e43556a8dfb9eaa9121fb669a186e3b3a5ecaa11a3b33fce336ca6ef3799bc5",
       "terminalClosureDigest": null
     },
     {
@@ -5317,9 +5328,9 @@
       "program": "TERMINAL",
       "priority": "P0",
       "state": "OPEN",
-      "updated": "2026-08-19",
+      "updated": "2026-09-03",
       "definitionDigest": "7f28adbabbf3ee1ae2b852a5804e5d8e5ef4afdba2dbd6373e5cc7def1de9e45",
-      "progressDigest": "65532948d760fae721a1e9b9d8808a85497d50b7e351eb563389941b2c8902ff",
+      "progressDigest": "c43cc9854751fec420728adfe0b500915f38fb126b8c6bf6195e2268e85a9b4a",
       "terminalClosureDigest": null
     },
     {
@@ -5429,7 +5440,7 @@
       "state": "VERIFY",
       "updated": "2026-09-03",
       "definitionDigest": "5557413f8585e9010315771e332d587ce8a7f0c03fce68c319475d9e11b08fcb",
-      "progressDigest": "fa8d39275d13d789132c83438b1a9f5d3694d2bf1f947d41f19ca0b919c8ed52",
+      "progressDigest": "55d78e2dbd7e1c863170711e9523eddac722802e1b518ea718e8179c85947c2d",
       "terminalClosureDigest": null
     },
     {
@@ -5441,6 +5452,50 @@
       "updated": "2026-08-11",
       "definitionDigest": "f9966b2806ff1abe2830e73eaf3b675dd8309a0cb77346ebd4162bbe0c5c671d",
       "progressDigest": "22ea6d79e44192c0822ff27da6681c9546d6bd3519f20392f53ed339e37c56b4",
+      "terminalClosureDigest": null
+    },
+    {
+      "order": 7101,
+      "id": "USAGE-PROVIDER-NEUTRAL-001",
+      "program": "COST",
+      "priority": "P1",
+      "state": "OPEN",
+      "updated": "2026-09-03",
+      "definitionDigest": "d08038dc060dbdd89031cfb58b1d9ce8ad5a19375b88888544fbfe92d32848f4",
+      "progressDigest": "fa04e204b19116b888429fb753fd04ec1ac22ff6abb07202ddf4af3af0d5cd3f",
+      "terminalClosureDigest": null
+    },
+    {
+      "order": 7102,
+      "id": "TERMINAL-MASCOT-STATUS-001",
+      "program": "TERMINAL",
+      "priority": "P1",
+      "state": "OPEN",
+      "updated": "2026-09-03",
+      "definitionDigest": "bf7149c9c400d0becd2aa2610b8f080d9fd4bd93954b1abf4adc5aa43435252d",
+      "progressDigest": "1316f786c144dee0a4c8f40cf3ee5847fc469200b42ae07ff7356f5c84af73fe",
+      "terminalClosureDigest": null
+    },
+    {
+      "order": 7103,
+      "id": "TERMINAL-STARTUP-PERF-001",
+      "program": "TERMINAL",
+      "priority": "P1",
+      "state": "OPEN",
+      "updated": "2026-09-03",
+      "definitionDigest": "a6a61d13c3743d54d27a25d3755096b3734d48e0fba29d951bbdfadc8fcefbac",
+      "progressDigest": "6b5c2c6b9b1025c8bcc2b1a185aa6971183cefb18ba808619fdb0e7667327267",
+      "terminalClosureDigest": null
+    },
+    {
+      "order": 7104,
+      "id": "SYNC-PROVENANCE-TRUTH-001",
+      "program": "TRUTH",
+      "priority": "P1",
+      "state": "OPEN",
+      "updated": "2026-09-03",
+      "definitionDigest": "4c761e75c192b6faeeca8284a1adea85f38fd832820cb28d30e2388c51d01057",
+      "progressDigest": "60ed7bf857454068587a6fe39770ed207dfe6d4f3d801d5dfe23c614531ee819",
       "terminalClosureDigest": null
     },
     {
@@ -8462,6 +8517,16 @@
         "mode": "ONE_SHOT",
         "status": "consumed",
         "transitionAt": "2026-08-29T18:15:58Z"
+      },
+      "g7AttemptIdentity": null
+    },
+    {
+      "id": "GR-2026-09-04-NATIVE-DO-BOOTSTRAP-01",
+      "authorityDigest": "e8575b1e7d3ec1280f1e3c0dfc2f5180f6960b5351db3d85f324b6cded1c5462",
+      "lifecycle": {
+        "mode": "ONE_SHOT",
+        "status": "consumed",
+        "transitionAt": "2026-09-04T02:11:33+03:00"
       },
       "g7AttemptIdentity": null
     }
@@ -16078,7 +16143,8 @@
         "RECOVERY-BORN-523-XVERIFY-PRODUCER-MISMATCH-001",
         "RECOVERY-BORN-523-ATTRIBUTION-UNMEASURABLE-001",
         "CLEAN-DASHBOARD-POLICY-001",
-        "RECOVERY-BORN-711-NORMAL-DOCKER-EXACT-ATTEMPT-CUSTODY-001"
+        "RECOVERY-BORN-711-NORMAL-DOCKER-EXACT-ATTEMPT-CUSTODY-001",
+        "RECOVERY-BORN-NATIVE-DO-SLASH-PROVIDER-BOOTSTRAP-001"
       ],
       "gates": [
         "G1"
@@ -16143,7 +16209,8 @@
         "RECOVERY-BORN-522-DOCTOR-AUTHORITY-COVERAGE-001",
         "RECOVERY-BORN-523-XVERIFY-PRODUCER-MISMATCH-001",
         "RECOVERY-BORN-523-ATTRIBUTION-UNMEASURABLE-001",
-        "RECOVERY-BORN-711-NORMAL-DOCKER-EXACT-ATTEMPT-CUSTODY-001"
+        "RECOVERY-BORN-711-NORMAL-DOCKER-EXACT-ATTEMPT-CUSTODY-001",
+        "RECOVERY-BORN-NATIVE-DO-SLASH-PROVIDER-BOOTSTRAP-001"
       ],
       "evidenceReceipts": [
         "GR-2026-07-30-RECOVERY-DOGFOOD-BOOTSTRAP-01",
@@ -19461,6 +19528,40 @@
       "evidenceReceipts": [],
       "acceptance": "Quiescent build sonrası compiled CLI gerçek Docker container doğurur; immutable task admission, attempt-private mount, pristine provider-free output, exact result/evaluation/finalizer/settlement/archive-restart chain ve finite repair truth diskte yeniden okunur; public `.tasks`, stale sibling veya test fixture başarı authority'si olamaz",
       "evidence": "`historical-authority=owner-live-2026-08-31-wsl-linux-first;historical-gates=G2,G1;proof=motor-a-wsl2-docker-canary-v53`; real networkless Docker attempt `canary-1788433556479` / `b6d8aa45-19e0-89d3-8ede-fac68c18c8ad` completed in `normal-docker-exact`; canonical output `after\\n`, `diskVerified:true`; effect landing `be0def49…`, accepted result `271213a7…`, evaluation `edc2d0f8…`, finalizer `4b8abe59…`, settlement `e53760cc…`, archive `89b29427…`; fresh-process reread recovered exact terminal authority without second provider/container and current attempt container/volume inventory was empty; machine receipt `.analysis/audits/motor-a-wsl2-docker-canary-2026-09-03.json@02836a467b6eae81689fa1bd3434311f0a49640f8179d27acba39e2e3bf84f82`; authenticated Closure OS disposition pending, therefore VERIFY not DONE",
+      "updated": "2026-09-03"
+    },
+    {
+      "order": 3331,
+      "id": "RECOVERY-BORN-NATIVE-DO-SLASH-PROVIDER-BOOTSTRAP-001",
+      "parent": "RECOVERY-DOGFOOD-BORN-001",
+      "program": "TERMINAL",
+      "outcome": "Native terminal slash `/do` yolu boş provider registry ile planlayıcıya ulaşır (`Provider not found: \"codex\"`); 557-003 lazy bootstrap'ı yalnız `deckent_propose_run` tool handler'ında kaldı, slash yolu bootstrap'sız — tek lazy-idempotent bootstrap seam'i controller'a alınır, kalan eksik typed `NO_PROVIDERS` HOLD olur (ADR-D-007 bounded recovery, feature yok)",
+      "priority": "P0",
+      "dependsOn": [],
+      "dependents": [],
+      "children": [],
+      "gates": [
+        "G1",
+        "G2"
+      ],
+      "state": "VERIFY",
+      "truth": {
+        "C": "1",
+        "W": "1",
+        "E": "1",
+        "H": "1",
+        "L": "1",
+        "X": "?",
+        "S": "?"
+      },
+      "blockerCode": null,
+      "blockerRemedy": null,
+      "closureBlockedBy": [],
+      "evidenceReceipts": [
+        "GR-2026-09-04-NATIVE-DO-BOOTSTRAP-01"
+      ],
+      "acceptance": "`/do <hedef>` native REPL'de gerçek plan önizlemesi üretir: run-flow controller proposeRun öncesi tek lazy-idempotent provider bootstrap (tool ve slash yolu aynı seam); bootstrap sonrası provider hâlâ yoksa raw ProviderNotFoundError yerine typed `NO_PROVIDERS` HOLD — i18n en+tr, çözülen model + ima edilen provider + kayıtlı küme + çare; hermetik testler (empty-registry → bootstrap → plan; hold mapping; mount default seam; helper idempotency) + `npm run build:all` + Linux/WSL gerçek binary tmux kanıtı; ardından ilk güvenli sınırda dogfood'a dönüş",
+      "evidence": "Born 2026-09-04 (Alperen terminal audit; owner-live-2026-09-04-terminal-audit-closure-v2): kanıt zinciri app.tsx:768 → run-flow-controller.ts:184 → run-proposal-compiler.ts:322 → planner.ts:674 → provider.ts:478; canonical sınıf bağı 7083 NATIVE-RUNFLOW-BOOTSTRAP-001 (557-003 yalnız native-tool-registry.ts:764 tool handler'ında); capsule `docs/execution/active/RECOVERY-BORN-NATIVE-DO-SLASH-PROVIDER-BOOTSTRAP-001.md`; DOGFOOD_HEALTH=DEGRADED ilanı bu satırla; `receipt=GR-2026-09-04-NATIVE-DO-BOOTSTRAP-01`; **LOCAL_VERIFIED 2026-09-04** tek seam `src/cli/repl/provider-bootstrap.ts` (tool handler + controller `ensureProviders` default via run.tsx wireRunFlowMount), typed `RunFlowProviderHoldError` code NO_PROVIDERS, i18n `do.slash_no_providers` en+tr; hermetik battery 6 dosya / 88 test yeşil + string-free closure yeşil, `tsc --noEmit` exit 0, i18n-hardcode/model-literal/readability/spawnsync gate'leri temiz, hermeticity baseline aynı 18132 sayı yalnız messages.ts callsite digest ratchet; `npm run build:all`/`build` clean adımı bot aktif (`E_CLEAN_BOT_ACTIVE`, bot.pid) typed HOLD → `tsc` + `copy-assets` ile dist=src (dist/cli/repl/*.js 2026-09-04 02:07); gerçek binary tmux kanıtı: native REPL `/do <hedef>` 56 s'de codex planlayıcısıyla PlanPreviewCard üretti (GATE GEÇTİ · POLİTİKA İZİN VER · topoloji GEÇTİ · özet-imza 2762f110c0ef… · y/n/d) ve onaysız çıkıldı; XVerify ve DONE ayrı owner gate'i; capsule DONE bölümünde ayrıntı",
       "updated": "2026-09-03"
     },
     {
@@ -24197,6 +24298,10 @@
         "SKILL-ROUTING-RESIDUAL-MICRO-001",
         "TERMINAL-OPERATOR-SURFACE-CLOSURE-001",
         "DEP-SUPPLY-DEFENSE-001",
+        "USAGE-PROVIDER-NEUTRAL-001",
+        "TERMINAL-MASCOT-STATUS-001",
+        "TERMINAL-STARTUP-PERF-001",
+        "SYNC-PROVENANCE-TRUTH-001",
         "A2A-INTEROP-001",
         "SKILLMD-V3-RECONCILIATION-001",
         "AGENT-RUNTIME-ADAPTER-001",
@@ -24255,6 +24360,10 @@
         "SKILL-ROUTING-RESIDUAL-MICRO-001",
         "TERMINAL-OPERATOR-SURFACE-CLOSURE-001",
         "DEP-SUPPLY-DEFENSE-001",
+        "USAGE-PROVIDER-NEUTRAL-001",
+        "TERMINAL-MASCOT-STATUS-001",
+        "TERMINAL-STARTUP-PERF-001",
+        "SYNC-PROVENANCE-TRUTH-001",
         "A2A-INTEROP-001",
         "SKILLMD-V3-RECONCILIATION-001",
         "AGENT-RUNTIME-ADAPTER-001",
@@ -25206,8 +25315,8 @@
       "closureBlockedBy": [],
       "evidenceReceipts": [],
       "acceptance": "`deckent_propose_run` native REPL'de gerçek plan-önizleme üretir: run-flow proposeRun yolu spawn.ts'in mevcut lazy-`bootstrapProviders` pattern'iyle (idempotent) registry'yi doldurur — `ProviderNotFoundError: claude` sınıfı ölür; targeted test (empty-registry → bootstrap → plan) + gerçek-binary native kanıt; İKİNCİ BULGU: native session budget tükendiğinde oturum kalıcı ölü-döngüye düşmez ('[Oturum süre bütçesi tükendi.]' + 0.0s her turda) — typed tükeniş sinyali BİR kez, sonrası epoch-renewal/checkpoint teklifi veya dürüst kapanış; wallTime/token session budget'ları da owner kısıt-gevşetme direktifine göre config'te yükseltilir",
-      "evidence": "Owner admission (Alperen 2026-08-18, Qwen 3.8 canlı-tur kanıt zinciri): kök neden native-tool-registry.ts:588 → run-flow-plan-service.ts:627 → run-proposal-compiler.ts:353/170 → planner.ts:641 → provider.ts:394; her entry point (do.ts:238, mcp plan/start, spawn.ts:399, serve.ts:141) bootstrap ederken YALNIZ native REPL yolu etmiyor; owner seçimi '3 — ikisi birlikte' (bootstrap fix + iş aynı run'da); öncelik: 7081 landing'inden hemen SONRA, 7082'den önce SPRINT-557 LANDED (3/3 tier-doğru dogfood — 001 session-renewal=sol DONE · 002 REPL-yüzeyi=opus GO_WITH_TECH_DEBT (slash-katalog keşfedilebilirliği Brain el-kapaması) · 003 bootstrap=sonnet DONE; İLK TAM SELF-SETTLING RUN: detached child 3/3'ü settle edip kendisi arşivledi — 556 finalize-truth fix'inin canlı meyvesi, el-settlement gerekmedi; 2026-08-18): (1) session budget-tükeniş doğruluğu: terminal `native-budget.*` kodu session'ı typed exhausted state'e alır; tükenmiş send() adapter'ı HİÇ çağırmadan tek `session-budget-exhausted` event verir (0.0s ölü-döngü sınıfı ölür) · `renewBudgetEpoch()` yalnız working sayaçları tazeler — billing/usage/cost/audit BYTE-untouched (testle + dist-smoke ile pinli: turn1 ok → turn2 exhausted/adapter-çağrısız → renew epoch-2 → turn3 normal) · (2) REPL yüzeyi: tükeniş başına TEK i18n teklif satırı (en+tr) + `/renew` slash'ı (native-only; legacy'de dürüst not-available; katalog girdisi el-kapamada) · (3) `deckent_propose_run` lazy-idempotent `bootstrapProviders` (spawn.ts pattern'i birebir; boş-registry gate'li) — dist-smoke: registry 0→5, proposeRun'a ulaşıldı, ProviderNotFoundError sınıfı native yolda ÖLDÜ. ÖN-HAZIRLIK (owner kısıt-gevşetme): config `execution_budget.native_agent` 45dk→6saat / 2M→20M token / 120→400 round / 400→1200 tool-call (resolver'dan dist-smoke kanıtlı). Kanıt: 435 scoped test + tsc 0 + build yeşil + gates exit 0 + iki dist-smoke. BULGULAR: self-settling run coordinator pid/authority kaydını emekli etmiyor (stale-pid clean-gate HOLD'u; kill-0 kanıtıyla arşivlendi) · xverify twin'leri settle olsa da invocations.db receipt'i yazılmıyor (clean-gate NO_TASK_RECEIPT artığı — 7081-residual'a ek). KALAN: senin canlı PTY deneme turun (propose_run + 50+ tool-call + /renew akışı artık hazır) POST-LANDING SOL XVERIFY: CONFIRMED — receipt `cross-verify-verdict:sha256:b33c31e47f81a849977baaa3812f4e5dd39fdece122fd0249b3d0b46780944a6` (renewal çekirdek iddiası; dar-kanıt disiplini keşiften beri 2/2 CONFIRMED)",
-      "updated": "2026-08-18"
+      "evidence": "Owner admission (Alperen 2026-08-18, Qwen 3.8 canlı-tur kanıt zinciri): kök neden native-tool-registry.ts:588 → run-flow-plan-service.ts:627 → run-proposal-compiler.ts:353/170 → planner.ts:641 → provider.ts:394; her entry point (do.ts:238, mcp plan/start, spawn.ts:399, serve.ts:141) bootstrap ederken YALNIZ native REPL yolu etmiyor; owner seçimi '3 — ikisi birlikte' (bootstrap fix + iş aynı run'da); öncelik: 7081 landing'inden hemen SONRA, 7082'den önce SPRINT-557 LANDED (3/3 tier-doğru dogfood — 001 session-renewal=sol DONE · 002 REPL-yüzeyi=opus GO_WITH_TECH_DEBT (slash-katalog keşfedilebilirliği Brain el-kapaması) · 003 bootstrap=sonnet DONE; İLK TAM SELF-SETTLING RUN: detached child 3/3'ü settle edip kendisi arşivledi — 556 finalize-truth fix'inin canlı meyvesi, el-settlement gerekmedi; 2026-08-18): (1) session budget-tükeniş doğruluğu: terminal `native-budget.*` kodu session'ı typed exhausted state'e alır; tükenmiş send() adapter'ı HİÇ çağırmadan tek `session-budget-exhausted` event verir (0.0s ölü-döngü sınıfı ölür) · `renewBudgetEpoch()` yalnız working sayaçları tazeler — billing/usage/cost/audit BYTE-untouched (testle + dist-smoke ile pinli: turn1 ok → turn2 exhausted/adapter-çağrısız → renew epoch-2 → turn3 normal) · (2) REPL yüzeyi: tükeniş başına TEK i18n teklif satırı (en+tr) + `/renew` slash'ı (native-only; legacy'de dürüst not-available; katalog girdisi el-kapamada) · (3) `deckent_propose_run` lazy-idempotent `bootstrapProviders` (spawn.ts pattern'i birebir; boş-registry gate'li) — dist-smoke: registry 0→5, proposeRun'a ulaşıldı, ProviderNotFoundError sınıfı native yolda ÖLDÜ. ÖN-HAZIRLIK (owner kısıt-gevşetme): config `execution_budget.native_agent` 45dk→6saat / 2M→20M token / 120→400 round / 400→1200 tool-call (resolver'dan dist-smoke kanıtlı). Kanıt: 435 scoped test + tsc 0 + build yeşil + gates exit 0 + iki dist-smoke. BULGULAR: self-settling run coordinator pid/authority kaydını emekli etmiyor (stale-pid clean-gate HOLD'u; kill-0 kanıtıyla arşivlendi) · xverify twin'leri settle olsa da invocations.db receipt'i yazılmıyor (clean-gate NO_TASK_RECEIPT artığı — 7081-residual'a ek). KALAN: senin canlı PTY deneme turun (propose_run + 50+ tool-call + /renew akışı artık hazır) POST-LANDING SOL XVERIFY: CONFIRMED — receipt `cross-verify-verdict:sha256:b33c31e47f81a849977baaa3812f4e5dd39fdece122fd0249b3d0b46780944a6` (renewal çekirdek iddiası; dar-kanıt disiplini keşiften beri 2/2 CONFIRMED) · **2026-09-04:** birinci bulgunun slash-ingress kalıntısı (`/do` → controller.proposeRun boş registry) 3331 RECOVERY-BORN-NATIVE-DO-SLASH-PROVIDER-BOOTSTRAP-001 ile kapandı (tek seam provider-bootstrap.ts); bu satır ikinci bulgu (session budget dead-end) için OPEN kalır",
+      "updated": "2026-09-03"
     },
     {
       "order": 7084,
@@ -25414,8 +25523,8 @@
       ],
       "evidenceReceipts": [],
       "acceptance": "(1) Ledger: her turn delta-mesajlar+model+provider-reported usage tek JSONL satırı (0600); reader re-hydrate + session listesi; canonical proje-slug tek helper (paralel türetim ölür). (2) Native `/resume` transcript'i GERÇEKTEN re-hydrate eder (bugün yalnız pointer değişiyor) — ledger birincil, legacy memory.db chat dual-read fallback. (3) Karatahta: scratch-checkpoint kökü `$TMPDIR/deckent/<slug>/<session>/scratchpad/` altına taşınır, composeSystemPrompt'a scratchDir enjekte, 10-dk keep-for-recovery KORUNUR ama gerçek reaper alır (bugün hiç silinmiyor); tool-content store teardown kazanır. (4) traces O(n²) tam-transcript kopyası ölür (~200MB kanıtlı). (5) `cleanup --tmp`: bilinen-önek + yaş-eşikli güvenli litter süpürme (i18n en+tr). Hermetik testler + battery; hiçbir path/pencere literal'i koda gömülmez (constants/config-resolved)",
-      "evidence": "Owner admission 2026-08-18 (onaylı mimari + 'onaylandı. başla.' sıra-2; CC/Codex nasıl yönetiyorsa aynısı, ekstra yük yok). Ölçüm kanıtları: CC 437MB projects + Codex 2.4GB sessions emsal; /tmp'de 1508 deckent-* (1489 test-artığı; 19 üretim sızıntısı = 12 scratch-checkpoint keep-for-recovery-no-reap + 7 tool-content teardown'sız); turn-başı token bugün diske YAZILMIYOR (bridge onTurnEnd↔recordTurn yan yana ama bağlantısız); native /resume re-hydrate etmiyor (yalnız activeSessionIdRef); traces tek dosya 3.5MB×O(n²), dizin ~200MB; üç uyumsuz proje-slug türetimi tespitli. **LANDED 2026-08-19 (1)-(4):** sprint-564 dürüst ABORTED (3/5 DONE; 004-lineage 3× dürüst NO_GO — fix-scope-inheritance 2. canlı vaka; 005 bloke) + ADR-D-007 el-kapama: bridge `hydrateTranscript` `nextTurnIndex` devamlılığı (ilk post-resume turn ledger turnCount'tan devam, regresyon `[0,5,6,7]`) + ContentWriter tek-namespace üretim wiring'i (run.tsx tek store → registry shared-dispatcher + createAgentSession teardown; kanıt: 147 scoped yeşil + gerçek-dist smoke: spill `tool-content/<sha>.bin` 0700 → close süpürür). Kurtarma-onarımı (ADR-D-007): fix-fix `.result` corrupt-JSON (notes içinde ham newline + escape'siz gömülü JSON) YALNIZ-encoding onarıldı (içerik/NO_GO verbatim; forensik yedek scratchpad) + scoped 2 dosya spawn-baseline blob-restore → attribution VERIFIED filesChanged=[] (sıfır-iş dürüst, el-işi worker'a atfedilmedi) → `finalize --force` ABORTED-terminal. Yeni defekt bulguları (owner-admission bekler): worker-result JSON-encoding gate'i YOK · exit-0+corrupt-result kör noktası (onarım dalı yalnız exit≠0, spawn-backend-docker.ts:7187) · xverify CONFIRMED-koşu stub'ı PENDING+NO_TASK_RECEIPT kalıyor → clean-gate/build kilidi (kısır-döngü sınıfı) · finalize task-dosyası statülerini terminal'e yazmıyor (cleanup'a kadar clean-gate HOLD) · landing-proposal tüketim yüzeyi yok · `review` ACTIVE-run \"Invalid Docker result settlement reference\" crash · scheduler continuous-idle (Paused task cascadeSkip'siz). Landed-verify (Sol, gpt-5.6-sol, 2026-08-19): 4/4 CONFIRMED/allow — A bridge-nextTurnIndex `cross-verify-verdict:sha256:…22fedf25` · Bi registry-contentStore `…ce77ed9d` · Bii bridge-contentStore `…f44f5e03` · Biii run.tsx-tek-değişken `…7b7c601502`; dürüst kayıt: bileşik-B 2× UNCLEAR/hold (`…baba4c45`, `…5fcb6f9`) + kelime-hatası 1× (`…8e7979a` — \"verbatim\" kod gerçeğinden sapıyordu) → ders: nokta-iddia bölmesi + kod-birebir kelime. Kalan: (5) `cleanup --tmp` + i18n + battery = 005-residual (sıradaki dogfood paketi)",
-      "updated": "2026-08-19"
+      "evidence": "Owner admission 2026-08-18 (onaylı mimari + 'onaylandı. başla.' sıra-2; CC/Codex nasıl yönetiyorsa aynısı, ekstra yük yok). Ölçüm kanıtları: CC 437MB projects + Codex 2.4GB sessions emsal; /tmp'de 1508 deckent-* (1489 test-artığı; 19 üretim sızıntısı = 12 scratch-checkpoint keep-for-recovery-no-reap + 7 tool-content teardown'sız); turn-başı token bugün diske YAZILMIYOR (bridge onTurnEnd↔recordTurn yan yana ama bağlantısız); native /resume re-hydrate etmiyor (yalnız activeSessionIdRef); traces tek dosya 3.5MB×O(n²), dizin ~200MB; üç uyumsuz proje-slug türetimi tespitli. **LANDED 2026-08-19 (1)-(4):** sprint-564 dürüst ABORTED (3/5 DONE; 004-lineage 3× dürüst NO_GO — fix-scope-inheritance 2. canlı vaka; 005 bloke) + ADR-D-007 el-kapama: bridge `hydrateTranscript` `nextTurnIndex` devamlılığı (ilk post-resume turn ledger turnCount'tan devam, regresyon `[0,5,6,7]`) + ContentWriter tek-namespace üretim wiring'i (run.tsx tek store → registry shared-dispatcher + createAgentSession teardown; kanıt: 147 scoped yeşil + gerçek-dist smoke: spill `tool-content/<sha>.bin` 0700 → close süpürür). Kurtarma-onarımı (ADR-D-007): fix-fix `.result` corrupt-JSON (notes içinde ham newline + escape'siz gömülü JSON) YALNIZ-encoding onarıldı (içerik/NO_GO verbatim; forensik yedek scratchpad) + scoped 2 dosya spawn-baseline blob-restore → attribution VERIFIED filesChanged=[] (sıfır-iş dürüst, el-işi worker'a atfedilmedi) → `finalize --force` ABORTED-terminal. Yeni defekt bulguları (owner-admission bekler): worker-result JSON-encoding gate'i YOK · exit-0+corrupt-result kör noktası (onarım dalı yalnız exit≠0, spawn-backend-docker.ts:7187) · xverify CONFIRMED-koşu stub'ı PENDING+NO_TASK_RECEIPT kalıyor → clean-gate/build kilidi (kısır-döngü sınıfı) · finalize task-dosyası statülerini terminal'e yazmıyor (cleanup'a kadar clean-gate HOLD) · landing-proposal tüketim yüzeyi yok · `review` ACTIVE-run \"Invalid Docker result settlement reference\" crash · scheduler continuous-idle (Paused task cascadeSkip'siz). Landed-verify (Sol, gpt-5.6-sol, 2026-08-19): 4/4 CONFIRMED/allow — A bridge-nextTurnIndex `cross-verify-verdict:sha256:…22fedf25` · Bi registry-contentStore `…ce77ed9d` · Bii bridge-contentStore `…f44f5e03` · Biii run.tsx-tek-değişken `…7b7c601502`; dürüst kayıt: bileşik-B 2× UNCLEAR/hold (`…baba4c45`, `…5fcb6f9`) + kelime-hatası 1× (`…8e7979a` — \"verbatim\" kod gerçeğinden sapıyordu) → ders: nokta-iddia bölmesi + kod-birebir kelime. Kalan: (5) `cleanup --tmp` + i18n + battery = 005-residual (sıradaki dogfood paketi) · **Owner amendment 2026-09-04 (terminal audit, owner-live-2026-09-04-terminal-audit-closure-v2):** (3) checkpoint payload kökü kalıcı `.deckent/runtime/sessions/<id>/checkpoints` (gitignored, retention config-resolved) olur, `$TMPDIR` yalnız scratch/litter içindir — WSL reboot volatilitesi biter; (6) ledger listeleme oku-sonra-kes yerine mtime-sırala-sonra-N-oku (session-ledger.ts:261, run-completion-watch.ts:228, run-flow-inbox.ts:118) — binlerce oturumda O(N) boot/resume; 7099 v2 hat-4/5 bu satıra dependency-bound",
+      "updated": "2026-09-03"
     },
     {
       "order": 7090,
@@ -25657,7 +25766,12 @@
       "dependsOn": [
         "MODEL-ACTIVATION-001"
       ],
-      "dependents": [],
+      "dependents": [
+        "SYNC-PROVENANCE-TRUTH-001",
+        "TERMINAL-MASCOT-STATUS-001",
+        "TERMINAL-STARTUP-PERF-001",
+        "USAGE-PROVIDER-NEUTRAL-001"
+      ],
       "children": [],
       "gates": [
         "G1",
@@ -25680,7 +25794,7 @@
       ],
       "evidenceReceipts": [],
       "acceptance": "Linux/WSL2 gerçek binary'de picker, slash/help, approval, posture, readability, provider/model vocabulary, session authority, pipe/readline ve i18n yüzeyleri aynı canonical application-service/config authority'sini tüketir; `claude-fable-5-1` registry→activation→provider argv→worker image→cross-provider XVerify settlement zincirinde exact kimlikle korunur; mock/test tek başına kapanış değildir; macOS, Windows-native ve SSH/tmux yalnız gerçek host kanıtıyla kapanabilir",
-      "evidence": "`historical-authority=owner-live-2026-09-03-terminal-closure;historical-gates=G1,G2;proof=main-67a734c87-xv-cd8236e8-65b5774b-54744c0f-4d39cf2c-ce640622`; Main landing `67a734c87`; lane source chain `26f8f8e99..f147f4e7f`; Linux/WSL2 targeted terminal battery `270 files / 3925 tests`; Fable surface battery `15 files / 368 tests`; inactive and unreadable-authority native binary proofs both stop before provider with typed/localized exit 1; task/XVerify project authority claim `CONFIRMED/ALLOW`, provider usage `22071`, terminal Docker settlement, `receipt=cross-verify-verdict:sha256:54744c0f5088462f78d1a48467c83372e7cb6d7e049eb46c028401ae25fb894d`; cross-ingress corrupt-authority claim `CONFIRMED/ALLOW`, provider usage `24589`, terminal Docker settlement, `receipt=cross-verify-verdict:sha256:4d39cf2cb0a78a1df4bf11a4da7643fe9892e2f324497676cfbbc0a308df61f0`; final strict/race-safe resolver claim `CONFIRMED/ALLOW`, provider usage `19455`, terminal Docker settlement, `receipt=cross-verify-verdict:sha256:ce64062285f89b4a620e80f3e1d5b4e0e2b8124ca2486063606f6e93d37b3736`; exact Fable XVerify `CONFIRMED/ALLOW`, provider-reported usage `29793`, terminal Docker settlement, `receipt=cross-verify-verdict:sha256:cd8236e86091af95148e1da2bacfe83ea6d5587c748e8121c179d817902aa3cd`; picker-card bounded source claim `CONFIRMED/ALLOW`, provider usage `17850`, Docker settlement, `receipt=cross-verify-verdict:sha256:65b5774bd9fd2f463b20f4875f97c8e49b43c6568b83f6746bbe49384111a4a4`; Native Terminal geniş/hassas XVerify denemeleri provider cevabı/evidence-map şema bütünlüğünde `HOLD` kaldı ve kapanış kanıtı sayılmadı; worker image Claude Code 2.1.259 proof; full-suite landing ölçümü `2940 files: 2791 pass / 142 fail / 7 skip`, kırmızılar pre-existing sınıfında ve bu satır için başarı kanıtı sayılmaz; açık platform HOLD: macOS/Windows-native/SSH-tmux; Closure OS authenticated disposition bu VERIFY satırından ayrı authority'dir ve elle üretilmez",
+      "evidence": "`historical-authority=owner-live-2026-09-03-terminal-closure;historical-gates=G1,G2;proof=main-67a734c87-xv-cd8236e8-65b5774b-54744c0f-4d39cf2c-ce640622`; Main landing `67a734c87`; lane source chain `26f8f8e99..f147f4e7f`; Linux/WSL2 targeted terminal battery `270 files / 3925 tests`; Fable surface battery `15 files / 368 tests`; inactive and unreadable-authority native binary proofs both stop before provider with typed/localized exit 1; task/XVerify project authority claim `CONFIRMED/ALLOW`, provider usage `22071`, terminal Docker settlement, `receipt=cross-verify-verdict:sha256:54744c0f5088462f78d1a48467c83372e7cb6d7e049eb46c028401ae25fb894d`; cross-ingress corrupt-authority claim `CONFIRMED/ALLOW`, provider usage `24589`, terminal Docker settlement, `receipt=cross-verify-verdict:sha256:4d39cf2cb0a78a1df4bf11a4da7643fe9892e2f324497676cfbbc0a308df61f0`; final strict/race-safe resolver claim `CONFIRMED/ALLOW`, provider usage `19455`, terminal Docker settlement, `receipt=cross-verify-verdict:sha256:ce64062285f89b4a620e80f3e1d5b4e0e2b8124ca2486063606f6e93d37b3736`; exact Fable XVerify `CONFIRMED/ALLOW`, provider-reported usage `29793`, terminal Docker settlement, `receipt=cross-verify-verdict:sha256:cd8236e86091af95148e1da2bacfe83ea6d5587c748e8121c179d817902aa3cd`; picker-card bounded source claim `CONFIRMED/ALLOW`, provider usage `17850`, Docker settlement, `receipt=cross-verify-verdict:sha256:65b5774bd9fd2f463b20f4875f97c8e49b43c6568b83f6746bbe49384111a4a4`; Native Terminal geniş/hassas XVerify denemeleri provider cevabı/evidence-map şema bütünlüğünde `HOLD` kaldı ve kapanış kanıtı sayılmadı; worker image Claude Code 2.1.259 proof; full-suite landing ölçümü `2940 files: 2791 pass / 142 fail / 7 skip`, kırmızılar pre-existing sınıfında ve bu satır için başarı kanıtı sayılmaz; açık platform HOLD: macOS/Windows-native/SSH-tmux; Closure OS authenticated disposition bu VERIFY satırından ayrı authority'dir ve elle üretilmez; **v2 kapanış paketi owner-admitted 2026-09-04** (`owner-live-2026-09-04-terminal-audit-closure-v2`, 32 bulgu, 20 BLOCKS_CURRENT_DONE): 6 hat — (1) provider kimliği native_provider + erişilebilirlik kapısı, başlık/altbilgi tek çözücü, `health.auth` etiketi, probe timeout, chat_provider deprecate+migrasyon, receipt yetki tutarlılığı · (2) slash sözleşmesi: zorunlu argüman, deprecated filtresi, köprü spawn'ına dil aktarımı (7085 bağlı), /queue /interrupt /steer kaydı · (3) köprü renderer: --json → kart/picker (doctor, history, agents, skills, models aktif-set + --json, sync özet, audit picker + verdict), /mcp gerçek dispatcher, tüm onaylar tek kart ailesi · (4) canlı durum: başlık Ink içinde ve reaktif, oturum kimliği atılamaz, turn içi araç adı/süre/token/bağlam %, typed hata satırı + sonraki eylem, sprint satırı gerçek rehydrate (7089 bağlı), temiz açılış + `terminal.startup.recent_sessions` · (5) checkpoint: yanlış corrupt etiketi, neden kaydı, fence onarımı, `.deckent/runtime/sessions/<id>/checkpoints`, başarısız sıkıştırmada fatura yok (7086/7089 bağlı) · (6) config/i18n/a11y kapıları: repl_surface alan-bazlı default, lint kapsamı repl+tsx, ~54 literal, verdict metin taşıyıcı, ASCII/reduced-motion, genişlik birliği, Ctrl+C/Esc, debug log redaksiyonu, `--version` pipe-güvenli; platform kanıtı Linux+WSL+Windows-native (macOS/SSH HOLD sürer); önkoşul RECOVERY-BORN-NATIVE-DO-SLASH-PROVIDER-BOOTSTRAP-001; capsule `docs/execution/active/TERMINAL-OPERATOR-SURFACE-CLOSURE-001.md`",
       "updated": "2026-09-03"
     },
     {
@@ -25714,6 +25828,150 @@
       "acceptance": "Owner değerlendirmesi: kapsam ve tasarım kararı verilir; kabul kriterleri, platform matrisi ve enforcement modu (advisory/enforce) değerlendirme sonucunda tiplenir; karar redde de çıkabilir",
       "evidence": "Açılış: Alperen 2026-08-04 talebi (\"değerlendirilecek madde\"). Tetikleyici: 2026-08-04 \"Shai-Hulud: Here We Go Again\" npm worm'u — keyv@6.0.0 başlangıç, ~1.684 zehirli versiyon/420 paket adı, preinstall `setup.mjs` + Bun-derlenmiş payload, repo'lara `.claude/settings.json` SessionStart ve `.vscode/tasks.json` folderOpen hook'ları, `gh-token-monitor` persistence ve dead-man's-switch token izleyicisi. Bu repo aynı gün denetlendi ve TEMİZ: hiçbir lockfile'da etkilenen versiyon yok (desktop `keyv@4.5.4` integrity-pinli, saldırı öncesi sürüm), IOC dosyası/persistence/editör-hook izi yok, o gün install koşmadı. Değerlendirme sorusu (Dual-Lens): deckent worker'ları kullanıcı projelerinde bağımlılık kurabildiği için bu savunma katmanı hem dogfood hem son-kullanıcı ürünü olarak hangi kapsamda inşa edilmeli. Kaynaklar: safedep.io/keyv-npm-supply-chain-compromise, thehackernews.com/2026/08/keyv-linked-npm-worm-poisons-hundreds.html. 2026-08-11: onaylı değerlendirme follow-up-works/dep-supply-defense-2026-08-11.md bu satıra bağlandı (ORPHAN'dı, SSOT §1 gereği). Doküman evaluation-only sınıfındadır ve hiçbir runtime/CI/dependency değişikliği yetkilendirmez; Dependency Execution Broker'ı worker (tenant/project ingress: npm ci project-controlled manifest'e karşı) ve CI (Deckent release ingress) olmak üzere iki trust domain'inde staged artı fail-closed öneriyor, Phase 0'ı machine-derived kanıt üretimi olarak tiplemiş ve global ignore-scripts'i nihai tasarım olarak REDDEDİYOR (native/build-time paketlerin meşru script'leri sınıflandırılıp bilinçli admit edilmeli). Bağlı açık envanter boşlukları: DOCS-DEPS-HOME ve nested docs npm project'in ownership/install policy'si. Bu kanıt bir tasarım yönü kanıtlar, hiçbir enforcement'ın var olduğunu kanıtlamaz; ADR-D-005 bugün npm audit'i advisory/continue-on-error bırakıyor 2026-08-11 owner kararları: Phase 0 GO — receipt-only install-ingress census, unknown-ingress typed açık sınıf olarak kalır, closed-world iddiası yasak (sprint-522 task 12: scripts/audit-install-ingress.mjs landed); acil CI hygiene dilimi onaylı — 3 ölçülü fail-open install continuation kaldırıldı + floating npx yasağı, kurulan paket seti değişmedi (sprint-522 task 13 DONE, git-blame kök-nedenli); Phase 1 kabul şartı: bağımsız-pinned broker ilk yönetilen install'dan ÖNCE devrede + observe/warn döneminde bile secretless default-deny network install lane",
       "updated": "2026-08-11"
+    },
+    {
+      "order": 7101,
+      "id": "USAGE-PROVIDER-NEUTRAL-001",
+      "parent": "ECOSYSTEM-001",
+      "program": "COST",
+      "outcome": "`/usage` ve `deckent usage` provider-neutral gözlem deposundan (provider-execution-observation-store) beslenir; Claude Code transkripti yalnız host-usage alt-görünümüdür (owner karar 2026-09-04)",
+      "priority": "P1",
+      "dependsOn": [
+        "TERMINAL-OPERATOR-SURFACE-CLOSURE-001"
+      ],
+      "dependents": [],
+      "children": [],
+      "gates": [
+        "G1",
+        "G2"
+      ],
+      "state": "OPEN",
+      "truth": {
+        "C": "1",
+        "W": "0",
+        "E": "0",
+        "H": "?",
+        "L": "0",
+        "X": "?",
+        "S": "?"
+      },
+      "blockerCode": null,
+      "blockerRemedy": null,
+      "closureBlockedBy": [
+        "TERMINAL-OPERATOR-SURFACE-CLOSURE-001"
+      ],
+      "evidenceReceipts": [],
+      "acceptance": "Tüm kayıtlı sağlayıcılar sağlayıcı-etiketli satırlarla tek tabloda; limit-eşdeğeri ile gerçek faturalanan USD ayrı sütunlarda; isabet oranı bir ondalıkla; transkript kaynağı yalnız `--source host` alt-görünümü; sayı/etiket i18n en+tr; hermetik test + gerçek binary kanıtı",
+      "evidence": "Owner admission 2026-09-04 (terminal audit bulgu 9): limit-ledger.ts:96 yalnız `~/.claude/projects/**/*.jsonl` okur, codex/cursor/local-llm yapısal olarak görünmez; usage.ts:127 yuvarlama her satırda %100; 'Limit $' etiketi messages.ts:5153",
+      "updated": "2026-09-03"
+    },
+    {
+      "order": 7102,
+      "id": "TERMINAL-MASCOT-STATUS-001",
+      "parent": "ECOSYSTEM-001",
+      "program": "TERMINAL",
+      "outcome": "Maskot decke: 5 durumlu mini Kraken + canlı durum satırı birleşimi (owner yön A, 2026-09-04); önce ADR-G-010 amendment 'maskot = durum taşıyıcı', sonra `terminal.mascot` flag-gated uygulama",
+      "priority": "P1",
+      "dependsOn": [
+        "TERMINAL-OPERATOR-SURFACE-CLOSURE-001"
+      ],
+      "dependents": [],
+      "children": [],
+      "gates": [
+        "G1",
+        "G2"
+      ],
+      "state": "OPEN",
+      "truth": {
+        "C": "1",
+        "W": "0",
+        "E": "0",
+        "H": "?",
+        "L": "0",
+        "X": "?",
+        "S": "?"
+      },
+      "blockerCode": null,
+      "blockerRemedy": null,
+      "closureBlockedBy": [
+        "TERMINAL-OPERATOR-SURFACE-CLOSURE-001"
+      ],
+      "evidenceReceipts": [],
+      "acceptance": "ADR-G-010 amendment kabul edilir; 2 satırlık bounded Ink bölgesi; 5 kare = boşta / düşünüyor / araç çalışıyor / onay bekliyor / hata, her kare metin taşıyıcıyla (araç adı, süre, token, bağlam %); reduced-motion tek kare; ASCII fallback; NO_COLOR renksiz; `terminal.mascot` önce flag-gated, doğrulama sonra default; deckent-design-critic PASS; Linux+WSL+Windows-native gerçek binary",
+      "evidence": "Owner decision 2026-09-04 (A seçildi); çelişki kaydı: ADR-G-010 Kraken zorunlu (splash.ts:4) vs DECKENT-TERMINAL-SINGLE-SURFACE.md:185 dekoratif spinner/emoji reddi — amendment ile uzlaşır",
+      "updated": "2026-09-03"
+    },
+    {
+      "order": 7103,
+      "id": "TERMINAL-STARTUP-PERF-001",
+      "parent": "ECOSYSTEM-001",
+      "program": "TERMINAL",
+      "outcome": "Native terminal ilk boyama maliyeti: modül-kapsamı worktree binary authority hash'i, çift MemoryStore açılışı, üçlü loadConfig ve await'li auth probe kaldırılır veya ertelenir",
+      "priority": "P1",
+      "dependsOn": [
+        "TERMINAL-OPERATOR-SURFACE-CLOSURE-001"
+      ],
+      "dependents": [],
+      "children": [],
+      "gates": [
+        "G1",
+        "G2"
+      ],
+      "state": "OPEN",
+      "truth": {
+        "C": "1",
+        "W": "0",
+        "E": "0",
+        "H": "?",
+        "L": "0",
+        "X": "?",
+        "S": "?"
+      },
+      "blockerCode": null,
+      "blockerRemedy": null,
+      "closureBlockedBy": [
+        "TERMINAL-OPERATOR-SURFACE-CLOSURE-001"
+      ],
+      "evidenceReceipts": [],
+      "acceptance": "REPL boot'ta senkron tam-ağaç hash'i yok (lazy veya HEAD-cache); MemoryStore tek açılış; loadConfig tek okuma; probe'lar ilk boyamayı bloklamaz; ölçülmüş ilk-boyama süresi kanıtla düşer; regresyon testi",
+      "evidence": "Terminal audit 2026-09-04: entry.ts:1332 modül-kapsamı hash (1364 dosya / 21.9 MB), health-snapshot.ts:192 + run.tsx:1202 çift MemoryStore, entry.ts:717 awaited probe",
+      "updated": "2026-09-03"
+    },
+    {
+      "order": 7104,
+      "id": "SYNC-PROVENANCE-TRUTH-001",
+      "parent": "ECOSYSTEM-001",
+      "program": "TRUTH",
+      "outcome": "`deckent sync` ve `/sync` özeti: 'önceki sync imzası yok' ile gerçek 3-yollu çakışma ayrışır; aggregate özet export edilir ve REPL kartında gösterilir",
+      "priority": "P1",
+      "dependsOn": [
+        "TERMINAL-OPERATOR-SURFACE-CLOSURE-001"
+      ],
+      "dependents": [],
+      "children": [],
+      "gates": [
+        "G1",
+        "G2"
+      ],
+      "state": "OPEN",
+      "truth": {
+        "C": "1",
+        "W": "0",
+        "E": "0",
+        "H": "?",
+        "L": "0",
+        "X": "?",
+        "S": "?"
+      },
+      "blockerCode": null,
+      "blockerRemedy": null,
+      "closureBlockedBy": [
+        "TERMINAL-OPERATOR-SURFACE-CLOSURE-001"
+      ],
+      "evidenceReceipts": [],
+      "acceptance": "sync.ts aggregate özeti export edilir ve `--json` tek kaynaktır; missing-baseline uyarıları tek satır sayıya iner, gerçek çakışmalar listelenir; REPL `/sync` kartı N adapter / N skill / N commit özetini gösterir; hermetik test; i18n en+tr",
+      "evidence": "Terminal audit 2026-09-04 (bulgu 14): sync.ts:763 unexported aggregate, agent-prompt-sync.ts:239 ve agent-manifest-sync.ts:234 baseline-yok dalı gerçek çakışmayla aynı görünüyor",
+      "updated": "2026-09-03"
     },
     {
       "order": 7110,
@@ -28772,6 +29030,6 @@
   ],
   "registryIntegrity": {
     "algorithm": "sha256(canonical-json-utf8)",
-    "value": "9c2bebd96adb6ed140d026d2a03319b7d4661aead4138079c82523fae6e8744c"
+    "value": "2e5f27cc42368bbe441ae85271de8fd501ad31429f5c29b9c1952a7cdf8d1f58"
   }
 }

@@ -6390,6 +6390,10 @@ const BASE_MESSAGES: MessageMap = {
     en: 'usage: /do <goal> — describe what to plan and run (e.g. /do add a health endpoint).',
     tr: 'kullanım: /do <hedef> — planlanıp çalıştırılacak işi yazın (örn. /do sağlık ucu ekle).',
   },
+  'do.slash_no_providers': {
+    en: '/do cannot plan yet: no provider is registered for model {model} (needs provider "{provider}"); registered: {registered}. Check `deckent connect`, then point providers.brain or the active mode\'s brain_model at a reachable provider.',
+    tr: '/do henüz planlayamıyor: {model} modeli için kayıtlı sağlayıcı yok ("{provider}" sağlayıcısı gerekir); kayıtlı: {registered}. `deckent connect` ile durumu görün, sonra providers.brain veya aktif modun brain_model değerini erişilebilir bir sağlayıcıya yöneltin.',
+  },
 
   // ─── `deckent doctor --fix` (keys added by Task 356-015; wired into
   // formatDoctorFixLines() by Task 367-006, closing the standing

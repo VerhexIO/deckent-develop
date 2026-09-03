@@ -17,6 +17,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { wireRunFlowMount, buildDoSlashLabels } from '../../src/cli/repl/run.js';
 import { runReplDoSlash, deriveRunFlowPreview, type ReplDoSlashDeps } from '../../src/cli/repl/app.js';
+import { RunFlowProviderHoldError } from '../../src/cli/repl/run-flow-controller.js';
 import { getMessage } from '../../src/cli/helpers/messages.js';
 import type { RunFlowController, RunFlowControllerDeps } from '../../src/cli/repl/run-flow-controller.js';
 import type { RunFlowContext, PlanPreview } from '../../src/core/run-flow-contract.js';
@@ -237,3 +238,37 @@ describe('runChatNativeLoop — slash command wire (T-221-001)', () => {
     });
 });
 }
+
+// ─── 3331: typed NO_PROVIDERS hold → localized `do.slash_no_providers` line ───
+describe('/do slash wire — typed provider hold (RECOVERY-BORN-NATIVE-DO-SLASH-PROVIDER-BOOTSTRAP-001)', () => {
+  const details = { flowId: 'flow-hold', model: 'fixture-brain-model', provider: 'fixture-provider', registered: ['other-provider'] };
+
+  it.each(['en', 'tr'])('%s: reportError carries the localized template with {model}/{provider}/{registered} filled — never the raw message', async (lang) => {
+    const controller = fakeController({});
+    (controller.proposeRun as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new RunFlowProviderHoldError(details));
+    const sink: Sink = { emitted: [], previews: [], errors: [] };
+
+    await runReplDoSlash('Fixture goal', makeDeps(controller, lang, sink));
+
+    expect(sink.previews).toEqual([]);
+    expect(sink.errors).toEqual([
+      getMessage('do.slash_no_providers', lang, { model: details.model, provider: details.provider, registered: 'other-provider' }),
+    ]);
+    expect(sink.errors[0]).not.toContain('NO_PROVIDERS');
+    expect(getMessage('do.slash_no_providers', 'en')).not.toBe(getMessage('do.slash_no_providers', 'tr'));
+  });
+
+  it('buildDoSlashLabels carries the noProviders template (en/tr pin)', () => {
+    for (const lang of ['en', 'tr']) {
+      expect(buildDoSlashLabels((k) => getMessage(k, lang)).noProviders).toBe(getMessage('do.slash_no_providers', lang));
+    }
+  });
+
+  it('a non-hold controller failure still reports its raw message (unchanged edge)', async () => {
+    const controller = fakeController({});
+    (controller.proposeRun as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('boom'));
+    const sink: Sink = { emitted: [], previews: [], errors: [] };
+    await runReplDoSlash('Fixture goal', makeDeps(controller, 'en', sink));
+    expect(sink.errors).toEqual(['boom']);
+  });
+});

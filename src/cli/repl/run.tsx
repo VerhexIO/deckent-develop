@@ -36,6 +36,7 @@ import { createNativeEngine, resolveCostCeilingUsd, type NativeEngineDeps, type 
 import type { ShortcutsPanel } from './input-bar.js';
 export type { ShortcutsPanel } from './input-bar.js';
 import { createRunFlowController, type RunFlowController, type RunFlowControllerDeps } from './run-flow-controller.js';
+import { ensureProvidersBootstrapped } from './provider-bootstrap.js';
 import { buildPlanPreviewCardLabels } from './plan-preview-card.js';
 import type { RunFlowMountLabels, DoSlashLabels } from './app.js';
 import { renderRunsCommand, buildInboxLabels, collectInboxRows } from './run-flow-inbox.js';
@@ -423,6 +424,7 @@ export function buildDoSlashLabels(t: (key: string) => string): DoSlashLabels {
   return {
     flagOff: t('do.slash_flag_off'),
     usage: t('do.slash_usage'),
+    noProviders: t('do.slash_no_providers'),
   };
 }
 
@@ -900,7 +902,13 @@ export function wireRunFlowMount(
   controllerFactory: typeof createRunFlowController = createRunFlowController,
 ): RunFlowController | undefined {
   if (!enabled) return undefined;
-  return controllerFactory(deps);
+  // 3331: production default for the controller's `ensureProviders` seam — the
+  // ONE lazy provider bootstrap (provider-bootstrap.ts) the `/do` slash path was
+  // missing. An injected seam (tests, alternative hosts) is preserved as-is.
+  const mountDeps: RunFlowControllerDeps = deps.ensureProviders
+    ? deps
+    : { ...deps, ensureProviders: () => ensureProvidersBootstrapped(deps.root, async () => deps.config) };
+  return controllerFactory(mountDeps);
 }
 
 /**

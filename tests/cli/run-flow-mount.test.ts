@@ -235,7 +235,8 @@ describe('wireRunFlowMount', () => {
     const factory = vi.fn(() => controller);
     const result = wireRunFlowMount(true, deps, factory);
     expect(factory).toHaveBeenCalledTimes(1);
-    expect(factory).toHaveBeenCalledWith(deps);
+    // 3331: the mount now adds the production `ensureProviders` seam on top of the caller's deps.
+    expect(factory).toHaveBeenCalledWith({ ...deps, ensureProviders: expect.any(Function) });
     expect(result).toBe(controller);
   });
 });
@@ -349,5 +350,33 @@ describe('createRunFlowController — startApproved() (426-002)', () => {
 
     expect(approved.state).toBe('APPROVED');
     expect(approved.handle).toBeUndefined();
+  });
+});
+
+// ─── 3331: wireRunFlowMount supplies the production `ensureProviders` seam ───
+describe('wireRunFlowMount — ensureProviders default seam (RECOVERY-BORN-NATIVE-DO-SLASH-PROVIDER-BOOTSTRAP-001)', () => {
+  const seamDeps: RunFlowControllerDeps = { root: '/mock/root', config: {} as never };
+  const fakeController = { getContext: () => ({ state: 'COLLECTING' }), proposeRun: vi.fn(), approve: vi.fn(), reject: vi.fn() } as unknown as RunFlowController;
+
+  it('flag-on without a seam → factory receives deps with a callable ensureProviders (the ONE lazy bootstrap)', () => {
+    const factory = vi.fn((() => fakeController) as unknown as typeof createRunFlowController);
+    wireRunFlowMount(true, seamDeps, factory);
+    expect(factory).toHaveBeenCalledTimes(1);
+    const received = factory.mock.calls[0]![0];
+    expect(typeof received.ensureProviders).toBe('function');
+    expect(received.root).toBe('/mock/root');
+  });
+
+  it('flag-on with an injected seam → preserved by reference (tests/hosts stay in control)', () => {
+    const injected = async () => ['fixture-provider'] as const;
+    const factory = vi.fn((() => fakeController) as unknown as typeof createRunFlowController);
+    wireRunFlowMount(true, { ...seamDeps, ensureProviders: injected }, factory);
+    expect(factory.mock.calls[0]![0].ensureProviders).toBe(injected);
+  });
+
+  it('flag-off → factory never invoked, no seam constructed', () => {
+    const factory = vi.fn((() => fakeController) as unknown as typeof createRunFlowController);
+    expect(wireRunFlowMount(false, seamDeps, factory)).toBeUndefined();
+    expect(factory).not.toHaveBeenCalled();
   });
 });

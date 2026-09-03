@@ -63,6 +63,7 @@ import { requireInjectedLabel } from '../helpers/injected-label.js';
 import type { InboxRow, InboxLabels, InboxDecisionVerb } from './run-flow-inbox.js';
 import type { RunFlowContext, PlanPreview } from '../../core/run-flow-contract.js';
 import type { RunFlowController } from './run-flow-controller.js';
+import { RunFlowProviderHoldError, type RunFlowProviderHoldDetails } from './run-flow-controller.js';
 
 export type ConfirmAnswer = 'y' | 'a' | 'n';
 // toolName is optional: the dispatcher passes it so an 'a' (always) decision can
@@ -722,6 +723,20 @@ export function formatRunFlowOutcomeLine(outcome: RunFlowOutcome, labels: RunFlo
 export interface DoSlashLabels {
   flagOff: string;
   usage: string;
+  /** 3331 — typed NO_PROVIDERS hold template ({model} {provider} {registered}). */
+  noProviders: string;
+}
+
+/**
+ * 3331 — localize a {@link RunFlowProviderHoldError} through the injected
+ * `do.slash_no_providers` template (same `.replace('{…}')` precedent as
+ * run.tsx's renew/compact labels). Pure; string-free beyond punctuation.
+ */
+export function formatDoSlashNoProviders(template: string, details: RunFlowProviderHoldDetails): string {
+  return template
+    .replace('{model}', details.model)
+    .replace('{provider}', details.provider ?? '?')
+    .replace('{registered}', details.registered.length > 0 ? details.registered.join(', ') : '—');
 }
 
 /** Dependency-injected effect seam for the REPL `/do <goal>` slash (452-002),
@@ -777,6 +792,10 @@ export async function runReplDoSlash(goal: string, deps: ReplDoSlashDeps): Promi
     const ctx = await deps.controller.proposeRun(trimmed);
     deps.setPreview(deriveRunFlowPreview(ctx));
   } catch (err) {
+    if (err instanceof RunFlowProviderHoldError) {
+      deps.reportError(formatDoSlashNoProviders(deps.labels.noProviders, err.details));
+      return;
+    }
     deps.reportError(err instanceof Error ? err.message : String(err));
   }
 }

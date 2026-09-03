@@ -28,6 +28,7 @@ import {
 } from './cli-bridge-tool-specs.js';
 import type { RunFlowController } from './run-flow-controller.js';
 import { loadConfig } from '../../core/config.js';
+import { ensureProvidersBootstrapped } from './provider-bootstrap.js';
 import type { McpToolDispatcher } from '../commands/chat-native.js';
 import { SkillPoolManager } from '../../core/skill-pool.js';
 import { SkillLoadingCache } from '../../core/skill-cache.js';
@@ -757,29 +758,12 @@ function registerRunFlowProposalTool(registry: ToolRegistry, controller: RunFlow
       if (intentSummary.length === 0) {
         return { ok: false, output: '[mcp-error] deckent_propose_run: intentSummary is required' };
       }
-      // 557-003: lazy, idempotent provider bootstrap — mirrors spawn.ts:397-405's
-      // `if (!adapter)` recovery exactly (dynamic import, loadConfig, best-effort
-      // try/catch that keeps whatever the registry already had and falls through
-      // to the existing honest [mcp-error] path below on fault). Unlike `deckent
-      // run`, this native path never calls bootstrapProviders at all today, so
-      // `controller.proposeRun` silently reached an empty provider registry.
-      // `providerRegistry.listProviders().length === 0` is the cheap outer gate
-      // (spawn.ts's `!adapter` equivalent) — bootstrapProviders is ALSO
-      // internally idempotent per-provider, so this never double-registers; the
-      // gate only avoids the loadConfig + bootstrap work entirely once the
-      // registry is already populated.
-      try {
-        const { providerRegistry, bootstrapProviders } = await import('../../core/provider.js');
-        if (providerRegistry.listProviders().length === 0) {
-          const root = cwd();
-          const cfg = await loadConfig(root);
-          await bootstrapProviders(cfg, root);
-        }
-      } catch {
-        // keep whatever the registry already had — fall through to
-        // controller.proposeRun, whose existing catch below reports the honest
-        // [mcp-error] if providers are still unavailable.
-      }
+      // 557-003 → 3331: the lazy, idempotent provider bootstrap now lives in ONE
+      // seam (provider-bootstrap.ts) shared with the `/do` slash path through the
+      // controller's `ensureProviders` default (run.tsx wireRunFlowMount). Kept on
+      // the tool call too so it stays self-sufficient when a host mounts the
+      // controller without the seam; the gate makes the second call a no-op.
+      await ensureProvidersBootstrapped(cwd(), () => loadConfig(cwd()));
       try {
         const context = await controller.proposeRun(intentSummary);
         return { ok: true, output: JSON.stringify({ state: context.state, preview: context.preview ?? null }) };

@@ -54,11 +54,68 @@ import type {
   SpawnExactProcessResult,
 } from '../../orchestra/exact-plan-start-service.js';
 import { readContext } from '../../orchestra/brain.js';
+import { resolveBrainModel } from '../../core/config.js';
+import { getProviderForModel } from '../../core/task-types.js';
 import { buildFlowStartSpawn } from '../helpers/detached-start.js';
 // TERM5-CTRL (sprint-427, task 5) — the SAME completion-notification shape
 // run.tsx already receives from `createRunCompletionWatch`'s `onComplete`
 // callback (wireBgTurnsProducer, run.tsx) — see applyRunCompletion below.
 import type { RunCompletionInfo } from './run-completion-watch.js';
+
+/**
+ * RECOVERY-BORN-NATIVE-DO-SLASH-PROVIDER-BOOTSTRAP-001 (MASTER 3331) — typed
+ * planner hold: the provider registry does not carry the provider the resolved
+ * brain model implies, even after the `ensureProviders` seam ran. Replaces the
+ * raw `Provider not found: "<provider>"` string that used to escape into the
+ * REPL transcript. `code` is the planner's own `PlannerFailureReason`
+ * vocabulary (`no_providers`, planner.ts) in the run-flow error family; the
+ * message stays machine-shaped — surfaces localize `details` themselves
+ * (app.tsx `formatDoSlashNoProviders`, key `do.slash_no_providers`).
+ */
+export interface RunFlowProviderHoldDetails {
+  flowId: string;
+  /** Brain model resolved from effective config (`resolveBrainModel`). */
+  model: string;
+  /** Provider the model implies (from the planner error, else the registry); null if unknown. */
+  provider: string | null;
+  /** Providers registered when the hold was raised (post-bootstrap). */
+  registered: readonly string[];
+}
+
+export class RunFlowProviderHoldError extends Error {
+  readonly code = 'NO_PROVIDERS' as const;
+  constructor(readonly details: RunFlowProviderHoldDetails, options?: { cause?: unknown }) {
+    super(
+      `run-flow-controller: NO_PROVIDERS — model "${details.model}" resolves to provider ` +
+        `"${details.provider ?? 'unknown'}"; registered providers: [${details.registered.join(', ')}] ` +
+        `(flowId=${details.flowId})`,
+      options,
+    );
+    this.name = 'RunFlowProviderHoldError';
+  }
+}
+
+/** Walk the `cause` chain (bounded) for a ProviderNotFoundError — matched by
+ *  name so this module never statically loads core/provider.js. */
+function findProviderNotFound(err: unknown): { providerName: string | null } | null {
+  let cursor: unknown = err;
+  for (let depth = 0; depth < 8 && cursor && typeof cursor === 'object'; depth++) {
+    const candidate = cursor as { name?: unknown; providerName?: unknown; cause?: unknown };
+    if (candidate.name === 'ProviderNotFoundError') {
+      return { providerName: typeof candidate.providerName === 'string' ? candidate.providerName : null };
+    }
+    cursor = candidate.cause;
+  }
+  return null;
+}
+
+function safeProviderForModel(model: string): string | null {
+  try {
+    return getProviderForModel(model as Parameters<typeof getProviderForModel>[0]);
+  } catch {
+    return null;
+  }
+}
 
 export interface RunFlowControllerDeps {
   /** Project root — threaded straight into readContext()/generatePlanPreview(). */
@@ -68,6 +125,15 @@ export interface RunFlowControllerDeps {
   project?: string;
   actor?: ActorContext;
   origin?: RequestOrigin;
+  /**
+   * 3331 — awaited BEFORE the planner resolves an adapter: the ONE lazy,
+   * idempotent provider bootstrap (provider-bootstrap.ts). Returns the providers
+   * registered afterwards so a residual miss can be reported as a typed
+   * {@link RunFlowProviderHoldError}. run.tsx's `wireRunFlowMount` supplies the
+   * production default; absent (unit tests, legacy callers) → no bootstrap,
+   * `registered` reported as `[]`.
+   */
+  ensureProviders?: () => Promise<readonly string[]>;
   /** Seam for tests — production default is crypto.randomUUID(). */
   generateFlowId?: () => string;
   /** Seam for tests — production default is `() => new Date().toISOString()`. */
@@ -200,6 +266,8 @@ export function createRunFlowController(deps: RunFlowControllerDeps): RunFlowCon
     };
 
     const recommendation = deps.recommendation ?? defaultRecommendation(deps.config);
+    // 3331: bootstrap the provider registry BEFORE planning (see the seam's doc).
+    const registered: readonly string[] = deps.ensureProviders ? await deps.ensureProviders() : [];
     const result = await planRunFlow({
       projectRoot: deps.root,
       config: deps.config,
@@ -223,6 +291,14 @@ export function createRunFlowController(deps: RunFlowControllerDeps): RunFlowCon
       },
       acknowledgeScopePaths: deps.forceScope === true,
       ...(deps.scopeEvidence ? { scopeEvidence: deps.scopeEvidence } : {}),
+    }).catch((err: unknown) => {
+      const notFound = findProviderNotFound(err);
+      if (!notFound) throw err;
+      const model = resolveBrainModel(deps.config);
+      throw new RunFlowProviderHoldError(
+        { flowId, model, provider: notFound.providerName ?? safeProviderForModel(model), registered },
+        { cause: err },
+      );
     });
     context = result.context;
 
