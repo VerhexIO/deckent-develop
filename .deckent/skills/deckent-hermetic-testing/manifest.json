@@ -93,9 +93,9 @@
   },
   "profileProvenance": {
     "origin": "manifest-profile",
-    "derivationVersion": 2,
-    "persistedAt": "2026-08-27T05:08:40.407509Z",
-    "authority": "owner el-fix 2026-08-27 (codex-audit LSR-01: authored builtin profile restored)"
+    "derivationVersion": 3,
+    "persistedAt": "2026-09-03T21:59:12.255Z",
+    "authority": "deckent sync builtin content-hash"
   },
-  "builtinContentHash": "sha256:afacc3e80718cb89a67cf1acbc72f5f8726861fc6028a38a63bc9c792c742728"
+  "builtinContentHash": "sha256:35a000d6ce94560b55f38e9a9429b42b041af20772bcdb752645893e19564a18"
 }

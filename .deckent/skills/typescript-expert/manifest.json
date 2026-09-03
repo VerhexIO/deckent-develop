@@ -79,12 +79,7 @@
         "proficiency": "able"
       }
     ],
-    "domains": [
-      {
-        "id": "*",
-        "proficiency": "able"
-      }
-    ],
+    "domains": [],
     "expertise": [
       "api-builder",
       "database-migration",
@@ -113,9 +108,9 @@
   },
   "profileProvenance": {
     "origin": "derived-profile",
-    "derivationVersion": 2,
-    "persistedAt": "2026-08-27T05:08:31.849Z",
+    "derivationVersion": 3,
+    "persistedAt": "2026-09-03T21:59:12.282Z",
     "authority": "deckent sync builtin content-hash"
   },
-  "builtinContentHash": "sha256:45d18c963eaa6d561e569164b2a0e118718cba85ed8ffabcb8e0623e872ae6b4"
+  "builtinContentHash": "sha256:ba8dd9a68abcd5b46d0930d77fae1e14ea0dd03f63b1806dfad995d6e0722704"
 }

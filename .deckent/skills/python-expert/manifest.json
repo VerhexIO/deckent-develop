@@ -80,10 +80,6 @@
       {
         "id": "test/quality",
         "proficiency": "primary"
-      },
-      {
-        "id": "*",
-        "proficiency": "able"
       }
     ],
     "expertise": [
@@ -114,9 +110,9 @@
   },
   "profileProvenance": {
     "origin": "derived-profile",
-    "derivationVersion": 2,
-    "persistedAt": "2026-08-27T05:08:31.846Z",
+    "derivationVersion": 3,
+    "persistedAt": "2026-09-03T21:59:12.273Z",
     "authority": "deckent sync builtin content-hash"
   },
-  "builtinContentHash": "sha256:60143f6e2311abab78a7dee05784c9660d45a45a79fbdbab95fc075120f8ced3"
+  "builtinContentHash": "sha256:2c7ab3cd2c4ae96401516714af9aad8f39251580fb308c74bd9d2927005c2889"
 }

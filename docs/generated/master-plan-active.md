@@ -5,7 +5,7 @@
 
 **Schema:** 3
 
-**Source digest:** `sha256(normalized-lf-utf8):614a46624ff6cf2bb3c2f0b54a0ab2aaaa8a43316a099d038569113bf4e8b9a1`
+**Source digest:** `sha256(normalized-lf-utf8):9337610185fdde98a9c2505b18348c907c377278870a7caef723a3db3148d432`
 
 **Rows:** 569 total · 481 active · 88 terminal
 
@@ -13,11 +13,11 @@
 
 | State | Count |
 |---|---:|
-| OPEN | 366 |
+| OPEN | 362 |
 | READY | 0 |
 | IN_PROGRESS | 0 |
 | BLOCKED | 69 |
-| VERIFY | 44 |
+| VERIFY | 48 |
 | DONE | 88 |
 | DEFERRED | 2 |
 | DISPOSED | 0 |
@@ -281,10 +281,10 @@
 | 3322 | `RECOVERY-BORN-522-DOCTOR-AUTHORITY-COVERAGE-001` | BLOCKED | P1 | OBS | — | `OWNER_CLOSURE_SIGNATURE_REQUIRED` | `deckent doctor` provider-limit-authority kapısını görmüyor ve operatörü yanlış remedy'ye (`keyring init`) yönlendiriyor |
 | 3323 | `RECOVERY-BORN-523-XVERIFY-PRODUCER-MISMATCH-001` | OPEN | P1 | OBS | — | — | Sprint-içi mandatory cross-verify üç nesildir hiç çalışmadı: settlement-sonrası result-zenginleştirme producer-fencing'i sistemik kırıyor |
 | 3324 | `RECOVERY-BORN-523-ATTRIBUTION-UNMEASURABLE-001` | OPEN | P1 | OBS | — | — | Provider-limit ölümüyle sıfır-yazım attempt'te claim-time attribution ölçülemiyor; lineage FIX'e ham teşhisle düşüyor |
-| 3326 | `RECOVERY-BORN-711-NORMAL-DOCKER-EXACT-ATTEMPT-CUSTODY-001` | OPEN | P0 | KERNEL | — | — | Normal Docker task, attempt, worker output, provider capture, result, evaluation, finalizer, settlement ve restart tek host-private exact-attempt custody zincirinde kapanır |
-| 3327 | `RECOVERY-BORN-711-LINUX-INSTALLED-CUSTODY-PROOF-001` | OPEN | P0 | XPLAT | — | — | Linux installed-package native custody zinciri gerçek Linux userspace ve filesystem üzerinde kapanır |
-| 3328 | `RECOVERY-BORN-711-WSL2-NATIVE-CUSTODY-PROOF-001` | OPEN | P0 | XPLAT | `RECOVERY-BORN-711-LINUX-INSTALLED-CUSTODY-PROOF-001` | — | WSL2 host native custody ve filesystem capability sonucu gerçek compiled binary ile kanıtlanır |
-| 3329 | `RECOVERY-BORN-711-WSL2-DOCKER-CUSTODY-CANARY-001` | OPEN | P0 | ASSURANCE | `RECOVERY-BORN-711-LINUX-INSTALLED-CUSTODY-PROOF-001`, `RECOVERY-BORN-711-WSL2-NATIVE-CUSTODY-PROOF-001` | — | WSL2 üzerindeki gerçek Docker Engine normal task custody zincirini ağsız compiled canary ile uçtan uca kanıtlar |
+| 3326 | `RECOVERY-BORN-711-NORMAL-DOCKER-EXACT-ATTEMPT-CUSTODY-001` | VERIFY | P0 | KERNEL | — | — | Normal Docker task, attempt, worker output, provider capture, result, evaluation, finalizer, settlement ve restart tek host-private exact-attempt custody zincirinde kapanır |
+| 3327 | `RECOVERY-BORN-711-LINUX-INSTALLED-CUSTODY-PROOF-001` | VERIFY | P0 | XPLAT | — | — | Linux installed-package native custody zinciri gerçek Linux userspace ve filesystem üzerinde kapanır |
+| 3328 | `RECOVERY-BORN-711-WSL2-NATIVE-CUSTODY-PROOF-001` | VERIFY | P0 | XPLAT | `RECOVERY-BORN-711-LINUX-INSTALLED-CUSTODY-PROOF-001` | — | WSL2 host native custody ve filesystem capability sonucu gerçek compiled binary ile kanıtlanır |
+| 3329 | `RECOVERY-BORN-711-WSL2-DOCKER-CUSTODY-CANARY-001` | VERIFY | P0 | ASSURANCE | `RECOVERY-BORN-711-LINUX-INSTALLED-CUSTODY-PROOF-001`, `RECOVERY-BORN-711-WSL2-NATIVE-CUSTODY-PROOF-001` | — | WSL2 üzerindeki gerçek Docker Engine normal task custody zincirini ağsız compiled canary ile uçtan uca kanıtlar |
 | 3343 | `PLATFORM-CLEAN-IDENTITY-ADAPTER-001` | OPEN | P1 | KERNEL | — | — | identity-stable delete adapter'ı Linux-only (/proc/self/fd + fdinfo mnt_id): macOS ve Windows'ta clean.mjs dürüst HOLD (E_CLEAN_IDENTITY_STABLE_DELETE_UNSUPPORTED) — cross-platform-e2e'nin TÜM macos/windows job'ları npm run clean'de düşüyor (08-03'ten beri 40/40 kırmızı aile) |
 | 3345 | `COMPOSITE-WORKER-001` | OPEN | P1 | KERNEL | `KERNEL-ATTEMPT-001` | — | Composite worker / nested team delegasyon kontratı: parent-child execution, authority tavanı, bütçe tavanı, concurrency limiti, completion/failure policy ve nested evidence tree |
 | 3347 | `PLATFORM-EXEC-AUTH-W3-DARWIN-001` | OPEN | P1 | KERNEL | `PLATFORM-EXEC-AUTH-W1-INTERFACE-001`, `PLATFORM-EXEC-AUTH-W2-PROBE-001` | — | Darwin execution-authority adapter'ı: native openat-ailesi N-API modülü + W1 arayüzünün darwin impl'i + gerçek-Mac real-binary clean/lock kanıtı (W2 ölçümü: /dev/fd yolu ölü — native tek yol) |

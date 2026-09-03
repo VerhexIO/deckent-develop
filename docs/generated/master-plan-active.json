@@ -3,7 +3,7 @@
   "generatedFrom": "docs/MASTER-PLAN.md",
   "sourceDigest": {
     "algorithm": "sha256(normalized-lf-utf8)",
-    "value": "614a46624ff6cf2bb3c2f0b54a0ab2aaaa8a43316a099d038569113bf4e8b9a1"
+    "value": "9337610185fdde98a9c2505b18348c907c377278870a7caef723a3db3148d432"
   },
   "summary": {
     "total": 569,
@@ -11,11 +11,11 @@
     "terminal": 88,
     "receipts": 214,
     "byState": {
-      "OPEN": 366,
+      "OPEN": 362,
       "READY": 0,
       "IN_PROGRESS": 0,
       "BLOCKED": 69,
-      "VERIFY": 44,
+      "VERIFY": 48,
       "DONE": 88,
       "DEFERRED": 2,
       "DISPOSED": 0
@@ -235,9 +235,9 @@
       "program": "TRUTH",
       "priority": "P1",
       "state": "OPEN",
-      "updated": "2026-08-25",
+      "updated": "2026-09-03",
       "definitionDigest": "e16b6c95a5c04fd2c27a8c2e77dacd96df6e2da1d3aed400545feec6bc2c6b00",
-      "progressDigest": "693a08aa06535715ba380edae0e2d72ba59ec1fd5dbeee204d00a4c9972a7fa7",
+      "progressDigest": "9bef32a9a1cdd1ca34d639dff3b52621126b914db0d010fb2c6eab3990f14d4b",
       "terminalClosureDigest": null
     },
     {
@@ -521,9 +521,9 @@
       "program": "TRUTH",
       "priority": "P2",
       "state": "OPEN",
-      "updated": "2026-07-26",
+      "updated": "2026-09-03",
       "definitionDigest": "3f0b772594fbac40a533e15658c5dd05fa9cdcd2036cb187d117d8008d1ee4d6",
-      "progressDigest": "d324b4fb01793e2cf652fc6eef9d9c301a470a2c098afa9a83ffc29f7212e2b2",
+      "progressDigest": "73e96bcb3d42019970abfcecf1cae00093fcf55b5c3577d721b5a18795039973",
       "terminalClosureDigest": null
     },
     {
@@ -532,9 +532,9 @@
       "program": "TRUTH",
       "priority": "P2",
       "state": "BLOCKED",
-      "updated": "2026-07-26",
+      "updated": "2026-09-03",
       "definitionDigest": "9bfd3d29477cd065ab71fdab2112d90fb08484505617b7280553ca887731e1e4",
-      "progressDigest": "d94151d1b8eeafe52c616415beb8ccd6af3070a5f9caee882a56944b564c1351",
+      "progressDigest": "e8e0f1bb3c3f379a67751379aa50e5f8cb799b04147330a18be2b96a6cdcf923",
       "terminalClosureDigest": null
     },
     {
@@ -3567,10 +3567,10 @@
       "id": "RECOVERY-BORN-711-NORMAL-DOCKER-EXACT-ATTEMPT-CUSTODY-001",
       "program": "KERNEL",
       "priority": "P0",
-      "state": "OPEN",
-      "updated": "2026-09-01",
+      "state": "VERIFY",
+      "updated": "2026-09-03",
       "definitionDigest": "053c857d5a26ea6cdae01900b02984b71af7811fb5ec7d7333da1322079ece73",
-      "progressDigest": "e4b11d462dd56c5be1cb571811b9eaba78f40bf0b17c97cb008723ad341a10b2",
+      "progressDigest": "4a97ec20b84d1b8b51ff13f18627419ededab73352cabd129777daacf6161fc7",
       "terminalClosureDigest": null
     },
     {
@@ -3578,10 +3578,10 @@
       "id": "RECOVERY-BORN-711-LINUX-INSTALLED-CUSTODY-PROOF-001",
       "program": "XPLAT",
       "priority": "P0",
-      "state": "OPEN",
-      "updated": "2026-08-31",
+      "state": "VERIFY",
+      "updated": "2026-09-03",
       "definitionDigest": "64aa349af403585b7008a5937bba56d04d9b6517a08bf98a5c79c5aed8a583d5",
-      "progressDigest": "3588f3c594c8e671b1105d8894b692252eb0bb193255e68b3dbcbadb657e19d4",
+      "progressDigest": "0929e812b32bc336a50b52475fe3bbf9a0fa01f117699ec1b8c18e462bcc1ad5",
       "terminalClosureDigest": null
     },
     {
@@ -3589,10 +3589,10 @@
       "id": "RECOVERY-BORN-711-WSL2-NATIVE-CUSTODY-PROOF-001",
       "program": "XPLAT",
       "priority": "P0",
-      "state": "OPEN",
-      "updated": "2026-08-31",
+      "state": "VERIFY",
+      "updated": "2026-09-03",
       "definitionDigest": "48964363fccaa7e3ef6b823371e85f335b5d736bb59c61097933879c32a9bf8a",
-      "progressDigest": "b63c8fbbf8883c5b26ca64ef5092333f687a54faa7e01a6bc8566e67cf20d00f",
+      "progressDigest": "63356a139911fdf807964395b89db6843b83260421fb95b24d429cf5c61ebc14",
       "terminalClosureDigest": null
     },
     {
@@ -3600,10 +3600,10 @@
       "id": "RECOVERY-BORN-711-WSL2-DOCKER-CUSTODY-CANARY-001",
       "program": "ASSURANCE",
       "priority": "P0",
-      "state": "OPEN",
-      "updated": "2026-08-31",
+      "state": "VERIFY",
+      "updated": "2026-09-03",
       "definitionDigest": "e2b082d4f28a8716c5a93e231bca22de75c284a97169d3ddbf2663ad5ecd9e4d",
-      "progressDigest": "271a50b577442512029fd4794aa16fa898334051295c28157948be17d6014160",
+      "progressDigest": "4c181dfd1f113b6e484f78b9be61c984fda44e59679d5631b75c9f27420b790d",
       "terminalClosureDigest": null
     },
     {
@@ -8765,8 +8765,8 @@
       ],
       "evidenceReceipts": [],
       "acceptance": "Tenant-aware age/count/size policies; bounded readers; atomic rotation",
-      "evidence": "2026-07-21 `.deckent` analysis; current files remeasured; 2026-08-10 disk/code truth: `.deckent/archive` 2,849 dosya ve 98.2 MiB; sprint ve scheduler archive için archive-side retention yok; dizinler 0755 ve 2,814 dosya 0644; metrics `maxSizeMB` productionda tüketilmiyor, lexicographic generation sırası digit-width değişiminde bozuluyor ve same-sprint rotate overwrite riski taşıyor; expanded closure STATE-ARCHIVE-RESTORE-001 childındadır. 2026-08-10 cache/crash RCA: `.deckent/crashes` altında 6 ignored log var (3 tarihsel EPIPE false-positive, 3 EADDRINUSE); writer `formatFatalAndExit`, production reader/rotation/retention/support-bundle consumer yok; dosyalar 0644, dizin 0755, timestamp-only ad aynı milisaniyede overwrite edebilir ve artifact command/version/process/project/tenant provenance taşımadığı için EADDRINUSE ingress'i kanıtlanamıyor. Mevcut loglarda credential pattern bulunmadı; silme ancak typed retention/prune receipt'iyle; exact expansion CRASH-FORENSICS-AUTHORITY-001 childındadır. 2026-08-10 PID/prompt RCA: `.deckent/pids` bugün boş ve silme hedefi yok; PID/snapshot producerı explicit least-privilege mode/ACL tanımlamıyor. `.deckent/prompts/injection-audit.jsonl` 12214382 byte/30947 valid JSON kayıt taşıyor; 13053 kayıt 30 günden eski, rotation/retention/legal-hold readerı yok ve 0644 dosya/0755 dizin task+ADR metadata disclosure yaratıyor. Test ve live provenance karıştığı için toplu prune/delete yapılmaz; exact trace/lifecycle closure PROMPT-INJECTION-TRACE-001 childındadır. 2026-08-11 recovery-snapshot RCA: ignored repo-local `.deckent/recovery-snapshots` 6 dosya/2,554,361 byte ve iki ayrı manuel format taşıyor; tüm payloadlar 0644, dizinler 0755, retention/legal-hold/prune consumerı yok ve dirty-tree tar'ı önceki sprint snapshotını yeniden içine almış. Legacy byte'lar canonical import+restore+disposition receipt'i olmadan silinmez; exact closure RECOVERY-SNAPSHOT-AUTHORITY-001 childındadır 2026-08-11 recently-works RCA: başlangıç snapshotında 150 ignored dosya yaklaşık 30.1 MB; terminal receipts, detached logs, autonomous stream ve recovery alt ağacı retention registry dışında, bütün sınıfları kapsayan exact closure RECENT-WORKS-ARTIFACT-AUTHORITY-001 childındadır. 2026-08-25 config-completion-audit: config backup ailesinin custody/retention/restore-receipt G0 şeridi 471 canonical owner'ındadır (bu satır retention-domain cross-link); dropped retention/output/search config alanlarının G3 davranış-kapanışı bu satır + SLO-001 domain'indedir (memo config-completion-audit-2026-08-26.md)",
-      "updated": "2026-08-25"
+      "evidence": "2026-07-21 `.deckent` analysis; current files remeasured; 2026-08-10 disk/code truth: `.deckent/archive` 2,849 dosya ve 98.2 MiB; sprint ve scheduler archive için archive-side retention yok; dizinler 0755 ve 2,814 dosya 0644; metrics `maxSizeMB` productionda tüketilmiyor, lexicographic generation sırası digit-width değişiminde bozuluyor ve same-sprint rotate overwrite riski taşıyor; expanded closure STATE-ARCHIVE-RESTORE-001 childındadır. 2026-08-10 cache/crash RCA: `.deckent/crashes` altında 6 ignored log var (3 tarihsel EPIPE false-positive, 3 EADDRINUSE); writer `formatFatalAndExit`, production reader/rotation/retention/support-bundle consumer yok; dosyalar 0644, dizinler 0755, timestamp-only ad aynı milisaniyede overwrite edebilir ve artifact command/version/process/project/tenant provenance taşımadığı için EADDRINUSE ingress'i kanıtlanamıyor. Mevcut loglarda credential pattern bulunmadı; silme ancak typed retention/prune receipt'iyle; exact expansion CRASH-FORENSICS-AUTHORITY-001 childındadır. 2026-08-10 PID/prompt RCA: `.deckent/pids` bugün boş ve silme hedefi yok; PID/snapshot producerı explicit least-privilege mode/ACL tanımlamıyor. `.deckent/prompts/injection-audit.jsonl` 12214382 byte/30947 valid JSON kayıt taşıyor; 13053 kayıt 30 günden eski, rotation/retention/legal-hold readerı yok ve 0644 dosya/0755 dizin task+ADR metadata disclosure yaratıyor. Test ve live provenance karıştığı için toplu prune/delete yapılmaz; exact trace/lifecycle closure PROMPT-INJECTION-TRACE-001 childındadır. 2026-08-11 recovery-snapshot RCA: ignored repo-local `.deckent/recovery-snapshots` 6 dosya/2,554,361 byte ve iki ayrı manuel format taşıyor; tüm payloadlar 0644, dizinler 0755, retention/legal-hold/prune consumerı yok ve dirty-tree tar'ı önceki sprint snapshotını yeniden içine almış. Legacy byte'lar canonical import+restore+disposition receipt'i olmadan silinmez; exact closure RECOVERY-SNAPSHOT-AUTHORITY-001 childındadır 2026-08-11 recently-works RCA: başlangıç snapshotında 150 ignored dosya yaklaşık 30.1 MB; terminal receipts, detached logs, autonomous stream ve recovery alt ağacı retention registry dışında, bütün sınıfları kapsayan exact closure RECENT-WORKS-ARTIFACT-AUTHORITY-001 childındadır. 2026-08-25 config-completion-audit: config backup ailesinin custody/retention/restore-receipt G0 şeridi 471 canonical owner'ındadır (bu satır retention-domain cross-link); dropped retention/output/search config alanlarının G3 davranış-kapanışı bu satır + SLO-001 domain'indedir (memo config-completion-audit-2026-08-26.md). 2026-09-03 fresh runtime measurement: canonical sprint-713 cleanup sonrası `.tasks` altında sprint dışı 92 dosya / 271705 byte kaldı; exact path+size+sha256 manifest digest `2ee6df690557604a6b3bfd69974e2cb8c7d14e26580e53d0693b69d1e71bf1f7`. Aileler: 29 terminal XVerify task claim, 19 result, 11 plan, 12 provider observation, 18 heartbeat-authority ve repair/deck-shadow/worker-core metadata. Hepsi aynı retention/restore authority'sine girmeden silinemez; classification=BLOCKS_NEXT_CLEAN_DOGFOOD_BASELINE",
+      "updated": "2026-09-03"
     },
     {
       "order": 121,
@@ -9504,7 +9504,7 @@
       ],
       "state": "OPEN",
       "truth": {
-        "C": "0",
+        "C": "~",
         "W": "0",
         "E": "0",
         "H": "?",
@@ -9517,8 +9517,8 @@
       "closureBlockedBy": [],
       "evidenceReceipts": [],
       "acceptance": "Each repo path wire, retain, archive or delete; exact consumer graph, hash and recovery",
-      "evidence": "Branch, HOME, DB and runtime state are separate authorities",
-      "updated": "2026-07-26"
+      "evidence": "Branch, HOME, DB and runtime state are separate authorities. 2026-09-03 measurement: `deckent cleanup --sprint sprint-713` canonical terminal cleanup archived 7 sprint files, removed 0 task artifact and published lifecycle `IDLE`; the remaining sprintless `.tasks` set is 92 files / 271705 bytes with manifest digest `2ee6df690557604a6b3bfd69974e2cb8c7d14e26580e53d0693b69d1e71bf1f7`. Current cleanup consumer recognizes sprint-prefixed artifacts but not standalone XVerify claims/results/plans or their provider-observation/heartbeat lineage; exact per-family retain/archive/delete + restore consumer graph remains open. 2026-09-04 owner-live manual cleanup exception: no active run/worker/container was observed; the 92-file/271705-byte set was moved without byte deletion to `/tmp/deckent-tasks-recovery-20260904T011107+0300`, recovery manifest digest `6e7be541e7602b5d4f825293acad661b027fe8b8a0f32d2ec9ac8e46046713ed`, and the recreated `.tasks` directory was verified empty. Physical baseline cleanup is complete; canonical lifecycle closure remains OPEN",
+      "updated": "2026-09-03"
     },
     {
       "order": 220,
@@ -9554,8 +9554,8 @@
       ],
       "evidenceReceipts": [],
       "acceptance": "Exact unchanged path manifest, recoverable moves, link/tests and clean-clone proof",
-      "evidence": "Filesystem-only fresh approval",
-      "updated": "2026-07-26"
+      "evidence": "2026-09-03 typed HOLD: sprint-713 is safely IDLE, but sprintless XVerify/observation/heartbeat artifacts have no canonical archive+restore+retention apply path. 2026-09-04 owner-live exact manual-cleanup instruction authorized the observed 92-file set to leave `.tasks`; no bytes were destroyed and the verified recovery copy is `/tmp/deckent-tasks-recovery-20260904T011107+0300` with manifest digest `6e7be541e7602b5d4f825293acad661b027fe8b8a0f32d2ec9ac8e46046713ed`. This manual physical apply does not satisfy the product acceptance contract: REPO-CLEANUP-001 disposition, canonical archive/restore consumer and clean-clone proof remain missing, so status remains BLOCKED rather than being declared DONE",
+      "updated": "2026-09-03"
     },
     {
       "order": 230,
@@ -19330,14 +19330,14 @@
         "G2",
         "G1"
       ],
-      "state": "OPEN",
+      "state": "VERIFY",
       "truth": {
-        "C": "0",
-        "W": "0",
-        "E": "0",
-        "H": "?",
-        "L": "0",
-        "X": "?",
+        "C": "1",
+        "W": "1",
+        "E": "1",
+        "H": "1",
+        "L": "1",
+        "X": "~",
         "S": "?"
       },
       "blockerCode": null,
@@ -19349,8 +19349,8 @@
       ],
       "evidenceReceipts": [],
       "acceptance": "Project `.tasks` yalnız compatibility/observability projection'ıdır; immutable task admission claim'den önce doğar; attempt-private Docker output ve pristine provider capture bounded first-writer'dır; accepted attempt result/evaluation/finalizer/archive/restart digestleri exact zincirlenir; unrun veya stale sibling başarı üretemez; unchanged failure sınırsız FIX doğuramaz; POSIX ve Windows-native adapterları capability'yi uygular veya typed HOLD verir; kapanış source checks değil quiescent build, source/dist parity, compiled CLI, gerçek ağsız Docker canary ve bağımsız disk verification ister",
-      "evidence": "`owner-admission=owner-live-2026-08-30-motor-a-sequence-and-execution`; `scope-expansion=owner-live-2026-08-31-option-a-shared-native-foundation`; `platform-proof-split=owner-live-2026-08-31-wsl-linux-first`; `landing-scope=owner-live-2026-09-01-continue-t5-exact-landing-custody`; `effect-containment-scope=owner-live-2026-09-01-scope-revision-009-t5-exact-effect-containment`; trigger=Sprint-711/712/713 ABORTED orchestration truth; exact scope=57 production + 191 conditional test/script path; shared-native-foundation=one-versioned-ABI+platform-separated-source+opaque-lease+installed-package-proof; active-proof=Linux-installed-package+WSL2-native+WSL2-Docker; deferred-proof=macOS+Windows-native; Docker-daemon-consumption=T5+T5E; manifest-digest=`5edb2406854ca95e0550d0d627f7cee5959ffd8096e394137b5b62c8bb03e482`; scope-revised=2026-09-01; capsule=`docs/execution/active/RECOVERY-BORN-711-NORMAL-DOCKER-EXACT-ATTEMPT-CUSTODY-001.md`; manifest=`docs/execution/active/RECOVERY-BORN-711-NORMAL-DOCKER-EXACT-ATTEMPT-CUSTODY-001.expected-red.json`; exclusions=general-permission-RBAC,approval,routing,non-Docker,multi-hop,retention,manual-.tasks,memory.db,commit,push,Closure-signing,macOS-native-proof,Windows-native-proof; admission OPEN'dır ve implementation/closure kanıtı değildir",
-      "updated": "2026-09-01"
+      "evidence": "`historical-authority=owner-live-2026-08-30-motor-a-sequence-and-execution;historical-gates=G2,G1;proof=motor-a-exact-custody-wsl2-v53`; `scope-expansion=owner-live-2026-08-31-option-a-shared-native-foundation`; `platform-proof-split=owner-live-2026-08-31-wsl-linux-first`; `landing-scope=owner-live-2026-09-01-continue-t5-exact-landing-custody`; `effect-containment-scope=owner-live-2026-09-01-scope-revision-009-t5-exact-effect-containment`; implementation+Linux/WSL2 proof landed in main commit `67a734c87`; real compiled normal-Docker attempt `canary-1788433556479` / `b6d8aa45-19e0-89d3-8ede-fac68c18c8ad`, `diskVerified:true`, effect→accepted-result→evaluation→finalizer→settlement→archive digests durably reread, restart no duplicate dispatch, resource absence proved; machine evidence `.analysis/audits/motor-a-wsl2-docker-canary-2026-09-03.json@02836a467b6eae81689fa1bd3434311f0a49640f8179d27acba39e2e3bf84f82`; packed offline install evidence `.analysis/audits/motor-a-linux-wsl2-networkless-install-2026-09-03.json@3da177733c030dfe694499340b594ad044600b584d8dab6f5c29f1db7dae5ea4`; macOS 8031 and Windows-native 8032 remain owner-deferred and are not promoted; current row awaits authenticated Closure OS disposition and scale/performance threshold decision, so VERIFY is not DONE",
+      "updated": "2026-09-03"
     },
     {
       "order": 3327,
@@ -19369,23 +19369,23 @@
         "G2",
         "G1"
       ],
-      "state": "OPEN",
+      "state": "VERIFY",
       "truth": {
-        "C": "~",
-        "W": "~",
-        "E": "0",
-        "H": "?",
-        "L": "0",
-        "X": "0",
-        "S": "?"
+        "C": "1",
+        "W": "1",
+        "E": "1",
+        "H": "1",
+        "L": "1",
+        "X": "1",
+        "S": "-"
       },
       "blockerCode": null,
       "blockerRemedy": null,
       "closureBlockedBy": [],
       "evidenceReceipts": [],
       "acceptance": "Versioned native ABI, POSIX descriptor-bound capture/publication, opaque lease ve root npm tarball wiring'i ağsız gerçek Linux containerında build/install/load edilir; binding yokluğu, ABI/artifact/digest drift'i veya unsupported filesystem typed HOLD verir; bu satır WSL2 host ya da bare-metal service parity iddiası değildir",
-      "evidence": "`owner-admission=owner-live-2026-08-31-wsl-linux-first`; current evidence source/static candidate and package preflight only; real installed tarball and native lifecycle proof pending; classification=BLOCKS_CURRENT_DONE",
-      "updated": "2026-08-31"
+      "evidence": "`historical-authority=owner-live-2026-08-31-wsl-linux-first;historical-gates=G2,G1;proof=motor-a-linux-installed-custody-offline-v53`; fresh private prewarmed cache ile networkless tarball install, installed CLI + packaged native prebuild load ve `LANDING_VERIFIED` PASS; install sırasında native build/download yok; tarball sha256 `d4c4479a2429bc44e236ccc9505be85b7d68b709416b4f83a3342f74d022a35f`; receipt `.analysis/audits/motor-a-linux-wsl2-networkless-install-2026-09-03.json@3da177733c030dfe694499340b594ad044600b584d8dab6f5c29f1db7dae5ea4`; authenticated Closure OS disposition pending, therefore VERIFY not DONE",
+      "updated": "2026-09-03"
     },
     {
       "order": 3328,
@@ -19405,15 +19405,15 @@
         "G2",
         "G1"
       ],
-      "state": "OPEN",
+      "state": "VERIFY",
       "truth": {
-        "C": "~",
-        "W": "~",
-        "E": "0",
-        "H": "?",
-        "L": "0",
-        "X": "0",
-        "S": "?"
+        "C": "1",
+        "W": "1",
+        "E": "1",
+        "H": "1",
+        "L": "1",
+        "X": "1",
+        "S": "-"
       },
       "blockerCode": null,
       "blockerRemedy": null,
@@ -19422,8 +19422,8 @@
       ],
       "evidenceReceipts": [],
       "acceptance": "Current WSL2 hostta canonical loader, POSIX adapter, owner-private root, no-follow capture, atomic no-replace publication, cleanup/reconciliation ve installed-package identity gerçek binary ile çalışır; DrvFS, unsupported mount veya capability belirsizliği success'e çevrilmeden exact typed HOLD olur",
-      "evidence": "`owner-admission=owner-live-2026-08-31-wsl-linux-first`; read-only disk snapshot kernel=`6.18.33.2-microsoft-standard-WSL2`, repo-fs=`ext4`, Node=`v24.15.0`, N-API=`10`, arch=`linux-x64`, GCC=`13.3.0`; global/local node-gyp absent and T19 pinned toolchain wiring pending; implementation, build and live proof pending; classification=BLOCKS_CURRENT_DONE",
-      "updated": "2026-08-31"
+      "evidence": "`historical-authority=owner-live-2026-08-31-wsl-linux-first;historical-gates=G2,G1;proof=motor-a-wsl2-native-custody-v53`; current host kernel `6.18.33.2-microsoft-standard-WSL2`, repo filesystem ext4, Linux/x64 N-API 10 native binary and source digest were build-bound; real compiled no-follow capture/publication, cleanup/reconciliation and installed-package identity PASS; evidence `.analysis/audits/motor-a-linux-wsl2-networkless-install-2026-09-03.json@3da177733c030dfe694499340b594ad044600b584d8dab6f5c29f1db7dae5ea4`; authenticated Closure OS disposition pending, therefore VERIFY not DONE",
+      "updated": "2026-09-03"
     },
     {
       "order": 3329,
@@ -19442,15 +19442,15 @@
         "G2",
         "G1"
       ],
-      "state": "OPEN",
+      "state": "VERIFY",
       "truth": {
-        "C": "0",
-        "W": "0",
-        "E": "0",
-        "H": "?",
-        "L": "0",
+        "C": "1",
+        "W": "1",
+        "E": "1",
+        "H": "1",
+        "L": "1",
         "X": "-",
-        "S": "?"
+        "S": "-"
       },
       "blockerCode": null,
       "blockerRemedy": null,
@@ -19460,8 +19460,8 @@
       ],
       "evidenceReceipts": [],
       "acceptance": "Quiescent build sonrası compiled CLI gerçek Docker container doğurur; immutable task admission, attempt-private mount, pristine provider-free output, exact result/evaluation/finalizer/settlement/archive-restart chain ve finite repair truth diskte yeniden okunur; public `.tasks`, stale sibling veya test fixture başarı authority'si olamaz",
-      "evidence": "`owner-admission=owner-live-2026-08-31-wsl-linux-first`; read-only Docker snapshot active container 0; T5-T14 production fan-in and networkless canary pending; classification=BLOCKS_CURRENT_DONE",
-      "updated": "2026-08-31"
+      "evidence": "`historical-authority=owner-live-2026-08-31-wsl-linux-first;historical-gates=G2,G1;proof=motor-a-wsl2-docker-canary-v53`; real networkless Docker attempt `canary-1788433556479` / `b6d8aa45-19e0-89d3-8ede-fac68c18c8ad` completed in `normal-docker-exact`; canonical output `after\\n`, `diskVerified:true`; effect landing `be0def49…`, accepted result `271213a7…`, evaluation `edc2d0f8…`, finalizer `4b8abe59…`, settlement `e53760cc…`, archive `89b29427…`; fresh-process reread recovered exact terminal authority without second provider/container and current attempt container/volume inventory was empty; machine receipt `.analysis/audits/motor-a-wsl2-docker-canary-2026-09-03.json@02836a467b6eae81689fa1bd3434311f0a49640f8179d27acba39e2e3bf84f82`; authenticated Closure OS disposition pending, therefore VERIFY not DONE",
+      "updated": "2026-09-03"
     },
     {
       "order": 3343,
@@ -28772,6 +28772,6 @@
   ],
   "registryIntegrity": {
     "algorithm": "sha256(canonical-json-utf8)",
-    "value": "70bf046f6c67842dcad7caf9646917c738673d64aa9fad28e796ff6ee573a7f3"
+    "value": "9c2bebd96adb6ed140d026d2a03319b7d4661aead4138079c82523fae6e8744c"
   }
 }
