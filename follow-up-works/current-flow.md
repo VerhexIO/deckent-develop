@@ -110,11 +110,47 @@
 Yeni Goal/Mission/Flow/Run henüz başlatılmadı. İlk yeni run temiz ve dürüst baseline
 sağlanmadan açılmayacak.
 
-### 2026-09-04 03:45 — bir sonraki imleç
+### 2026-09-04 05:07 — 3333 local-verified, live-proof HOLD
 
-1. Fresh `deckent-authority-bootstrap` snapshot; `docs/execution/active/RECOVERY-BORN-PLANNER-HOST-COMPLETED-WIRING-001.md`
-   capsule'ını oku (handoff receipt içinde), 3333 için admission receipt yaz (HEAD digest'leri), IN_PROGRESS.
-2. Host-completed wiring: model kimlik önerir, host `hostProofProgram`'ı doldurur; TDD → tsc → gate'ler → dist →
-   gerçek `deckent do` + native `/do` kanıtı (7099 v2 L1 hedefi: scratchpad `goal-L1b.txt` metni capsule'da yeniden yazılır).
-3. 3333 landing → 7099 v2 L1 `/do` ile başlar (kart onayı), landing'lerde bot durdurma izni var (owner 2026-09-04).
+1. `GR-2026-09-04-PLANNER-HOST-WIRING-01` active; exact-profile registry/harness, host digest
+   completion ve planner→DIRECTIVES round-trip implemented. Scoped `11 files / 222 tests`, tsc,
+   i18n/model-literal/hermeticity/operating-policy/script-registry PASS; `build:all` PASS.
+2. Bot canonical stop/build/start zinciri tamam: eski PID 2898110 graceful kapandı, rebuilt listener
+   PID 3670461 canlı. `.tasks` boş; aktif run/worker/container yok.
+3. Built CLI `do` ve native TTY `/do` aynı external-boundary HOLD'unda: nested Codex app-server
+   sandbox host-home'unda `Read-only file system`; ledger invocations
+   `inv-5b80de7b730dd2afe6bc10d391290e00` / `inv-24877773e843c9edd22397af7fa062a8`,
+   transport `nonzero_exit`. Escalation reddedildi; auth/config/provider workaround yapılmadı.
+4. Bir sonraki imleç: fresh HEAD/scope audit → external execution boundary'de gerçek CLI ve native
+   `/do` L1 preview → active receipt consume + 3333 VERIFY + commit (push yok) → ancak sonra 7099
+   v2 L1 kart onayı/dogfood. Bu kanıt gelmeden landing veya 7099 start YASAK.
 
+### 2026-09-04 05:15 — fresh authority/scope audit
+
+1. `main` ve HEAD `6f286ba6b…` değişmedi; `origin/main` farkı +4; `.tasks` boş; aktif
+   run/worker/container yok; rebuilt bot PID `3670461` canlı.
+2. 3333'ün exact 16-target executable scope digest'i yeniden `89eaa629…` ve policy digest'i
+   `c4c96a97…`; scope drift yok. Başlangıçtaki dört runtime kirinin hiçbiri stage/commit edilmedi;
+   CLI/native denemelerinin runtime evidence artışları yerinde korundu.
+3. `codex-cli 0.153.0` ve ChatGPT login canlı, fakat host-home bootstrap'ı aynı sandbox
+   `Read-only file system` sınırında. Fingerprint değişmediği için yeni provider retry açılmadı;
+   credential/config/fallback workaround yapılmadı.
+4. İmleç değişmedi: external execution authority ile gerçek CLI + native `/do` preview alınmadan
+   receipt consume, 3333 landing ve 7099 dogfood kapalıdır.
+
+### 2026-09-04 10:57 — 3333 verified, landing boundary
+
+1. Owner'ın external-execution onayı sonrası ilk gerçek CLI denemesi provider transportunda başarılı
+   oldu ve mutable L1 test dosyalarının verifier asset olması nedeniyle task-builder'ın doğru overlap
+   HOLD'unu açığa çıkardı. Guard/contract gevşetilmeden verifier mantığı tek digest-pinned harness'e
+   alındı; production source/test dosyaları observation target olarak ayrıldı.
+2. TDD + bağımsız verification: 11 scoped file / 213 test, tsc, i18n, no-model-literal,
+   operating-policy, script-registry ve hermeticity PASS. Bot `3670461` stop → `build:all` PASS →
+   rebuilt PID `3728211` running.
+3. Gerçek CLI flow `a36f802e-…` plan digest `fbe1faad…` (4 L1 task, concurrency `8/3`) ve gerçek
+   native TTY `/do` flow `87ce58a4-…` plan digest `06332b1e…` (3 L1 task, concurrency `8/2`) provider
+   transport exit 0 + consumer accepted + gate/policy PASS üretti. Native card pre-landing yasağı
+   gereği reddedildi; CLI exact plan unstarted olarak saklandı.
+4. `GR-2026-09-04-PLANNER-HOST-WIRING-01` consumed, MASTER 3333 `VERIFY`. İmleç: allowlisted
+   3333 landing commit'i (push yok) → fresh HEAD doğrulaması → CLI flow `a36f802e-…` approve+start →
+   7099 v2 L1 dogfood gözlemi. Dört runtime dosyası stage/commit edilmez.

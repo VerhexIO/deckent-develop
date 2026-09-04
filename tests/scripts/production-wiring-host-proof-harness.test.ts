@@ -18,6 +18,9 @@ import {
   CLOSURE_OS_AUTHORITY_ADAPTER_ID,
   CLOSURE_OS_AUTHORITY_OBSERVATION_GROUP_ID,
   CLOSURE_OS_AUTHORITY_SCHEMA_ID,
+  TERMINAL_NATIVE_PROVIDER_ADAPTER_ID,
+  TERMINAL_NATIVE_PROVIDER_OBSERVATION_GROUP_ID,
+  TERMINAL_NATIVE_PROVIDER_SCHEMA_ID,
   runProductionWiringHostProofHarness,
 } from '../../scripts/production-wiring-host-proof-harness.mjs';
 import {
@@ -45,6 +48,18 @@ const targetKeys = [
   'enablement-authority:closure-os.reviewed-trust-anchor',
   'producer:closure-os.append-only-ledger',
   'proof-target:closure-os.chain-identity-lifecycle-authority',
+].sort();
+
+const terminalAssets = [
+  { path: 'scripts/production-wiring-host-proof-harness.mjs', role: 'trusted-harness' },
+] as const;
+
+const terminalTargetKeys = [
+  'affected-ingress:deckent.native-terminal.entry',
+  'canonical-consumer:deckent.terminal.native-session-provider',
+  'enablement-authority:deckent.config.native-provider',
+  'producer:deckent.terminal.native-provider-authority-resolver',
+  'proof-target:deckent.terminal.native-provider-resolution-execution',
 ].sort();
 
 function canonicalJson(value: unknown): string {
@@ -90,6 +105,21 @@ function buildRequest(root: string, overrides: Record<string, unknown> = {}): st
   return canonicalJson(request);
 }
 
+function buildTerminalRequest(root: string): string {
+  return canonicalJson({
+    adapterId: TERMINAL_NATIVE_PROVIDER_ADAPTER_ID,
+    assets: terminalAssets.map(asset => ({
+      path: asset.path,
+      role: asset.role,
+      sha256: sha256(readFileSync(join(root, asset.path))),
+    })),
+    kind: 'deckent-production-wiring-host-proof-request-v1',
+    outputLimitBytes: 64 * 1024,
+    timeoutMs: 60_000,
+    version: 1,
+  });
+}
+
 function commandResult(overrides: Record<string, unknown> = {}) {
   return {
     status: 0,
@@ -132,6 +162,23 @@ afterEach(() => {
 });
 
 describe('canonical production-wiring host-proof harness', () => {
+  it('runs the registered Terminal provider observer with code-owned tests and target identities', async () => {
+    await expect(runProductionWiringHostProofHarness(
+      buildTerminalRequest(repositoryRoot),
+      { root: repositoryRoot },
+    )).resolves.toEqual({
+      state: 'observed',
+      outcome: {
+        version: 1,
+        kind: 'deckent-production-wiring-host-proof-outcome',
+        schemaId: TERMINAL_NATIVE_PROVIDER_SCHEMA_ID,
+        observationGroupId: TERMINAL_NATIVE_PROVIDER_OBSERVATION_GROUP_ID,
+        outcome: 'observed',
+        targetKeys: terminalTargetKeys,
+      },
+    });
+  }, 90_000);
+
   it('accepts only after the real Closure OS receipt reader validates isolated durable authority data', async () => {
     const root = createFixtureRoot();
     copyRealClosureAuthority(root);

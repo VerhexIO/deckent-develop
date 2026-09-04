@@ -293,6 +293,7 @@ function toDirectiveTask(task: PlannerTask, proposal: RunProposal): DirectiveBui
     goCriteria: [task.goNogo.goCriteria],
     nogo: [task.goNogo.noGoCriteria],
     criteriaItems,
+    ...(task.productionWiring ? { productionWiring: task.productionWiring } : {}),
   };
 }
 

@@ -19,7 +19,9 @@ import type { ModelType, TaskEffort } from '../core/types.js';
 import {
   createGoNoGoCriterionItem,
   type GoNoGoCriterionItem,
+  type ProductionWiringPlanEvidenceV2,
 } from '../core/task-types.js';
+import { productionWiringContractV2InputFromCanonical } from '../core/production-wiring-contract.js';
 import { DeckentError, ErrorRegistry } from '../core/errors.js';
 import type { ParsedDirectiveTask } from './task-builder.js';
 
@@ -39,6 +41,8 @@ export interface DirectiveBuildTask {
   skills?: string[];
   /** Exact task-local verification command; persisted as Task.verification. */
   test?: string;
+  /** Host-completed V2 authority; serialized without derived digests for the canonical reader. */
+  productionWiring?: ProductionWiringPlanEvidenceV2;
   goCriteria: string[];
   nogo: string[];
   /** Optional lossless machine-readable projection; display arrays stay unchanged. */
@@ -270,6 +274,11 @@ function buildTaskBlock(task: DirectiveBuildTask, seq: number): string[] {
   lines.push(`- Files: ${task.files.join(', ')}`);
   if (task.reads && task.reads.length > 0) lines.push(`- Reads: ${task.reads.join(', ')}`);
   if (task.test) lines.push(`- Test: ${task.test}`);
+  if (task.productionWiring) {
+    lines.push(`- ProductionWiring: ${JSON.stringify(
+      productionWiringContractV2InputFromCanonical(task.productionWiring.contract),
+    )}`);
+  }
   if (task.meta && Object.keys(task.meta).length > 0) {
     // U1-G2: metadata as a dedicated line — readers keep it OUT of content flows.
     const metaStr = Object.entries(task.meta)
@@ -458,6 +467,9 @@ export function reconstructBuildTask(parsed: ParsedDirectiveTask): DirectiveBuil
     effort: parsed.forceEffort,
     skills: parsed.forceSkills,
     ...(parsed.testTarget ? { test: parsed.testTarget } : {}),
+    ...(parsed.productionWiring?.version === 2
+      ? { productionWiring: parsed.productionWiring }
+      : {}),
     goCriteria,
     nogo,
     ...(encodedItems ? { criteriaItems: items } : {}),

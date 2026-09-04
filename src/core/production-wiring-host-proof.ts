@@ -1,4 +1,14 @@
 import { createHash } from 'node:crypto';
+import {
+  closeSync,
+  constants as fsConstants,
+  fstatSync,
+  lstatSync,
+  openSync,
+  readFileSync,
+  realpathSync,
+} from 'node:fs';
+import { isAbsolute, relative, resolve, sep } from 'node:path';
 import { types as nodeTypes } from 'node:util';
 
 export const PRODUCTION_WIRING_HOST_PROOF_PROGRAM_VERSION = 1 as const;
@@ -47,6 +57,87 @@ const CLOSURE_OS_HOST_PROOF_TARGET_KEYS = Object.freeze([
   'producer:closure-os.append-only-ledger',
   'proof-target:closure-os.chain-identity-lifecycle-authority',
 ].sort());
+
+const TERMINAL_NATIVE_PROVIDER_HOST_PROOF_ADAPTER_ID =
+  'deckent-terminal-native-provider-resolution-v1';
+const TERMINAL_NATIVE_PROVIDER_HOST_PROOF_GROUP_ID =
+  'deckent:terminal-native-provider-resolution';
+const TERMINAL_NATIVE_PROVIDER_HOST_PROOF_SCHEMA_ID =
+  'deckent.host-proof.terminal-native-provider-resolution.v1';
+const TERMINAL_NATIVE_PROVIDER_HOST_PROOF_ASSETS = Object.freeze([
+  Object.freeze({
+    path: CLOSURE_OS_HOST_PROOF_HARNESS_PATH,
+    role: 'trusted-harness' as const,
+  }),
+]);
+
+export interface ProductionWiringHostProofIdentity {
+  readonly producer: { readonly producerId: string };
+  readonly canonicalConsumer: {
+    readonly consumerId: string;
+    readonly relationship: 'invokes-producer' | 'removed-or-migrated';
+  };
+  readonly affectedIngresses: readonly {
+    readonly ingressId: string;
+    readonly kind: 'ingress' | 'entrypoint';
+  }[];
+  readonly enablementAuthority: {
+    readonly authorityId: string;
+    readonly mechanism: 'configuration' | 'policy' | 'registration' | 'unconditional';
+  };
+  readonly proofTargets: readonly {
+    readonly proofTargetId: string;
+    readonly kind:
+      | 'consumer-execution'
+      | 'ingress-execution'
+      | 'enablement-resolution'
+      | 'removal-verification'
+      | 'platform'
+      | 'scale';
+  }[];
+}
+
+/** Prompt-safe identity tuple for 7099 L1. It contains no executable or digest authority. */
+export const TERMINAL_NATIVE_PROVIDER_PROOF_IDENTITY: ProductionWiringHostProofIdentity =
+  Object.freeze({
+    producer: Object.freeze({
+      producerId: 'deckent.terminal.native-provider-authority-resolver',
+    }),
+    canonicalConsumer: Object.freeze({
+      consumerId: 'deckent.terminal.native-session-provider',
+      relationship: 'invokes-producer' as const,
+    }),
+    affectedIngresses: Object.freeze([
+      Object.freeze({ ingressId: 'deckent.native-terminal.entry', kind: 'entrypoint' as const }),
+    ]),
+    enablementAuthority: Object.freeze({
+      authorityId: 'deckent.config.native-provider',
+      mechanism: 'configuration' as const,
+    }),
+    proofTargets: Object.freeze([
+      Object.freeze({
+        proofTargetId: 'deckent.terminal.native-provider-resolution-execution',
+        kind: 'consumer-execution' as const,
+      }),
+    ]),
+  });
+
+interface RegisteredHostProofProfile {
+  readonly adapterId: string;
+  readonly observationGroupId: string;
+  readonly harnessPath: string;
+  readonly schemaId: string;
+  readonly assets: readonly Readonly<{
+    readonly path: string;
+    readonly role: ProductionWiringHostProofVerifierAsset['role'];
+  }>[];
+  readonly targetKeys: readonly string[];
+  readonly proposalIdentity?: ProductionWiringHostProofIdentity;
+  readonly platformPolicy?: Readonly<Record<
+    ProductionWiringHostProofPlatform,
+    'supported' | 'capability-unavailable'
+  >>;
+}
 
 export type ProductionWiringHostProofPlatform =
   (typeof PRODUCTION_WIRING_HOST_PROOF_PLATFORMS)[number];
@@ -476,6 +567,192 @@ function adapterTargetKey(target: ProductionWiringHostProofTarget): string {
   return `${target.kind}:${target.targetId}`;
 }
 
+function identityTargetKeys(identity: ProductionWiringHostProofIdentity): string[] {
+  return [
+    adapterTargetKey({ kind: 'producer', targetId: identity.producer.producerId }),
+    adapterTargetKey({
+      kind: 'canonical-consumer',
+      targetId: identity.canonicalConsumer.consumerId,
+    }),
+    ...identity.affectedIngresses.map(entry => adapterTargetKey({
+      kind: 'affected-ingress',
+      targetId: entry.ingressId,
+    })),
+    adapterTargetKey({
+      kind: 'enablement-authority',
+      targetId: identity.enablementAuthority.authorityId,
+    }),
+    ...identity.proofTargets.map(entry => adapterTargetKey({
+      kind: 'proof-target',
+      targetId: entry.proofTargetId,
+    })),
+  ].sort();
+}
+
+const REGISTERED_HOST_PROOF_PROFILES: readonly RegisteredHostProofProfile[] = Object.freeze([
+  Object.freeze({
+    adapterId: CLOSURE_OS_HOST_PROOF_ADAPTER_ID,
+    observationGroupId: CLOSURE_OS_HOST_PROOF_GROUP_ID,
+    harnessPath: CLOSURE_OS_HOST_PROOF_HARNESS_PATH,
+    schemaId: CLOSURE_OS_HOST_PROOF_SCHEMA_ID,
+    assets: CLOSURE_OS_HOST_PROOF_ASSETS,
+    targetKeys: CLOSURE_OS_HOST_PROOF_TARGET_KEYS,
+  }),
+  Object.freeze({
+    adapterId: TERMINAL_NATIVE_PROVIDER_HOST_PROOF_ADAPTER_ID,
+    observationGroupId: TERMINAL_NATIVE_PROVIDER_HOST_PROOF_GROUP_ID,
+    harnessPath: CLOSURE_OS_HOST_PROOF_HARNESS_PATH,
+    schemaId: TERMINAL_NATIVE_PROVIDER_HOST_PROOF_SCHEMA_ID,
+    assets: TERMINAL_NATIVE_PROVIDER_HOST_PROOF_ASSETS,
+    targetKeys: Object.freeze(identityTargetKeys(TERMINAL_NATIVE_PROVIDER_PROOF_IDENTITY)),
+    proposalIdentity: TERMINAL_NATIVE_PROVIDER_PROOF_IDENTITY,
+    platformPolicy: Object.freeze({
+      linux: 'supported' as const,
+      'wsl2-linux': 'supported' as const,
+      darwin: 'capability-unavailable' as const,
+      win32: 'capability-unavailable' as const,
+    }),
+  }),
+]);
+
+function profileForTargetKeys(targetKeys: readonly string[]): RegisteredHostProofProfile | null {
+  const canonical = canonicalJson([...targetKeys].sort());
+  return REGISTERED_HOST_PROOF_PROFILES.find(profile =>
+    canonicalJson(profile.targetKeys) === canonical) ?? null;
+}
+
+function profileForProposalIdentity(
+  identity: ProductionWiringHostProofIdentity,
+): RegisteredHostProofProfile | null {
+  const identityTuple = (value: ProductionWiringHostProofIdentity) => canonicalJson({
+    producer: value.producer,
+    canonicalConsumer: value.canonicalConsumer,
+    affectedIngresses: value.affectedIngresses,
+    enablementAuthority: value.enablementAuthority,
+    proofTargets: value.proofTargets,
+  });
+  const canonical = identityTuple(identity);
+  return REGISTERED_HOST_PROOF_PROFILES.find(profile =>
+    profile.proposalIdentity !== undefined
+      && identityTuple(profile.proposalIdentity) === canonical) ?? null;
+}
+
+export function isProductionWiringHostProofIdentityRegistered(
+  identity: ProductionWiringHostProofIdentity,
+): boolean {
+  return profileForProposalIdentity(identity) !== null;
+}
+
+function isInsideRoot(root: string, candidate: string): boolean {
+  const relation = relative(root, candidate);
+  return relation === '' || (!relation.startsWith(`..${sep}`)
+    && relation !== '..' && !isAbsolute(relation));
+}
+
+function readVerifierAssetDigest(projectRoot: string, assetPath: string): `sha256:${string}` | null {
+  if (!safeRelativeFilePath(assetPath)) return null;
+  let root: string;
+  try {
+    root = realpathSync(projectRoot);
+  } catch {
+    return null;
+  }
+  const absolute = resolve(root, assetPath);
+  if (!isInsideRoot(root, absolute)) return null;
+  let cursor = root;
+  try {
+    for (const segment of assetPath.split('/').slice(0, -1)) {
+      cursor = resolve(cursor, segment);
+      const entry = lstatSync(cursor);
+      if (!entry.isDirectory() || entry.isSymbolicLink()) return null;
+    }
+    const pathEntry = lstatSync(absolute);
+    if (!pathEntry.isFile() || pathEntry.isSymbolicLink() || pathEntry.nlink !== 1
+      || realpathSync(absolute) !== absolute) return null;
+  } catch {
+    return null;
+  }
+  let descriptor: number | undefined;
+  try {
+    descriptor = openSync(absolute, fsConstants.O_RDONLY | (fsConstants.O_NOFOLLOW ?? 0));
+    const before = fstatSync(descriptor);
+    if (!before.isFile() || before.nlink !== 1) return null;
+    const bytes = readFileSync(descriptor);
+    const after = fstatSync(descriptor);
+    if (before.dev !== after.dev || before.ino !== after.ino || before.size !== after.size
+      || before.mtimeMs !== after.mtimeMs || before.ctimeMs !== after.ctimeMs) return null;
+    return `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
+  } catch {
+    return null;
+  } finally {
+    if (descriptor !== undefined) closeSync(descriptor);
+  }
+}
+
+function targetFromKey(key: string): ProductionWiringHostProofTarget {
+  const separator = key.indexOf(':');
+  return {
+    kind: key.slice(0, separator) as ProductionWiringHostProofTarget['kind'],
+    targetId: key.slice(separator + 1),
+  };
+}
+
+/**
+ * Complete a proposal's exact identity tuple from the immutable host registry.
+ * The caller supplies no executable, argv, digest, platform claim, or success predicate.
+ */
+export function createRegisteredProductionWiringHostProofProgram(
+  identity: ProductionWiringHostProofIdentity,
+  projectRoot: string,
+): ProductionWiringHostProofProgramInput | null {
+  const profile = profileForProposalIdentity(identity);
+  if (!profile) return null;
+  const verifierAssets: ProductionWiringHostProofVerifierAsset[] = [];
+  for (const asset of profile.assets) {
+    const sha256 = readVerifierAssetDigest(projectRoot, asset.path);
+    if (!sha256) return null;
+    verifierAssets.push({ ...asset, sha256 });
+  }
+  const request = canonicalJson({
+    version: 1,
+    kind: 'deckent-production-wiring-host-proof-request-v1',
+    adapterId: profile.adapterId,
+    assets: verifierAssets,
+    timeoutMs: 60_000,
+    outputLimitBytes: 64 * 1024,
+  });
+  const probes = profile.targetKeys.map(key => ({
+    target: targetFromKey(key),
+    observationGroupId: profile.observationGroupId,
+    harnessPath: profile.harnessPath,
+    verifierAssetPaths: verifierAssets.map(asset => asset.path),
+    args: [request],
+    cwd: '.',
+    timeoutMs: 60_000,
+    outputLimitBytes: 64 * 1024,
+    expectation: {
+      kind: 'adapter-structured-outcome' as const,
+      schemaId: profile.schemaId,
+      outcome: 'observed' as const,
+    },
+  }));
+  return {
+    network: 'forbidden',
+    verifierAssets,
+    platforms: PRODUCTION_WIRING_HOST_PROOF_PLATFORMS.map(platform => {
+      const policy = profile.platformPolicy?.[platform] ?? 'supported';
+      return policy === 'supported'
+        ? {
+            platform,
+            state: 'supported' as const,
+            runnerAdapterId: PRODUCTION_WIRING_DOCKER_RUNNER_ADAPTER_ID,
+            probes,
+          }
+        : { platform, state: 'unsupported' as const, reasonCode: policy };
+    }),
+  };
+}
+
 export type ProductionWiringHostProofAdapterAdmission =
   | Readonly<{ readonly state: 'valid' }>
   | Readonly<{ readonly state: 'hold'; readonly reasonCode: 'host-proof-harness-unregistered' }>;
@@ -488,16 +765,29 @@ export type ProductionWiringHostProofAdapterAdmission =
 export function validateProductionWiringHostProofAdapterAdmission(
   program: ProductionWiringHostProofProgramV1,
 ): ProductionWiringHostProofAdapterAdmission {
-  if (program.network !== 'forbidden'
-    || program.verifierAssets.length !== CLOSURE_OS_HOST_PROOF_ASSETS.length) {
+  if (program.network !== 'forbidden') {
+    return { state: 'hold', reasonCode: 'host-proof-harness-unregistered' };
+  }
+  const programTargetKeys = program.platforms
+    .filter(platform => platform.state === 'supported')
+    .flatMap(platform => platform.state === 'supported'
+      ? platform.probes.map(probe => adapterTargetKey(probe.target)) : []);
+  const profile = profileForTargetKeys([...new Set(programTargetKeys)]);
+  if (!profile || program.verifierAssets.length !== profile.assets.length) {
     return { state: 'hold', reasonCode: 'host-proof-harness-unregistered' };
   }
   const assetByPath = new Map(program.verifierAssets.map(asset => [asset.path, asset]));
-  if (CLOSURE_OS_HOST_PROOF_ASSETS.some(required => {
+  if (profile.assets.some(required => {
     const actual = assetByPath.get(required.path);
     return !actual || actual.role !== required.role;
   })) return { state: 'hold', reasonCode: 'host-proof-harness-unregistered' };
   for (const platform of program.platforms) {
+    const platformPolicy = profile.platformPolicy?.[platform.platform];
+    if (platformPolicy !== undefined
+      && ((platformPolicy === 'supported') !== (platform.state === 'supported')
+        || (platform.state === 'unsupported' && platform.reasonCode !== platformPolicy))) {
+      return { state: 'hold', reasonCode: 'host-proof-harness-unregistered' };
+    }
     if (platform.state !== 'supported') continue;
     if (platform.runnerAdapterId !== PRODUCTION_WIRING_DOCKER_RUNNER_ADAPTER_ID) {
       return { state: 'hold', reasonCode: 'host-proof-harness-unregistered' };
@@ -511,21 +801,21 @@ export function validateProductionWiringHostProofAdapterAdmission(
     for (const probes of groups.values()) {
       const representative = probes[0];
       if (!representative
-        || representative.observationGroupId !== CLOSURE_OS_HOST_PROOF_GROUP_ID
-        || representative.harnessPath !== CLOSURE_OS_HOST_PROOF_HARNESS_PATH
+        || representative.observationGroupId !== profile.observationGroupId
+        || representative.harnessPath !== profile.harnessPath
         || representative.cwd !== '.'
-        || representative.expectation.schemaId !== CLOSURE_OS_HOST_PROOF_SCHEMA_ID
+        || representative.expectation.schemaId !== profile.schemaId
         || representative.args.length !== 1
-        || probes.some(probe => probe.observationGroupId !== CLOSURE_OS_HOST_PROOF_GROUP_ID
-          || probe.harnessPath !== CLOSURE_OS_HOST_PROOF_HARNESS_PATH
+        || probes.some(probe => probe.observationGroupId !== profile.observationGroupId
+          || probe.harnessPath !== profile.harnessPath
           || probe.cwd !== '.'
-          || probe.expectation.schemaId !== CLOSURE_OS_HOST_PROOF_SCHEMA_ID)) {
+          || probe.expectation.schemaId !== profile.schemaId)) {
         return { state: 'hold', reasonCode: 'host-proof-harness-unregistered' };
       }
       const targetKeys = probes.map(probe => adapterTargetKey(probe.target)).sort();
-      if (canonicalJson(targetKeys) !== canonicalJson(CLOSURE_OS_HOST_PROOF_TARGET_KEYS)
+      if (canonicalJson(targetKeys) !== canonicalJson(profile.targetKeys)
         || canonicalJson(representative.verifierAssetPaths)
-          !== canonicalJson(CLOSURE_OS_HOST_PROOF_ASSETS.map(asset => asset.path))) {
+          !== canonicalJson(profile.assets.map(asset => asset.path))) {
         return { state: 'hold', reasonCode: 'host-proof-harness-unregistered' };
       }
       let request: unknown;
@@ -541,15 +831,15 @@ export function validateProductionWiringHostProofAdapterAdmission(
         ])
         || request.version !== 1
         || request.kind !== 'deckent-production-wiring-host-proof-request-v1'
-        || request.adapterId !== CLOSURE_OS_HOST_PROOF_ADAPTER_ID
+        || request.adapterId !== profile.adapterId
         || request.timeoutMs !== representative.timeoutMs
         || request.outputLimitBytes !== representative.outputLimitBytes
         || !Array.isArray(request.assets)
-        || request.assets.length !== CLOSURE_OS_HOST_PROOF_ASSETS.length) {
+        || request.assets.length !== profile.assets.length) {
         return { state: 'hold', reasonCode: 'host-proof-harness-unregistered' };
       }
-      for (let index = 0; index < CLOSURE_OS_HOST_PROOF_ASSETS.length; index += 1) {
-        const expected = CLOSURE_OS_HOST_PROOF_ASSETS[index]!;
+      for (let index = 0; index < profile.assets.length; index += 1) {
+        const expected = profile.assets[index]!;
         const candidate = request.assets[index];
         const declared = assetByPath.get(expected.path);
         if (!isRecord(candidate) || !exactKeys(candidate, ['path', 'sha256', 'role'])

@@ -114,6 +114,11 @@ describe('compileRunProposalIntent/compileRunProposal — baseline contract', ()
     const plannerEnvelope = {
       tasks: [{
         ...task,
+        scope: {
+          directories: ['tests/orchestra/'],
+          filesRead: [],
+          filesWrite: ['tests/orchestra/run-proposal-compiler.test.ts'],
+        },
         goNogo: {
           ...task.goNogo,
           items: task.goNogo.items?.map(({ id: _id, ...item }) => item),
@@ -125,6 +130,11 @@ describe('compileRunProposalIntent/compileRunProposal — baseline contract', ()
     expect(parsed?.tasks[0]?.goNogo.items).toEqual(task.goNogo.items);
 
     const legacy = makePlannerTask({
+      scope: {
+        directories: ['tests/orchestra/'],
+        filesRead: [],
+        filesWrite: ['tests/orchestra/run-proposal-compiler.test.ts'],
+      },
       goNogo: {
         goCriteria: 'one legacy statement; punctuation remains internal',
         noGoCriteria: 'one legacy prohibition; punctuation remains internal',

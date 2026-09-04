@@ -10,10 +10,13 @@
 import { types as nodeTypes } from 'node:util';
 
 import {
+  createRegisteredProductionWiringHostProofProgram,
   createProductionWiringHostProofProgram,
+  isProductionWiringHostProofIdentityRegistered,
   parseProductionWiringHostProofProgram,
   parseProductionWiringHostProofProgramInput,
   validateProductionWiringHostProofCoverage,
+  type ProductionWiringHostProofIdentity,
   type ProductionWiringHostProofProgramInput,
   type ProductionWiringHostProofProgramV1,
 } from './production-wiring-host-proof.js';
@@ -176,6 +179,28 @@ export interface ProductionWiringContractV2Input {
   readonly disposition: ProductionWiringContractV2['disposition'];
   readonly proofTargets: ProductionWiringContractV2['proofTargets'];
   readonly hostProofProgram: ProductionWiringHostProofProgramInput;
+}
+
+export interface ProductionWiringProposalV1 extends ProductionWiringHostProofIdentity {
+  readonly version: 1;
+  readonly changeKind: ProductionWiringChangeKind;
+  readonly disposition: ProductionWiringContractV2['disposition'];
+}
+
+export type ProductionWiringProposalCompletionReason =
+  | 'proposal-invalid'
+  | 'host-proof-profile-unregistered'
+  | 'host-proof-assets-unavailable'
+  | 'host-proof-contract-invalid';
+
+export class ProductionWiringProposalCompletionError extends TypeError {
+  public readonly reasonCode: ProductionWiringProposalCompletionReason;
+
+  constructor(reasonCode: ProductionWiringProposalCompletionReason) {
+    super(`production-wiring proposal completion failed: ${reasonCode}`);
+    this.name = 'ProductionWiringProposalCompletionError';
+    this.reasonCode = reasonCode;
+  }
 }
 
 export type ProductionWiringContract = ProductionWiringContractV1 | ProductionWiringContractV2;
@@ -380,6 +405,71 @@ export function parseProductionWiringContractV2Input(
   };
 }
 
+/** Strict model-authoring surface: identities and disposition only, never host authority. */
+export function parseProductionWiringProposalV1(value: unknown): ProductionWiringProposalV1 | null {
+  if (!isRecord(value) || !exactKeys(value, [
+    'version', 'changeKind', 'producer', 'canonicalConsumer', 'affectedIngresses',
+    'enablementAuthority', 'disposition', 'proofTargets',
+  ]) || value.version !== 1
+    || !['runtime-addition', 'runtime-change', 'refactor', 'removal', 'foundation',
+      'public-library', 'documentation', 'data'].includes(String(value.changeKind))) return null;
+  const producer = parseIdentityNode(value.producer, 'producerId');
+  const consumer = parseIdentityNode(value.canonicalConsumer, 'consumerId', [
+    'relationship', ['invokes-producer', 'removed-or-migrated'],
+  ]);
+  const enablement = parseIdentityNode(value.enablementAuthority, 'authorityId', [
+    'mechanism', ['configuration', 'policy', 'registration', 'unconditional'],
+  ]);
+  const disposition = parseDisposition(value.disposition);
+  if (producer === null || consumer === null || enablement === null || disposition === null
+    || !Array.isArray(value.affectedIngresses) || value.affectedIngresses.length === 0
+    || !Array.isArray(value.proofTargets) || value.proofTargets.length === 0) return null;
+  const affectedIngresses = value.affectedIngresses.map(entry => parseIdentityNode(
+    entry, 'ingressId', ['kind', ['ingress', 'entrypoint']],
+  ));
+  const proofTargets = value.proofTargets.map(entry => parseIdentityNode(
+    entry, 'proofTargetId', ['kind', ['consumer-execution', 'ingress-execution',
+      'enablement-resolution', 'removal-verification', 'platform', 'scale']],
+  ));
+  if (affectedIngresses.some(entry => entry === null)
+    || proofTargets.some(entry => entry === null)) return null;
+  return deepFreeze({
+    version: 1,
+    changeKind: value.changeKind as ProductionWiringChangeKind,
+    producer: producer as unknown as ProductionWiringProposalV1['producer'],
+    canonicalConsumer: consumer as unknown as ProductionWiringProposalV1['canonicalConsumer'],
+    affectedIngresses: affectedIngresses as unknown as ProductionWiringProposalV1['affectedIngresses'],
+    enablementAuthority: enablement as unknown as ProductionWiringProposalV1['enablementAuthority'],
+    disposition,
+    proofTargets: proofTargets as unknown as ProductionWiringProposalV1['proofTargets'],
+  });
+}
+
+/**
+ * Compatibility reader for old planner output. A supplied V2 program is deliberately discarded;
+ * only its identity fields cross the model/host boundary.
+ */
+export function parseProductionWiringProposalFromPlannerValue(
+  value: unknown,
+): ProductionWiringProposalV1 | null {
+  const proposal = parseProductionWiringProposalV1(value);
+  if (proposal) return proposal;
+  if (!isRecord(value) || !exactKeys(value, [
+    'version', 'changeKind', 'producer', 'canonicalConsumer', 'affectedIngresses',
+    'enablementAuthority', 'disposition', 'proofTargets', 'hostProofProgram',
+  ]) || value.version !== 2) return null;
+  return parseProductionWiringProposalV1({
+    version: 1,
+    changeKind: value.changeKind,
+    producer: value.producer,
+    canonicalConsumer: value.canonicalConsumer,
+    affectedIngresses: value.affectedIngresses,
+    enablementAuthority: value.enablementAuthority,
+    disposition: value.disposition,
+    proofTargets: value.proofTargets,
+  });
+}
+
 function deepFreeze<T>(value: T): T {
   if (value !== null && typeof value === 'object') {
     for (const entry of Object.values(value as Record<string, unknown>)) deepFreeze(entry);
@@ -410,6 +500,68 @@ export function createProductionWiringContractV2(
     throw new TypeError(`invalid production-wiring host proof coverage: ${coverage.reasonCode}`);
   }
   return deepFreeze(contract);
+}
+
+export function completeProductionWiringFromProposal(
+  value: unknown,
+  context: Readonly<{ readonly projectRoot: string }>,
+): ProductionWiringContractV2 {
+  const proposal = parseProductionWiringProposalFromPlannerValue(value);
+  if (!proposal) throw new ProductionWiringProposalCompletionError('proposal-invalid');
+  if (!isProductionWiringHostProofIdentityRegistered(proposal)) {
+    throw new ProductionWiringProposalCompletionError('host-proof-profile-unregistered');
+  }
+  const hostProofProgram = createRegisteredProductionWiringHostProofProgram(
+    proposal,
+    context.projectRoot,
+  );
+  if (!hostProofProgram) {
+    throw new ProductionWiringProposalCompletionError('host-proof-assets-unavailable');
+  }
+  try {
+    return createProductionWiringContractV2({
+      version: 2,
+      changeKind: proposal.changeKind,
+      producer: proposal.producer,
+      canonicalConsumer: proposal.canonicalConsumer,
+      affectedIngresses: proposal.affectedIngresses,
+      enablementAuthority: proposal.enablementAuthority,
+      disposition: proposal.disposition,
+      proofTargets: proposal.proofTargets,
+      hostProofProgram,
+    });
+  } catch {
+    throw new ProductionWiringProposalCompletionError('host-proof-contract-invalid');
+  }
+}
+
+/** Lossless canonical-contract projection for the existing structured DIRECTIVES reader. */
+export function productionWiringContractV2InputFromCanonical(
+  contract: ProductionWiringContractV2,
+): ProductionWiringContractV2Input {
+  const program = contract.hostProofProgram;
+  return {
+    version: 2,
+    changeKind: contract.changeKind,
+    producer: contract.producer,
+    canonicalConsumer: contract.canonicalConsumer,
+    affectedIngresses: contract.affectedIngresses,
+    enablementAuthority: contract.enablementAuthority,
+    disposition: contract.disposition,
+    proofTargets: contract.proofTargets,
+    hostProofProgram: {
+      network: program.network,
+      verifierAssets: program.verifierAssets,
+      platforms: program.platforms.map(platform => platform.state === 'unsupported'
+        ? platform
+        : {
+            platform: platform.platform,
+            state: platform.state,
+            runnerAdapterId: platform.runnerAdapterId,
+            probes: platform.probes.map(({ probeId: _probeId, ...probe }) => probe),
+          }),
+    },
+  };
 }
 
 function canonicalJson(value: unknown): string {

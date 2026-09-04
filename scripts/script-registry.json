@@ -1251,12 +1251,12 @@
   {
    "file": "scripts/production-wiring-host-proof-harness.mjs",
    "class": "recurring-proof",
-   "owner": "production-wiring-closure",
+   "owner": "production-wiring-host-proof-registry",
    "npmScript": null,
-   "input": "canonical deckent-production-wiring-host-proof-request-v1 JSON on stdin; digest-bound trusted verifier assets; bounded timeout/output policy",
-   "output": "one canonical deckent-production-wiring-host-proof-outcome JSON observation or typed HOLD; never mutates the project or Closure OS ledger",
+   "input": "canonical deckent-production-wiring-host-proof-request-v1 JSON on stdin; code-owned adapter identity; digest-bound trusted verifier assets; bounded timeout/output policy",
+   "output": "one profile-bound canonical deckent-production-wiring-host-proof-outcome JSON observation or typed HOLD; never mutates project state or Closure OS authority",
    "expiry": "none — permanent trusted-host proof adapter for exact production-wiring closure",
-   "notes": "Registered during the 2026-09-03 main landing closure. The harness validates no-follow asset custody, runs the allowlisted Closure OS authority gate in a bounded child process and rechecks asset identity before returning an observation."
+   "notes": "Registered during the 2026-09-03 main landing closure; expanded by recovery 3333 without generic attestation. The immutable registry currently owns the Closure OS authority observer and the 7099 L1 Terminal native-provider observer. Each adapter fixes its assets, executable, argv, environment, target tuple, schema and success predicate in code; the harness validates no-follow asset custody and rechecks identity before returning an observation."
   },
   {
    "file": "scripts/lint-cli-surface.mjs",

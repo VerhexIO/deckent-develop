@@ -19,6 +19,9 @@ export const HOST_PROOF_HARNESS_VERSION = 1;
 export const CLOSURE_OS_AUTHORITY_ADAPTER_ID = 'deckent-closure-os-authority-gate-v1';
 export const CLOSURE_OS_AUTHORITY_OBSERVATION_GROUP_ID = 'deckent:closure-os-authority-gate';
 export const CLOSURE_OS_AUTHORITY_SCHEMA_ID = 'deckent.host-proof.closure-os-authority-gate.v1';
+export const TERMINAL_NATIVE_PROVIDER_ADAPTER_ID = 'deckent-terminal-native-provider-resolution-v1';
+export const TERMINAL_NATIVE_PROVIDER_OBSERVATION_GROUP_ID = 'deckent:terminal-native-provider-resolution';
+export const TERMINAL_NATIVE_PROVIDER_SCHEMA_ID = 'deckent.host-proof.terminal-native-provider-resolution.v1';
 
 const REQUEST_KIND = 'deckent-production-wiring-host-proof-request-v1';
 const OUTCOME_KIND = 'deckent-production-wiring-host-proof-outcome';
@@ -31,7 +34,7 @@ const CLOSURE_GATE_SUCCESS = /^\[closure-gate\] OK — [1-9][0-9]* events, chain
 
 const ROOT = realpathSync(join(dirname(fileURLToPath(import.meta.url)), '..'));
 
-const REQUIRED_ASSETS = Object.freeze([
+const CLOSURE_OS_REQUIRED_ASSETS = Object.freeze([
   Object.freeze({
     path: 'scripts/production-wiring-host-proof-harness.mjs',
     role: 'trusted-harness',
@@ -46,13 +49,76 @@ const REQUIRED_ASSETS = Object.freeze([
   }),
 ]);
 
-const TARGET_KEYS = Object.freeze([
+const CLOSURE_OS_TARGET_KEYS = Object.freeze([
   'affected-ingress:closure-os.ledger-file-ingress',
   'canonical-consumer:closure-os.authority-gate',
   'enablement-authority:closure-os.reviewed-trust-anchor',
   'producer:closure-os.append-only-ledger',
   'proof-target:closure-os.chain-identity-lifecycle-authority',
 ].sort());
+
+const TERMINAL_NATIVE_PROVIDER_REQUIRED_ASSETS = Object.freeze([
+  Object.freeze({ path: 'scripts/production-wiring-host-proof-harness.mjs', role: 'trusted-harness' }),
+]);
+
+// The verifier logic lives in this digest-pinned harness, outside the product
+// task's write authority. The TypeScript modules are the observed production
+// targets, not mutable test or verifier assets. `tsx` is only the loader: it
+// receives this exact code-owned program through argv and cannot author the
+// assertions, target identity, environment, or acceptance predicate.
+const TERMINAL_NATIVE_PROVIDER_OBSERVER_SOURCE = String.raw`
+const transport = await import('./src/cli/repl/native-transport.ts');
+const core = await import('./src/core/native-provider-names.ts');
+if (transport.NATIVE_PROVIDER_NAMES !== core.NATIVE_PROVIDER_NAMES
+  || !core.NATIVE_PROVIDER_NAMES.includes('local-llm')) process.exit(41);
+const selected = transport.resolveNativeProvider(
+  { ANTHROPIC_API_KEY: 'must-not-fallback' },
+  { native_provider: 'proof-unsupported-provider' },
+  process.cwd(),
+);
+if (!('error' in selected)
+  || selected.errorCode !== 'unsupported-native-provider'
+  || selected.provider !== 'proof-unsupported-provider') process.exit(42);
+let healthUrl = '';
+const health = await transport.probeNativeEndpointHealth(
+  'http://127.0.0.1:43110/v1',
+  async input => {
+    healthUrl = String(input);
+    return { ok: true, status: 200 };
+  },
+);
+if (!health.healthy
+  || health.endpoint !== 'http://127.0.0.1:43110/v1'
+  || healthUrl !== 'http://127.0.0.1:43110/health') process.exit(43);
+process.stdout.write(JSON.stringify({ healthUrl, outcome: 'observed', provider: selected.provider }));
+`;
+
+const TERMINAL_NATIVE_PROVIDER_TARGET_KEYS = Object.freeze([
+  'affected-ingress:deckent.native-terminal.entry',
+  'canonical-consumer:deckent.terminal.native-session-provider',
+  'enablement-authority:deckent.config.native-provider',
+  'producer:deckent.terminal.native-provider-authority-resolver',
+  'proof-target:deckent.terminal.native-provider-resolution-execution',
+].sort());
+
+const PROFILES = Object.freeze([
+  Object.freeze({
+    adapterId: CLOSURE_OS_AUTHORITY_ADAPTER_ID,
+    schemaId: CLOSURE_OS_AUTHORITY_SCHEMA_ID,
+    observationGroupId: CLOSURE_OS_AUTHORITY_OBSERVATION_GROUP_ID,
+    assets: CLOSURE_OS_REQUIRED_ASSETS,
+    targetKeys: CLOSURE_OS_TARGET_KEYS,
+    observer: 'closure-os',
+  }),
+  Object.freeze({
+    adapterId: TERMINAL_NATIVE_PROVIDER_ADAPTER_ID,
+    schemaId: TERMINAL_NATIVE_PROVIDER_SCHEMA_ID,
+    observationGroupId: TERMINAL_NATIVE_PROVIDER_OBSERVATION_GROUP_ID,
+    assets: TERMINAL_NATIVE_PROVIDER_REQUIRED_ASSETS,
+    targetKeys: TERMINAL_NATIVE_PROVIDER_TARGET_KEYS,
+    observer: 'terminal-native-provider',
+  }),
+]);
 
 function canonicalJson(value) {
   if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
@@ -99,19 +165,20 @@ function parseRequest(raw) {
     ])
     || value.version !== HOST_PROOF_HARNESS_VERSION
     || value.kind !== REQUEST_KIND
-    || value.adapterId !== CLOSURE_OS_AUTHORITY_ADAPTER_ID
+    || typeof value.adapterId !== 'string'
     || !Number.isSafeInteger(value.timeoutMs)
     || value.timeoutMs < 1
     || value.timeoutMs > MAX_TIMEOUT_MS
     || !Number.isSafeInteger(value.outputLimitBytes)
     || value.outputLimitBytes < 1
     || value.outputLimitBytes > MAX_OUTPUT_BYTES
-    || !Array.isArray(value.assets)
-    || value.assets.length !== REQUIRED_ASSETS.length) return null;
+    || !Array.isArray(value.assets)) return null;
+  const profile = PROFILES.find(candidate => candidate.adapterId === value.adapterId);
+  if (!profile || value.assets.length !== profile.assets.length) return null;
   const assets = [];
-  for (let index = 0; index < REQUIRED_ASSETS.length; index += 1) {
+  for (let index = 0; index < profile.assets.length; index += 1) {
     const candidate = value.assets[index];
-    const required = REQUIRED_ASSETS[index];
+    const required = profile.assets[index];
     if (!exactKeys(candidate, ['path', 'sha256', 'role'])
       || candidate.path !== required.path
       || candidate.role !== required.role
@@ -127,7 +194,8 @@ function parseRequest(raw) {
   return Object.freeze({
     version: HOST_PROOF_HARNESS_VERSION,
     kind: REQUEST_KIND,
-    adapterId: CLOSURE_OS_AUTHORITY_ADAPTER_ID,
+    adapterId: profile.adapterId,
+    profile,
     assets: Object.freeze(assets),
     timeoutMs: value.timeoutMs,
     outputLimitBytes: value.outputLimitBytes,
@@ -295,15 +363,43 @@ function processSucceeded(result) {
     && !result.timedOut && !result.cancelled;
 }
 
-function observedOutcome() {
+function observedOutcome(profile) {
   return Object.freeze({
     version: HOST_PROOF_HARNESS_VERSION,
     kind: OUTCOME_KIND,
-    schemaId: CLOSURE_OS_AUTHORITY_SCHEMA_ID,
-    observationGroupId: CLOSURE_OS_AUTHORITY_OBSERVATION_GROUP_ID,
+    schemaId: profile.schemaId,
+    observationGroupId: profile.observationGroupId,
     outcome: 'observed',
-    targetKeys: TARGET_KEYS,
+    targetKeys: profile.targetKeys,
   });
+}
+
+function observerInvocation(root, request) {
+  if (request.profile.observer === 'closure-os') {
+    return Object.freeze({
+      executable: process.execPath,
+      args: [resolve(root, 'scripts/lint-closure-dispositions.mjs')],
+      accepts: result => result.stderr.byteLength === 0
+        && CLOSURE_GATE_SUCCESS.test(Buffer.from(result.stdout).toString('utf8')),
+    });
+  }
+  if (request.profile.observer === 'terminal-native-provider') {
+    return Object.freeze({
+      executable: process.execPath,
+      args: [
+        '--import',
+        'tsx',
+        '--input-type=module',
+        '--eval',
+        TERMINAL_NATIVE_PROVIDER_OBSERVER_SOURCE,
+      ],
+      // Every observation assertion exits with a distinct non-zero status.
+      // processSucceeded() is therefore the authoritative predicate; stdout is
+      // diagnostic only and never a model-authored success token.
+      accepts: result => result.stderr.byteLength === 0,
+    });
+  }
+  return null;
 }
 
 /**
@@ -329,13 +425,16 @@ export async function runProductionWiringHostProofHarness(rawRequest, options = 
     }
     initial.set(asset.path, snapshot);
   }
-  const gate = resolve(root, 'scripts/lint-closure-dispositions.mjs');
+  const invocation = observerInvocation(root, request);
+  if (!invocation) {
+    return Object.freeze({ state: 'hold', reasonCode: 'host-proof-adapter-unregistered' });
+  }
   const runner = options.processRunner ?? runBoundedProcess;
   let result;
   try {
     result = await runner({
-      executable: process.execPath,
-      args: [gate],
+      executable: invocation.executable,
+      args: invocation.args,
       cwd: root,
       env: Object.freeze({
         HOME: '/tmp',
@@ -346,6 +445,9 @@ export async function runProductionWiringHostProofHarness(rawRequest, options = 
         GIT_TERMINAL_PROMPT: '0',
         GIT_PAGER: 'cat',
         PAGER: 'cat',
+        ...(request.profile.observer === 'terminal-native-provider'
+          ? { NODE_ENV: 'test' }
+          : {}),
       }),
       timeoutMs: request.timeoutMs,
       outputLimitBytes: request.outputLimitBytes,
@@ -361,8 +463,7 @@ export async function runProductionWiringHostProofHarness(rawRequest, options = 
           : 'host-proof-adapter-failed';
     return Object.freeze({ state: 'hold', reasonCode });
   }
-  if (result.stderr.byteLength !== 0
-    || !CLOSURE_GATE_SUCCESS.test(Buffer.from(result.stdout).toString('utf8'))) {
+  if (!invocation.accepts(result)) {
     return Object.freeze({ state: 'hold', reasonCode: 'host-proof-adapter-observation-failed' });
   }
   for (const asset of request.assets) {
@@ -370,7 +471,7 @@ export async function runProductionWiringHostProofHarness(rawRequest, options = 
       return Object.freeze({ state: 'hold', reasonCode: 'host-proof-verifier-asset-changed' });
     }
   }
-  return Object.freeze({ state: 'observed', outcome: observedOutcome() });
+  return Object.freeze({ state: 'observed', outcome: observedOutcome(request.profile) });
 }
 
 async function main() {

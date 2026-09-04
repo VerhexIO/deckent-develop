@@ -745,7 +745,12 @@ export const UNRESOLVED_BASELINE = Object.freeze({
   // allowlist or hand-authored success registry.
   // 2026-09-03 final model-authority fail-closed proof: 18130→18132 from two
   // corrupt-existing-store fixtures; both stay tmpdir-owned and provider-free.
-  count: 18132,
+  // 2026-09-04 (3333 planner host-completed wiring): 18132→18156 — the
+  // identity-only proposal, exact registered-profile refusal, four-platform
+  // host completion, verifier/write-scope separation and compiler→DIRECTIVES
+  // round-trip pins are source-derived and suite-owned; the sealed production
+  // observer remains the only real child.
+  count: 18156,
   // 2026-08-28 OPERATION-001 O3 ratchet: count unchanged, digest-only —
   // operation-ingress audit moved from report-only proof to a fail-closed
   // lint:gates member with hermetic regression coverage.
@@ -823,7 +828,10 @@ export const UNRESOLVED_BASELINE = Object.freeze({
   // `do.slash_no_providers` shifted messages.ts production:eager-call-unresolved callsite
   // digests — same 18132 count, digest only (HEAD-vs-tree diff: only messages.ts
   // identities moved, no new unresolved edge).
-  digest: '36336895d901c2317b776f41b21bad3115322e37103ebc0f618db523abf94572',
+  // 2026-09-04 (3333 planner host-completed wiring): final build-free source
+  // fingerprint after the exact source/callsite-sealed observer and its
+  // verifier/write-scope regression were admitted.
+  digest: 'dbcf292c83a0ee2988a844cb464d9300c72c9ef2d9ea4b5fbe701c061756c01b',
   // 2026-08-27 04:0x: ayni 16514, digest-only — full-suite hizalama batch'i
   // (pin/mock/census guncellemeleri + sync guard).
   // 2026-08-27 03:1x: ayni 16514, digest-only — CI-hizalama paketi
@@ -1493,7 +1501,10 @@ export const PRODUCTION_INVENTORY_BASELINE = Object.freeze({
   // activation; absent-store detection is race-safe.
   // 2026-09-04 (3332 RECOVERY-BORN-PLANNER-DEPENDENCY-SHAPE-001): planner.ts content edge
   // classification shift (dependency-shape coercion + detailed parse) — same 1421 count, digest only.
-  digest: '81badfaff55114e10fee17dac51442cb89f60ec1694f8103cabea6db24bf791a',
+  // 2026-09-04 (3333 planner host-completed wiring): final immutable-observer
+  // separation moves the same profile/harness bytes; no new module enters the
+  // source-derived inventory.
+  digest: 'db12218c84bbc86d54ede9a445745997c60760b25dd0ab1f3fda182b2b7e2e0e',
   // 2026-08-27 04:0x: ayni 1339, digest-only — sync workspace-guard + drift-normalize.
   // 2026-08-27 03:1x: ayni 1339, digest-only — skill-pool readJsonSafe donusumu.
   // 2026-08-27 02:0x: ayni 1339, digest-only — Dalga-3 src kaymalari
@@ -5026,8 +5037,8 @@ const REPO_PATH_TOKEN = '__DECKENT_REPO_ROOT__';
 // E_HERMETIC_CHILD_EFFECT_UNRESOLVED; this is not a path/name allowlist.
 const SEALED_PRODUCTION_CHILD_ADAPTERS = Object.freeze({
   'scripts/production-wiring-host-proof-harness.mjs': Object.freeze({
-    sourceSha256: '6e39b4acee05e0e33b7bf6d67544f600de9aa602fabbe5fd5dfdbe98e017dbc8',
-    callsite: 'ca080eabb0dc14446beea458bb545f979dff09a2b6a9e14742f7c69b5821d236',
+    sourceSha256: '5b8c575b652b92b77508c9d898de344b4def729bbca39ec05e0954684a245ae9',
+    callsite: '43876014d887d388a3ad7ce4f3475a1da6702cb4f676947e53f9feb8e32ffe96',
   }),
 });
 

@@ -3,19 +3,19 @@
   "generatedFrom": "docs/MASTER-PLAN.md",
   "sourceDigest": {
     "algorithm": "sha256(normalized-lf-utf8)",
-    "value": "ef7b674f9b835a3e30e03249a1df9229f65a869fdf24e1d2374a794021403b73"
+    "value": "cf4ec7f911fbb723402172399651036b1f21af4272fcf5cdff218c12481e11ea"
   },
   "summary": {
     "total": 576,
     "active": 488,
     "terminal": 88,
-    "receipts": 216,
+    "receipts": 217,
     "byState": {
-      "OPEN": 367,
+      "OPEN": 366,
       "READY": 0,
       "IN_PROGRESS": 0,
       "BLOCKED": 69,
-      "VERIFY": 50,
+      "VERIFY": 51,
       "DONE": 88,
       "DEFERRED": 2,
       "DISPOSED": 0
@@ -3644,10 +3644,10 @@
       "id": "RECOVERY-BORN-PLANNER-HOST-COMPLETED-WIRING-001",
       "program": "KERNEL",
       "priority": "P0",
-      "state": "OPEN",
+      "state": "VERIFY",
       "updated": "2026-09-04",
       "definitionDigest": "d04f8aa32aa438b083bc540aecd8eecc61fcf6830dee7d31c5ceabe4c5e43d53",
-      "progressDigest": "705ec139bccbc65c3eadc04f18303478a048c1a27787ce7e9fecd1ebb483bfe9",
+      "progressDigest": "7aca76d4fd643c7c8780b47d0eb1f786a0611d107c4dddd20d7bf237ebac1100",
       "terminalClosureDigest": null
     },
     {
@@ -8559,6 +8559,16 @@
         "mode": "ONE_SHOT",
         "status": "consumed",
         "transitionAt": "2026-09-04T03:11:56+03:00"
+      },
+      "g7AttemptIdentity": null
+    },
+    {
+      "id": "GR-2026-09-04-PLANNER-HOST-WIRING-01",
+      "authorityDigest": "5577ef7ce64246951d0e411ee96913a901c16233558782c86de982b694b57ecd",
+      "lifecycle": {
+        "mode": "ONE_SHOT",
+        "status": "consumed",
+        "transitionAt": "2026-09-04T10:57:40+03:00"
       },
       "g7AttemptIdentity": null
     }
@@ -19652,13 +19662,13 @@
         "G1",
         "G2"
       ],
-      "state": "OPEN",
+      "state": "VERIFY",
       "truth": {
         "C": "1",
-        "W": "0",
-        "E": "0",
-        "H": "?",
-        "L": "0",
+        "W": "1",
+        "E": "1",
+        "H": "1",
+        "L": "1",
         "X": "?",
         "S": "?"
       },
@@ -19667,9 +19677,11 @@
       "closureBlockedBy": [
         "RECOVERY-BORN-PLANNER-DEPENDENCY-SHAPE-001"
       ],
-      "evidenceReceipts": [],
+      "evidenceReceipts": [
+        "GR-2026-09-04-PLANNER-HOST-WIRING-01"
+      ],
       "acceptance": "Planner prompt'u modelden yalnız kimlik alanlarını ister; host `hostProofProgram`'ı trusted verifier asset digest'leri ve linux/wsl2-linux/darwin/win32 programıyla tamamlar, `parseProductionWiringContractV2Input` + coverage doğrulaması geçer, authored digest asla kabul edilmez; eksik/uyumsuz kimlik typed `validation_failed` + issue-path ile retry'a gider; hermetik testler (kimlik-önerisi → host-completion → geçerli kontrat; geçersiz kimlik → typed hold), tsc, gate'ler; gerçek kanıt: CLI `deckent do` ve native `/do` ile 7099 v2 L1 hedefi plan önizlemesi üretir; wiring kontrat authority'sine dokunulan noktada owner/ADR amendment kararı açıkça alınır",
-      "evidence": "Born 2026-09-04 (owner karar: 'Üçüncü recovery: host-completed wiring, yeni oturumda'; owner-live-2026-09-04-terminal-audit-closure-v2): kanıt 3332 sonrası `DECKENT_DEBUG=1 deckent do` → `planner:contractViolation attempt 1 — tasks.0.productionWiring:required`, `attempt 2 — tasks.0.productionWiring:invalid`; kontrat `src/core/production-wiring-contract.ts:340`; prompt örneği planner.ts:462/498; capsule `docs/execution/active/RECOVERY-BORN-PLANNER-HOST-COMPLETED-WIRING-001.md` (PLANNED, fresh snapshot yeni oturumda)",
+      "evidence": "Born 2026-09-04 (owner karar: 'Üçüncü recovery: host-completed wiring, yeni oturumda'; owner-live-2026-09-04-terminal-audit-closure-v2): kanıt 3332 sonrası `DECKENT_DEBUG=1 deckent do` → `planner:contractViolation attempt 1 — tasks.0.productionWiring:required`, `attempt 2 — tasks.0.productionWiring:invalid`; kontrat `src/core/production-wiring-contract.ts:340`; prompt örneği planner.ts:462/498; capsule `docs/execution/active/RECOVERY-BORN-PLANNER-HOST-COMPLETED-WIRING-001.md`; 2026-09-04 SETTLEMENT: registered identity-only proposal → host-owned exact digest + four-platform program, authored/model digest discarded, task/verifier write separation protected by unchanged overlap guard; CLI flow `a36f802e-…` four-task plan digest `fbe1faad…` and native `/do` flow `87ce58a4-…` three-task plan digest `06332b1e…` both provider transport exit 0 + consumer accepted + gate/policy PASS; native card pre-landing rejected, CLI exact plan retained unstarted; 11-file/213-test battery, tsc and scoped gates, `build:all`, bot restart PID 3728211 PASS; `receipt=GR-2026-09-04-PLANNER-HOST-WIRING-01`",
       "updated": "2026-09-04"
     },
     {
@@ -29138,6 +29150,6 @@
   ],
   "registryIntegrity": {
     "algorithm": "sha256(canonical-json-utf8)",
-    "value": "bd7331c95c5724e41d52258e8b3b455ebed3d369919a93ed82b0cdb5eee67374"
+    "value": "8a0e3375fd31f4ebc3b560c8fa4d28edbd740595f1574f5d4363be31bc7cc135"
   }
 }
