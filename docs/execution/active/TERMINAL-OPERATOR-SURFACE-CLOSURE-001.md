@@ -7,7 +7,7 @@ BRANCH: main
 WORKSPACE_MODE: MAIN
 PARENT_MASTER_ID: ECOSYSTEM-001
 MASTER_ORDER: 7099
-PREREQUISITE: RECOVERY-BORN-NATIVE-DO-SLASH-PROVIDER-BOOTSTRAP-001 (3331)
+PREREQUISITE: 3331 (landed 2449b6e4f) → 3332 (landed 13d2c80ef) → 3333 RECOVERY-BORN-PLANNER-HOST-COMPLETED-WIRING-001 (OPEN — üretim-kaynak `/do` planlaması bu kapanmadan mümkün değil)
 OWNER_DECISION_REF: owner-live-2026-09-04-terminal-audit-closure-v2
 STATUS: PLANNED — BASE_SHA paket başlangıcında yeniden ölçülür (3331 landing sonrası)
 

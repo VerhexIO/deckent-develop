@@ -6,19 +6,20 @@
 > Tamamlanan ayrıntılı recovery günlüğünün kalıcı kanıtı Git geçmişi ve
 > `.analysis/audits/` altındaki makine kayıtlarıdır.
 
-## Şu an — 2026-09-04 Europe/Istanbul
+## Şu an — 2026-09-04 03:45 Europe/Istanbul
 
-- Branch: `main`.
-- HEAD ve `origin/main`: `f6ce016a89ddcdf07c84cd9475250c4e5c4c78e3`.
-- Önceki Terminal/Fable 5.1 goal'i: `complete`; aktif sistem goal'i yoktur.
-- Canonical sprint lifecycle: `IDLE`; aktif/resumable sprint, coordinator veya Docker
-  worker/container yoktur.
-- Sprint-713 canonical `deckent cleanup --sprint sprint-713` ile kapatıldı:
-  7 sprint dosyası retention arşivine alındı, 0 task artifact silindi.
-- `.brain/memory.db` değiştirilmedi.
-- Alperen'in 2026-09-04 canlı ve açık talimatıyla, aktif Deckent run/worker/container
-  olmadığı doğrulandıktan sonra kalan sprint-dışı `.tasks` seti Deckent cleanup
-  kullanılmadan geri alınabilir biçimde taşındı; yeni `.tasks` dizini boştur.
+- Branch: `main`; HEAD bu commit (governance), önceki: `13d2c80ef` (3332), `2449b6e4f` (3331),
+  `90041c27f` (owner cleanup). `origin/main`'e push yapılmadı (owner gate).
+- Aktif Deckent run/worker/container yok; `.tasks` boş; bot listen canlı (PID 2898110, dokunulmadı).
+- Bu oturumun ürünü: native terminal audit'i (32 bulgu, 13 owner kararı) → MASTER 7099 v2 paketi,
+  7101–7104 owner-admitted satırlar, 3331 ve 3332 ADR-D-007 recovery paketleri LANDED (VERIFY),
+  3333 OPEN (üçüncü recovery, yeni oturumda).
+- Typed HOLD: üretim-kaynak yazan `/do` hedefleri `productionWiring` V2 kontratında düşüyor
+  (LLM digest-pinned blok üretemiyor); 3333 kapanmadan 7099 v2 dogfood başlamaz.
+- Runtime dirty truth commit dışı: `.brain/ERRORS-critical.md`, `.deckent/provider-execution-observations.db`,
+  `.deckent/settings/repl-history`, `.deckent/runtime/local-llm.pid`.
+- Pre-existing kırmızı gate'ler (HEAD'de de): layer-shims 9, readme-stats 3 stale, audit-operation-ingress 8;
+  planner battery'de 30 pre-existing test kırmızısı (validateProductionWiringAuthority sınıfı). Owner admission bekler.
 
 ## Tamamlanan ürün zemini
 
@@ -108,3 +109,12 @@
 
 Yeni Goal/Mission/Flow/Run henüz başlatılmadı. İlk yeni run temiz ve dürüst baseline
 sağlanmadan açılmayacak.
+
+### 2026-09-04 03:45 — bir sonraki imleç
+
+1. Fresh `deckent-authority-bootstrap` snapshot; `docs/execution/active/RECOVERY-BORN-PLANNER-HOST-COMPLETED-WIRING-001.md`
+   capsule'ını oku (handoff receipt içinde), 3333 için admission receipt yaz (HEAD digest'leri), IN_PROGRESS.
+2. Host-completed wiring: model kimlik önerir, host `hostProofProgram`'ı doldurur; TDD → tsc → gate'ler → dist →
+   gerçek `deckent do` + native `/do` kanıtı (7099 v2 L1 hedefi: scratchpad `goal-L1b.txt` metni capsule'da yeniden yazılır).
+3. 3333 landing → 7099 v2 L1 `/do` ile başlar (kart onayı), landing'lerde bot durdurma izni var (owner 2026-09-04).
+

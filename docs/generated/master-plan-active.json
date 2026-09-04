@@ -3,15 +3,15 @@
   "generatedFrom": "docs/MASTER-PLAN.md",
   "sourceDigest": {
     "algorithm": "sha256(normalized-lf-utf8)",
-    "value": "e192157a8737e0a9ccbebe9a6aea265d5062f9cfae31718d652ddbbc15be2300"
+    "value": "ef7b674f9b835a3e30e03249a1df9229f65a869fdf24e1d2374a794021403b73"
   },
   "summary": {
-    "total": 575,
-    "active": 487,
+    "total": 576,
+    "active": 488,
     "terminal": 88,
     "receipts": 216,
     "byState": {
-      "OPEN": 366,
+      "OPEN": 367,
       "READY": 0,
       "IN_PROGRESS": 0,
       "BLOCKED": 69,
@@ -21,7 +21,7 @@
       "DISPOSED": 0
     },
     "byPriority": {
-      "P0": 364,
+      "P0": 365,
       "P1": 161,
       "P2": 50
     },
@@ -41,7 +41,7 @@
       "ENTERPRISE": 4,
       "EVAL": 5,
       "EVOLUTION": 4,
-      "KERNEL": 129,
+      "KERNEL": 130,
       "LEARNING": 9,
       "OBS": 9,
       "ONBOARDING": 1,
@@ -3640,6 +3640,17 @@
       "terminalClosureDigest": null
     },
     {
+      "order": 3333,
+      "id": "RECOVERY-BORN-PLANNER-HOST-COMPLETED-WIRING-001",
+      "program": "KERNEL",
+      "priority": "P0",
+      "state": "OPEN",
+      "updated": "2026-09-04",
+      "definitionDigest": "d04f8aa32aa438b083bc540aecd8eecc61fcf6830dee7d31c5ceabe4c5e43d53",
+      "progressDigest": "705ec139bccbc65c3eadc04f18303478a048c1a27787ce7e9fecd1ebb483bfe9",
+      "terminalClosureDigest": null
+    },
+    {
       "order": 3335,
       "id": "PROD-BINARY-IDENTITY-EAGER-CRASH-001",
       "program": "KERNEL",
@@ -5449,9 +5460,9 @@
       "program": "PRODUCT",
       "priority": "P0",
       "state": "VERIFY",
-      "updated": "2026-09-03",
+      "updated": "2026-09-04",
       "definitionDigest": "5557413f8585e9010315771e332d587ce8a7f0c03fce68c319475d9e11b08fcb",
-      "progressDigest": "55d78e2dbd7e1c863170711e9523eddac722802e1b518ea718e8179c85947c2d",
+      "progressDigest": "46e9681034b6dd89221dfeaf1ae5b030a0224e285683e114bc5ded0f3bdb1df1",
       "terminalClosureDigest": null
     },
     {
@@ -16166,7 +16177,8 @@
         "CLEAN-DASHBOARD-POLICY-001",
         "RECOVERY-BORN-711-NORMAL-DOCKER-EXACT-ATTEMPT-CUSTODY-001",
         "RECOVERY-BORN-NATIVE-DO-SLASH-PROVIDER-BOOTSTRAP-001",
-        "RECOVERY-BORN-PLANNER-DEPENDENCY-SHAPE-001"
+        "RECOVERY-BORN-PLANNER-DEPENDENCY-SHAPE-001",
+        "RECOVERY-BORN-PLANNER-HOST-COMPLETED-WIRING-001"
       ],
       "gates": [
         "G1"
@@ -16233,7 +16245,8 @@
         "RECOVERY-BORN-523-ATTRIBUTION-UNMEASURABLE-001",
         "RECOVERY-BORN-711-NORMAL-DOCKER-EXACT-ATTEMPT-CUSTODY-001",
         "RECOVERY-BORN-NATIVE-DO-SLASH-PROVIDER-BOOTSTRAP-001",
-        "RECOVERY-BORN-PLANNER-DEPENDENCY-SHAPE-001"
+        "RECOVERY-BORN-PLANNER-DEPENDENCY-SHAPE-001",
+        "RECOVERY-BORN-PLANNER-HOST-COMPLETED-WIRING-001"
       ],
       "evidenceReceipts": [
         "GR-2026-07-30-RECOVERY-DOGFOOD-BOOTSTRAP-01",
@@ -19595,7 +19608,9 @@
       "outcome": "AI planner yanıtında görev bağımlılıklarının sayısal indeks veya 'Task N' biçiminde gelmesi Zod şemasında (`dependencies: z.array(z.string())`) `parse_failed` olarak reddediliyor ve schema-retry aynı şekli tekrarlıyor — native `/do` L1 hedefi iki kez planlanamadı; şema-öncesi deterministik bağımlılık-şekli koersiyonu (1-tabanlı indeks → başlık), typed `validation_failed` + parserStage/issue-path diagnostiği ve issue-bilgili retry geri bildirimi (ADR-D-007 bounded recovery, feature yok)",
       "priority": "P0",
       "dependsOn": [],
-      "dependents": [],
+      "dependents": [
+        "RECOVERY-BORN-PLANNER-HOST-COMPLETED-WIRING-001"
+      ],
       "children": [],
       "gates": [
         "G1",
@@ -19620,6 +19635,42 @@
       "acceptance": "`parsePlannerResponse` sayısal ve 'Task N' bağımlılıklarını görev başlığına deterministik çözer (aralık dışı/kendine referans dokunulmaz, sonra görünür şekilde düşer); JSON parse hatası `parse_failed`, şema hatası `validation_failed` olarak invocation ledger'a stage + bounded issue-path listesiyle (ham çıktı yok) yazılır; schema-retry prompt'u ihlal yollarını adlandırır; hermetik testler (koersiyon, stage ayrımı, zero-config e2e injected spawnFn); tsc; gerçek kanıt: CLI `deckent do` ve native `/do` ile L1 hedefi plan önizlemesi üretir",
       "evidence": "Born 2026-09-04 (owner-live-2026-09-04-terminal-audit-closure-v2, ikinci recovery onayı): kanıt invocations.db inv-0eaf44e7…/inv-2c4a4138… iki denemede `consumer_settled rejected parse_failed` (exit 0, 63–73 s); `DECKENT_DEBUG=1 deckent do` → `parsePlannerResponse:validation: tasks[2..4].dependencies[*] Expected string, received number`; planner.ts:96 şema, :1693/:1699 settle, :1933 normalizePlannerDependencies yalnız string; capsule `docs/execution/active/RECOVERY-BORN-PLANNER-DEPENDENCY-SHAPE-001.md`; DOGFOOD_HEALTH=DEGRADED ilanı bu satırla; `receipt=GR-2026-09-04-PLANNER-DEP-SHAPE-01`; **LOCAL_VERIFIED 2026-09-04** — `coercePlannerDependencyShape` (1-tabanlı indeks / 'Task N' → başlık, aralık dışı ve kendine referans görünür düşer), `parsePlannerResponseDetailed` (json/schema/wiring/identity stage + bounded Zod issue-path'leri), ledger `consumer_settled` artık `parse_failed` ile `validation_failed`'ı ayırır, tek düzeltici retry her kontrat ihlalini (parse/şema/wiring/model-politikası) tam yol ve model kimliğiyle adlandırır, `.brain/ERRORS.md`'ye `planner:contractViolation` yazılır; 11/11 yeni hermetik test, planner battery'de yeni kırmızı yok (30 pre-existing HEAD ile birebir), tsc exit 0, hermeticity ratchet (aynı 1421), i18n/model-literal/spawnsync temiz, dist=src (`tsc`+`copy-assets`, clean bot-gated); gerçek binary: `deckent do` L1 hedefi 3 koşumda ledger'a `validation_failed` yazdı ve retry ihlali adlandırdı — **residual typed HOLD:** model üretim görevleri için zorunlu `productionWiring` V2 bloğunu ya üretmiyor (`tasks.0.productionWiring:required`) ya geçersiz üretiyor (`:invalid`); digest-pinned verifierAssets isteyen kontrat LLM'ce üretilemez sınıfı, ayrı born satırı/owner kararı gerekir — bu satır plan-üretim kabulünü bu HOLD nedeniyle taşımaz",
       "updated": "2026-09-03"
+    },
+    {
+      "order": 3333,
+      "id": "RECOVERY-BORN-PLANNER-HOST-COMPLETED-WIRING-001",
+      "parent": "RECOVERY-DOGFOOD-BORN-001",
+      "program": "KERNEL",
+      "outcome": "AI planner (native `/do` ve CLI `do`) üretim-kaynak yazan her görev için `productionWiring` V2 bloğunu LLM'den bekliyor; kontrat exactKeys + digest-pinned verifierAssets + 4-platform hostProofProgram istediği için model bloğu ya üretmiyor (`:required`) ya geçersiz üretiyor (`:invalid`) ve plan üretilemiyor — host-completed wiring: model yalnız producer/canonicalConsumer/affectedIngresses/enablementAuthority/proofTargets kimliklerini önerir, host verifier digest'lerini ve platform programını registry/harness/platform-matrix'ten doldurup kontratı doğrular (ADR-D-007 bounded recovery, üçüncü paket)",
+      "priority": "P0",
+      "dependsOn": [
+        "RECOVERY-BORN-PLANNER-DEPENDENCY-SHAPE-001"
+      ],
+      "dependents": [],
+      "children": [],
+      "gates": [
+        "G1",
+        "G2"
+      ],
+      "state": "OPEN",
+      "truth": {
+        "C": "1",
+        "W": "0",
+        "E": "0",
+        "H": "?",
+        "L": "0",
+        "X": "?",
+        "S": "?"
+      },
+      "blockerCode": null,
+      "blockerRemedy": null,
+      "closureBlockedBy": [
+        "RECOVERY-BORN-PLANNER-DEPENDENCY-SHAPE-001"
+      ],
+      "evidenceReceipts": [],
+      "acceptance": "Planner prompt'u modelden yalnız kimlik alanlarını ister; host `hostProofProgram`'ı trusted verifier asset digest'leri ve linux/wsl2-linux/darwin/win32 programıyla tamamlar, `parseProductionWiringContractV2Input` + coverage doğrulaması geçer, authored digest asla kabul edilmez; eksik/uyumsuz kimlik typed `validation_failed` + issue-path ile retry'a gider; hermetik testler (kimlik-önerisi → host-completion → geçerli kontrat; geçersiz kimlik → typed hold), tsc, gate'ler; gerçek kanıt: CLI `deckent do` ve native `/do` ile 7099 v2 L1 hedefi plan önizlemesi üretir; wiring kontrat authority'sine dokunulan noktada owner/ADR amendment kararı açıkça alınır",
+      "evidence": "Born 2026-09-04 (owner karar: 'Üçüncü recovery: host-completed wiring, yeni oturumda'; owner-live-2026-09-04-terminal-audit-closure-v2): kanıt 3332 sonrası `DECKENT_DEBUG=1 deckent do` → `planner:contractViolation attempt 1 — tasks.0.productionWiring:required`, `attempt 2 — tasks.0.productionWiring:invalid`; kontrat `src/core/production-wiring-contract.ts:340`; prompt örneği planner.ts:462/498; capsule `docs/execution/active/RECOVERY-BORN-PLANNER-HOST-COMPLETED-WIRING-001.md` (PLANNED, fresh snapshot yeni oturumda)",
+      "updated": "2026-09-04"
     },
     {
       "order": 3343,
@@ -25851,8 +25902,8 @@
       ],
       "evidenceReceipts": [],
       "acceptance": "Linux/WSL2 gerçek binary'de picker, slash/help, approval, posture, readability, provider/model vocabulary, session authority, pipe/readline ve i18n yüzeyleri aynı canonical application-service/config authority'sini tüketir; `claude-fable-5-1` registry→activation→provider argv→worker image→cross-provider XVerify settlement zincirinde exact kimlikle korunur; mock/test tek başına kapanış değildir; macOS, Windows-native ve SSH/tmux yalnız gerçek host kanıtıyla kapanabilir",
-      "evidence": "`historical-authority=owner-live-2026-09-03-terminal-closure;historical-gates=G1,G2;proof=main-67a734c87-xv-cd8236e8-65b5774b-54744c0f-4d39cf2c-ce640622`; Main landing `67a734c87`; lane source chain `26f8f8e99..f147f4e7f`; Linux/WSL2 targeted terminal battery `270 files / 3925 tests`; Fable surface battery `15 files / 368 tests`; inactive and unreadable-authority native binary proofs both stop before provider with typed/localized exit 1; task/XVerify project authority claim `CONFIRMED/ALLOW`, provider usage `22071`, terminal Docker settlement, `receipt=cross-verify-verdict:sha256:54744c0f5088462f78d1a48467c83372e7cb6d7e049eb46c028401ae25fb894d`; cross-ingress corrupt-authority claim `CONFIRMED/ALLOW`, provider usage `24589`, terminal Docker settlement, `receipt=cross-verify-verdict:sha256:4d39cf2cb0a78a1df4bf11a4da7643fe9892e2f324497676cfbbc0a308df61f0`; final strict/race-safe resolver claim `CONFIRMED/ALLOW`, provider usage `19455`, terminal Docker settlement, `receipt=cross-verify-verdict:sha256:ce64062285f89b4a620e80f3e1d5b4e0e2b8124ca2486063606f6e93d37b3736`; exact Fable XVerify `CONFIRMED/ALLOW`, provider-reported usage `29793`, terminal Docker settlement, `receipt=cross-verify-verdict:sha256:cd8236e86091af95148e1da2bacfe83ea6d5587c748e8121c179d817902aa3cd`; picker-card bounded source claim `CONFIRMED/ALLOW`, provider usage `17850`, Docker settlement, `receipt=cross-verify-verdict:sha256:65b5774bd9fd2f463b20f4875f97c8e49b43c6568b83f6746bbe49384111a4a4`; Native Terminal geniş/hassas XVerify denemeleri provider cevabı/evidence-map şema bütünlüğünde `HOLD` kaldı ve kapanış kanıtı sayılmadı; worker image Claude Code 2.1.259 proof; full-suite landing ölçümü `2940 files: 2791 pass / 142 fail / 7 skip`, kırmızılar pre-existing sınıfında ve bu satır için başarı kanıtı sayılmaz; açık platform HOLD: macOS/Windows-native/SSH-tmux; Closure OS authenticated disposition bu VERIFY satırından ayrı authority'dir ve elle üretilmez; **v2 kapanış paketi owner-admitted 2026-09-04** (`owner-live-2026-09-04-terminal-audit-closure-v2`, 32 bulgu, 20 BLOCKS_CURRENT_DONE): 6 hat — (1) provider kimliği native_provider + erişilebilirlik kapısı, başlık/altbilgi tek çözücü, `health.auth` etiketi, probe timeout, chat_provider deprecate+migrasyon, receipt yetki tutarlılığı · (2) slash sözleşmesi: zorunlu argüman, deprecated filtresi, köprü spawn'ına dil aktarımı (7085 bağlı), /queue /interrupt /steer kaydı · (3) köprü renderer: --json → kart/picker (doctor, history, agents, skills, models aktif-set + --json, sync özet, audit picker + verdict), /mcp gerçek dispatcher, tüm onaylar tek kart ailesi · (4) canlı durum: başlık Ink içinde ve reaktif, oturum kimliği atılamaz, turn içi araç adı/süre/token/bağlam %, typed hata satırı + sonraki eylem, sprint satırı gerçek rehydrate (7089 bağlı), temiz açılış + `terminal.startup.recent_sessions` · (5) checkpoint: yanlış corrupt etiketi, neden kaydı, fence onarımı, `.deckent/runtime/sessions/<id>/checkpoints`, başarısız sıkıştırmada fatura yok (7086/7089 bağlı) · (6) config/i18n/a11y kapıları: repl_surface alan-bazlı default, lint kapsamı repl+tsx, ~54 literal, verdict metin taşıyıcı, ASCII/reduced-motion, genişlik birliği, Ctrl+C/Esc, debug log redaksiyonu, `--version` pipe-güvenli; platform kanıtı Linux+WSL+Windows-native (macOS/SSH HOLD sürer); önkoşul RECOVERY-BORN-NATIVE-DO-SLASH-PROVIDER-BOOTSTRAP-001; capsule `docs/execution/active/TERMINAL-OPERATOR-SURFACE-CLOSURE-001.md`",
-      "updated": "2026-09-03"
+      "evidence": "`historical-authority=owner-live-2026-09-03-terminal-closure;historical-gates=G1,G2;proof=main-67a734c87-xv-cd8236e8-65b5774b-54744c0f-4d39cf2c-ce640622`; Main landing `67a734c87`; lane source chain `26f8f8e99..f147f4e7f`; Linux/WSL2 targeted terminal battery `270 files / 3925 tests`; Fable surface battery `15 files / 368 tests`; inactive and unreadable-authority native binary proofs both stop before provider with typed/localized exit 1; task/XVerify project authority claim `CONFIRMED/ALLOW`, provider usage `22071`, terminal Docker settlement, `receipt=cross-verify-verdict:sha256:54744c0f5088462f78d1a48467c83372e7cb6d7e049eb46c028401ae25fb894d`; cross-ingress corrupt-authority claim `CONFIRMED/ALLOW`, provider usage `24589`, terminal Docker settlement, `receipt=cross-verify-verdict:sha256:4d39cf2cb0a78a1df4bf11a4da7643fe9892e2f324497676cfbbc0a308df61f0`; final strict/race-safe resolver claim `CONFIRMED/ALLOW`, provider usage `19455`, terminal Docker settlement, `receipt=cross-verify-verdict:sha256:ce64062285f89b4a620e80f3e1d5b4e0e2b8124ca2486063606f6e93d37b3736`; exact Fable XVerify `CONFIRMED/ALLOW`, provider-reported usage `29793`, terminal Docker settlement, `receipt=cross-verify-verdict:sha256:cd8236e86091af95148e1da2bacfe83ea6d5587c748e8121c179d817902aa3cd`; picker-card bounded source claim `CONFIRMED/ALLOW`, provider usage `17850`, Docker settlement, `receipt=cross-verify-verdict:sha256:65b5774bd9fd2f463b20f4875f97c8e49b43c6568b83f6746bbe49384111a4a4`; Native Terminal geniş/hassas XVerify denemeleri provider cevabı/evidence-map şema bütünlüğünde `HOLD` kaldı ve kapanış kanıtı sayılmadı; worker image Claude Code 2.1.259 proof; full-suite landing ölçümü `2940 files: 2791 pass / 142 fail / 7 skip`, kırmızılar pre-existing sınıfında ve bu satır için başarı kanıtı sayılmaz; açık platform HOLD: macOS/Windows-native/SSH-tmux; Closure OS authenticated disposition bu VERIFY satırından ayrı authority'dir ve elle üretilmez; **v2 kapanış paketi owner-admitted 2026-09-04** (`owner-live-2026-09-04-terminal-audit-closure-v2`, 32 bulgu, 20 BLOCKS_CURRENT_DONE): 6 hat — (1) provider kimliği native_provider + erişilebilirlik kapısı, başlık/altbilgi tek çözücü, `health.auth` etiketi, probe timeout, chat_provider deprecate+migrasyon, receipt yetki tutarlılığı · (2) slash sözleşmesi: zorunlu argüman, deprecated filtresi, köprü spawn'ına dil aktarımı (7085 bağlı), /queue /interrupt /steer kaydı · (3) köprü renderer: --json → kart/picker (doctor, history, agents, skills, models aktif-set + --json, sync özet, audit picker + verdict), /mcp gerçek dispatcher, tüm onaylar tek kart ailesi · (4) canlı durum: başlık Ink içinde ve reaktif, oturum kimliği atılamaz, turn içi araç adı/süre/token/bağlam %, typed hata satırı + sonraki eylem, sprint satırı gerçek rehydrate (7089 bağlı), temiz açılış + `terminal.startup.recent_sessions` · (5) checkpoint: yanlış corrupt etiketi, neden kaydı, fence onarımı, `.deckent/runtime/sessions/<id>/checkpoints`, başarısız sıkıştırmada fatura yok (7086/7089 bağlı) · (6) config/i18n/a11y kapıları: repl_surface alan-bazlı default, lint kapsamı repl+tsx, ~54 literal, verdict metin taşıyıcı, ASCII/reduced-motion, genişlik birliği, Ctrl+C/Esc, debug log redaksiyonu, `--version` pipe-güvenli; platform kanıtı Linux+WSL+Windows-native (macOS/SSH HOLD sürer); önkoşul zinciri RECOVERY-BORN-NATIVE-DO-SLASH-PROVIDER-BOOTSTRAP-001 (landed 2449b6e4f) → RECOVERY-BORN-PLANNER-DEPENDENCY-SHAPE-001 (landed 13d2c80ef) → RECOVERY-BORN-PLANNER-HOST-COMPLETED-WIRING-001 (OPEN, üretim-kaynak `/do` planlaması bu paket kapanmadan başlayamaz); capsule `docs/execution/active/TERMINAL-OPERATOR-SURFACE-CLOSURE-001.md`",
+      "updated": "2026-09-04"
     },
     {
       "order": 7100,
@@ -29087,6 +29138,6 @@
   ],
   "registryIntegrity": {
     "algorithm": "sha256(canonical-json-utf8)",
-    "value": "117339e39a1d8059f7f59e88db8e6a721807994a9d0c7054db86f60f4d8b8e67"
+    "value": "bd7331c95c5724e41d52258e8b3b455ebed3d369919a93ed82b0cdb5eee67374"
   }
 }

@@ -12,7 +12,11 @@
    Capsule: `RECOVERY-BORN-NATIVE-DO-SLASH-PROVIDER-BOOTSTRAP-001.md`. **LANDED 2449b6e4f (VERIFY).**
 0b. **3332 RECOVERY-BORN-PLANNER-DEPENDENCY-SHAPE-001** — ADR-D-007 bounded recovery: planner
    bağımlılık-şekli koersiyonu + typed validation_failed diagnostiği (L1 /do iki kez parse_failed).
-   Capsule: `RECOVERY-BORN-PLANNER-DEPENDENCY-SHAPE-001.md`. → engine ayağa kalkınca dogfood'a dönüş.
+   Capsule: `RECOVERY-BORN-PLANNER-DEPENDENCY-SHAPE-001.md`. **LANDED 13d2c80ef (VERIFY, residual HOLD).**
+0c. **3333 RECOVERY-BORN-PLANNER-HOST-COMPLETED-WIRING-001** — ADR-D-007 bounded recovery (üçüncü):
+   host-completed productionWiring V2; model yalnız kimlik önerir, host digest/platform programını doldurur.
+   Owner kararı 2026-09-04: yeni oturumda, fresh snapshot ile. Capsule: `RECOVERY-BORN-PLANNER-HOST-COMPLETED-WIRING-001.md`.
+   → bu kapanmadan 1. node (7099 v2) `/do` ile başlayamaz.
 1. **7099 TERMINAL-OPERATOR-SURFACE-CLOSURE-001 v2** — 6 hat (kimlik, slash sözleşmesi, köprü
    renderer, canlı durum, checkpoint, kapılar); bağlı satırlar 7077, 7085, 7086, 7088, 7089.
    Dogfood: `/do` → Goal/Flow/Run. Capsule: `TERMINAL-OPERATOR-SURFACE-CLOSURE-001.md`.
