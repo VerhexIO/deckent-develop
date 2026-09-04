@@ -1491,7 +1491,9 @@ export const PRODUCTION_INVENTORY_BASELINE = Object.freeze({
   // activation is enforced at task, XVerify and native ingresses; an existing
   // but unreadable/invalid authority is a typed HOLD rather than implicit
   // activation; absent-store detection is race-safe.
-  digest: 'f9ee5fc1be5d52e913198b3aef0fb99a265fe4011741494a53bc3c838d7d9e42',
+  // 2026-09-04 (3332 RECOVERY-BORN-PLANNER-DEPENDENCY-SHAPE-001): planner.ts content edge
+  // classification shift (dependency-shape coercion + detailed parse) — same 1421 count, digest only.
+  digest: '81badfaff55114e10fee17dac51442cb89f60ec1694f8103cabea6db24bf791a',
   // 2026-08-27 04:0x: ayni 1339, digest-only — sync workspace-guard + drift-normalize.
   // 2026-08-27 03:1x: ayni 1339, digest-only — skill-pool readJsonSafe donusumu.
   // 2026-08-27 02:0x: ayni 1339, digest-only — Dalga-3 src kaymalari

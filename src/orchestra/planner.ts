@@ -108,6 +108,125 @@ const PlannerResultSchema = z.object({
   reasoning: z.string(),
 });
 
+// ─── RECOVERY-BORN-PLANNER-DEPENDENCY-SHAPE-001 (MASTER 3332) ────────────────
+//
+// A nondeterministic planner model sometimes emits `dependencies` as task NUMBERS
+// (the 1-based "Task N" ordinal it was shown) or as "Task N" strings instead of
+// the exact title strings the schema requires. Before this slice the whole plan
+// was rejected as `parse_failed`, the schema-retry repeated the shape, and the
+// ledger could not tell a JSON failure from a schema failure. The repair is
+// deterministic and bounded: ordinal refs that unambiguously name ANOTHER task in
+// the same plan become that task's title; anything else (out of range, self, 0)
+// is left as a string so normalizePlannerDependencies drops it VISIBLY later.
+
+/** Secret-safe description of why a planner response was rejected. */
+export interface PlannerParseFailure {
+  /** `json` = not parseable JSON; `schema` = valid JSON violating PlannerResultSchema;
+   *  `wiring` = production-wiring contract rejected. */
+  readonly stage: 'json' | 'schema' | 'wiring' | 'identity';
+  /** Dotted Zod issue paths with their codes (`tasks.2.dependencies.0:invalid_type`),
+   *  capped — never a byte of the model's output. */
+  readonly issues: readonly string[];
+}
+
+const PLANNER_ISSUE_CAP = 8;
+const ORDINAL_DEPENDENCY_RE = /^\s*(?:task\s*#?|#)\s*(\d+)\s*$/i;
+
+export function coercePlannerDependencyShape(parsed: unknown): { value: unknown; coerced: number } {
+  if (!parsed || typeof parsed !== 'object') return { value: parsed, coerced: 0 };
+  const tasks = (parsed as { tasks?: unknown }).tasks;
+  if (!Array.isArray(tasks)) return { value: parsed, coerced: 0 };
+  const titles = tasks.map((task) =>
+    task && typeof task === 'object' && typeof (task as { title?: unknown }).title === 'string'
+      ? (task as { title: string }).title
+      : null,
+  );
+  let coerced = 0;
+  const resolveOrdinal = (ordinal: number, selfIndex: number): string | null => {
+    if (!Number.isInteger(ordinal)) return null;
+    const target = ordinal - 1;
+    if (target < 0 || target >= titles.length || target === selfIndex) return null;
+    return titles[target] ?? null;
+  };
+  const nextTasks = tasks.map((task, selfIndex) => {
+    if (!task || typeof task !== 'object') return task;
+    const deps = (task as { dependencies?: unknown }).dependencies;
+    if (!Array.isArray(deps)) return task;
+    const nextDeps = deps.map((ref) => {
+      if (typeof ref === 'number') {
+        const title = resolveOrdinal(ref, selfIndex);
+        if (title !== null) { coerced++; return title; }
+        return String(ref);
+      }
+      if (typeof ref === 'string') {
+        const match = ORDINAL_DEPENDENCY_RE.exec(ref);
+        if (match) {
+          const title = resolveOrdinal(Number(match[1]), selfIndex);
+          if (title !== null) { coerced++; return title; }
+        }
+      }
+      return ref;
+    });
+    return { ...(task as object), dependencies: nextDeps };
+  });
+  return { value: { ...(parsed as object), tasks: nextTasks }, coerced };
+}
+
+function summarizeZodIssues(error: z.ZodError): readonly string[] {
+  return error.issues
+    .slice(0, PLANNER_ISSUE_CAP)
+    .map((issue) => `${issue.path.map(String).join('.')}:${issue.code}`);
+}
+
+/** One-line, output-free description used in messages and the schema-retry prompt. */
+export function describePlannerParseFailure(failure: PlannerParseFailure | undefined): string {
+  if (!failure) return 'unparseable output';
+  if (failure.stage === 'json') return 'response was not valid JSON';
+  if (failure.stage === 'wiring') {
+    return failure.issues.length > 0
+      ? `production wiring contract rejected at ${failure.issues.join(', ')} (every task that writes production source must carry a valid productionWiring V2 block)`
+      : 'production wiring contract rejected';
+  }
+  if (failure.stage === 'identity') return `model identity rejected (${failure.issues.join(', ')})`;
+  return failure.issues.length > 0
+    ? `schema violations at ${failure.issues.join(', ')}`
+    : 'schema violation';
+}
+
+function consumerReasonFor(failure: PlannerParseFailure | undefined): 'parse_failed' | 'validation_failed' {
+  return failure?.stage === 'schema' || failure?.stage === 'wiring' || failure?.stage === 'identity'
+    ? 'validation_failed'
+    : 'parse_failed';
+}
+
+/** A planner response that violates the output contract: unparseable/invalid
+ *  JSON, or a task model outside the allowed worker policy. `description` is
+ *  secret-safe (paths, codes and model API IDs only). */
+export interface PlannerContractViolation {
+  readonly reasonCode: 'parse_failed' | 'validation_failed';
+  readonly description: string;
+}
+
+export function describePlannerContractViolation(
+  detailed: { result: PlannerResult | null; failure?: PlannerParseFailure },
+  policy: PlannerTaskModelPolicy,
+): PlannerContractViolation | null {
+  if (!detailed.result) {
+    return { reasonCode: consumerReasonFor(detailed.failure), description: describePlannerParseFailure(detailed.failure) };
+  }
+  const disallowed = detailed.result.tasks
+    .map((task, index) => ({ index, model: task.model }))
+    .filter(({ model }) => !policy.allowedModels.includes(model));
+  if (disallowed.length === 0) return null;
+  return {
+    reasonCode: 'validation_failed',
+    description: `model outside the allowed worker policy at ${disallowed
+      .slice(0, PLANNER_ISSUE_CAP)
+      .map(({ index, model }) => `tasks.${index}.model:${model}`)
+      .join(', ')}`,
+  };
+}
+
 function canonicalPlannerCriteria(
   goCriteria: string,
   noGoCriteria: string,
@@ -425,7 +544,11 @@ function stripCodeFences(text: string): string {
  * @param raw      Full stdout captured from spawnSync
  * @param adapter  Provider adapter — when present, used to unwrap CLI envelopes
  */
-export function parsePlannerResponse(raw: string, adapter?: ProviderAdapter): PlannerResult | null {
+/** 3332: parse + shape-repair + schema validation with a secret-safe failure envelope. */
+export function parsePlannerResponseDetailed(
+  raw: string,
+  adapter?: ProviderAdapter,
+): { result: PlannerResult | null; failure?: PlannerParseFailure } {
   try {
     // Step 1: provider-specific envelope unwrap (Claude/Gemini/Codex)
     const unwrapped = adapter?.parseAgentResponse ? adapter.parseAgentResponse(raw) : raw;
@@ -455,10 +578,13 @@ export function parsePlannerResponse(raw: string, adapter?: ProviderAdapter): Pl
       parsed = JSON.parse(inner);
     }
 
+    // 3332: deterministic pre-schema dependency-shape repair (ordinal → title).
+    parsed = coercePlannerDependencyShape(parsed).value;
+
     const result = PlannerResultSchema.safeParse(parsed);
     if (!result.success) {
       debugLog('parsePlannerResponse:validation', result.error);
-      return null;
+      return { result: null, failure: { stage: 'schema', issues: summarizeZodIssues(result.error) } };
     }
     const productionWiring = new Map<number, ReturnType<typeof createProductionWiringPlanEvidenceV2>>();
     for (let index = 0; index < result.data.tasks.length; index++) {
@@ -470,13 +596,13 @@ export function parsePlannerResponse(raw: string, adapter?: ProviderAdapter): Pl
       });
       if (task.productionWiring !== undefined) {
         const input = parseProductionWiringContractV2Input(task.productionWiring);
-        if (input === null) return null;
+        if (input === null) return { result: null, failure: { stage: 'wiring', issues: [`tasks.${index}.productionWiring:invalid`] } };
         productionWiring.set(index, createProductionWiringPlanEvidenceV2(input));
       }
       if (deriveProductionWiringApplicability(task.scope).state === 'required'
-        && !productionWiring.has(index)) return null;
+        && !productionWiring.has(index)) return { result: null, failure: { stage: 'wiring', issues: [`tasks.${index}.productionWiring:required`] } };
     }
-    return {
+    const value = {
       ...result.data,
       tasks: result.data.tasks.map((task, index) => ({
         ...task,
@@ -492,10 +618,21 @@ export function parsePlannerResponse(raw: string, adapter?: ProviderAdapter): Pl
         },
       })),
     } as PlannerResult;
+    return { result: value };
   } catch (e) {
     debugLog('parsePlannerResponse:parse', e);
-    return null;
+    // SyntaxError = the output was not JSON; anything else surfaced after a
+    // successful parse (model identity/provider verification) and is a content
+    // failure — labelled distinctly so the ledger never calls it `parse_failed`.
+    if (e instanceof SyntaxError) return { result: null, failure: { stage: 'json', issues: [] } };
+    const name = e instanceof Error ? e.name : 'Error';
+    const code = e instanceof Error ? e.message.split(':')[0]?.trim() ?? '' : '';
+    return { result: null, failure: { stage: 'identity', issues: [`${name}:${code}`.slice(0, 120)] } };
   }
+}
+
+export function parsePlannerResponse(raw: string, adapter?: ProviderAdapter): PlannerResult | null {
+  return parsePlannerResponseDetailed(raw, adapter).result;
 }
 
 // ─── Provider Command Extraction ──────────────────────────────────
@@ -1289,8 +1426,10 @@ export async function callBrainPlannerWithReason(
     );
   }
 
-  const parsed = parsePlannerResponse(result.stdout, resolved);
+  const detailedParse = parsePlannerResponseDetailed(result.stdout, resolved);
+  const parsed = detailedParse.result;
   if (!parsed) {
+    const parseReason = consumerReasonFor(detailedParse.failure);
     // Same rule as the nonzero-exit branch: the model's own output can echo
     // prompt context (paths, project content, credentials pasted into it), so a
     // raw snippet is not a safe diagnostic. The digest identifies the exact
@@ -1303,13 +1442,13 @@ export async function callBrainPlannerWithReason(
           type: 'transport_settled',
           payload: { outcome: 'succeeded', exitCode: 0, signal: null, reasonCode: 'none', durationMs },
         },
-        { type: 'consumer_settled', payload: { outcome: 'rejected', reasonCode: 'parse_failed' } },
+        { type: 'consumer_settled', payload: { outcome: 'rejected', reasonCode: parseReason } },
       ],
       {
         ok: false,
-        reason: 'parse_failed',
+        reason: parseReason,
         message:
-        `provider=${resolved.name} returned unparseable output `
+        `provider=${resolved.name} ${describePlannerParseFailure(detailedParse.failure)} `
         + `(${stdoutBytes} bytes, output=${outputDigest})`,
         evidence: {
           provider: resolved.name,
@@ -1318,7 +1457,7 @@ export async function callBrainPlannerWithReason(
           signal: null,
           stdoutBytes,
           outputDigest,
-          parserStage: 'planner-response',
+          parserStage: `planner-${detailedParse.failure?.stage ?? 'json'}`,
         },
       },
     );
@@ -1682,34 +1821,41 @@ export async function callZeroConfigPlanner(
     settle(firstAttempt, 'rejected', result.signal === 'SIGTERM' ? 'timeout' : result.error ? 'spawn_error' : result.status !== 0 ? 'nonzero_exit' : 'empty_output');
     return null;
   }
-  let parsed = parsePlannerResponse(result.stdout, resolved);
+  let detailed = parsePlannerResponseDetailed(result.stdout, resolved);
   let acceptedAttempt = firstAttempt;
 
-  // U2 (PCOMP-8): single schema-feedback retry — a nondeterministic model
-  // occasionally returns unparseable/invalid JSON; one corrective round-trip
-  // with the violation named beats silently returning null (which upstream
-  // reads as "provider unavailable").
-  if (!parsed) {
-    if (!settle(firstAttempt, 'rejected', 'parse_failed')) return null;
-    const retryPrompt = `${prompt}\n\nYOUR PREVIOUS RESPONSE WAS INVALID (schema/JSON error). Respond again with ONLY the requested JSON schema and no other text.`;
+  // U2 (PCOMP-8) + 3332: ONE corrective round-trip for every output-contract
+  // violation a nondeterministic model produces — unparseable/invalid JSON
+  // (parse/schema/identity) OR a task model outside the allowed worker policy.
+  // The retry names the exact violation (secret-safe paths, codes, model API
+  // IDs) and restates the contract; a second violation settles typed and returns
+  // null, which upstream reports honestly instead of as "provider unavailable".
+  let violation = describePlannerContractViolation(detailed, modelPolicy);
+  if (violation) {
+    debugLog('planner:contractViolation', `attempt 1 rejected — ${violation.description}`);
+    if (!settle(firstAttempt, 'rejected', violation.reasonCode)) return null;
+    const retryPrompt = `${prompt}\n\nYOUR PREVIOUS RESPONSE WAS INVALID (${violation.description}). Respond again with ONLY the requested JSON schema and no other text. The "dependencies" array must contain the exact task title strings of OTHER tasks in this plan — never task numbers. Every task "model" must be exactly one of these allowed API IDs: ${modelPolicy.allowedModels.join(', ')}.`;
     const retryAttempt = await invoke(retryPrompt, 2);
     const retry = retryAttempt.outcome;
-    if (retry.status === 0 && retry.stdout) parsed = parsePlannerResponse(retry.stdout, resolved);
-    if (!parsed) {
-      settle(retryAttempt, 'rejected', retry.status === 0 && retry.stdout ? 'parse_failed' : retry.signal === 'SIGTERM' ? 'timeout' : retry.error ? 'spawn_error' : retry.status !== 0 ? 'nonzero_exit' : 'empty_output');
-      return null;
+    const retryTransportOk = retry.status === 0 && Boolean(retry.stdout);
+    if (retryTransportOk) {
+      detailed = parsePlannerResponseDetailed(retry.stdout, resolved);
+      violation = describePlannerContractViolation(detailed, modelPolicy);
     }
-    if (parsed.tasks.some((task) => !modelPolicy.allowedModels.includes(task.model))) {
-      settle(retryAttempt, 'rejected', 'validation_failed');
+    if (!retryTransportOk || violation || !detailed.result) {
+      if (violation) debugLog('planner:contractViolation', `attempt 2 rejected — ${violation.description}`);
+      settle(
+        retryAttempt,
+        'rejected',
+        retryTransportOk
+          ? (violation?.reasonCode ?? 'parse_failed')
+          : retry.signal === 'SIGTERM' ? 'timeout' : retry.error ? 'spawn_error' : retry.status !== 0 ? 'nonzero_exit' : 'empty_output',
+      );
       return null;
     }
     acceptedAttempt = retryAttempt;
-  } else {
-    if (parsed.tasks.some((task) => !modelPolicy.allowedModels.includes(task.model))) {
-      settle(firstAttempt, 'rejected', 'validation_failed');
-      return null;
-    }
   }
+  let parsed: PlannerResult = detailed.result!;
 
   // U2 output-contract completion (deterministic): filesRead mentioned+import
   // completion + mirror-test create-if-missing. Fail-soft I/O — a completion

@@ -9,8 +9,10 @@
 
 0. **3331 RECOVERY-BORN-NATIVE-DO-SLASH-PROVIDER-BOOTSTRAP-001** — ADR-D-007 bounded recovery:
    native `/do` provider bootstrap + typed `NO_PROVIDERS` HOLD. Doğrudan main, tek commit.
-   Capsule: `RECOVERY-BORN-NATIVE-DO-SLASH-PROVIDER-BOOTSTRAP-001.md`. → engine ayağa kalkınca
-   dogfood'a dönüş.
+   Capsule: `RECOVERY-BORN-NATIVE-DO-SLASH-PROVIDER-BOOTSTRAP-001.md`. **LANDED 2449b6e4f (VERIFY).**
+0b. **3332 RECOVERY-BORN-PLANNER-DEPENDENCY-SHAPE-001** — ADR-D-007 bounded recovery: planner
+   bağımlılık-şekli koersiyonu + typed validation_failed diagnostiği (L1 /do iki kez parse_failed).
+   Capsule: `RECOVERY-BORN-PLANNER-DEPENDENCY-SHAPE-001.md`. → engine ayağa kalkınca dogfood'a dönüş.
 1. **7099 TERMINAL-OPERATOR-SURFACE-CLOSURE-001 v2** — 6 hat (kimlik, slash sözleşmesi, köprü
    renderer, canlı durum, checkpoint, kapılar); bağlı satırlar 7077, 7085, 7086, 7088, 7089.
    Dogfood: `/do` → Goal/Flow/Run. Capsule: `TERMINAL-OPERATOR-SURFACE-CLOSURE-001.md`.

@@ -3,25 +3,25 @@
   "generatedFrom": "docs/MASTER-PLAN.md",
   "sourceDigest": {
     "algorithm": "sha256(normalized-lf-utf8)",
-    "value": "ccce817b8221e5feb8ac49d49786e2002c4131d56fd6b39f2de1a600204f023c"
+    "value": "e192157a8737e0a9ccbebe9a6aea265d5062f9cfae31718d652ddbbc15be2300"
   },
   "summary": {
-    "total": 574,
-    "active": 486,
+    "total": 575,
+    "active": 487,
     "terminal": 88,
-    "receipts": 215,
+    "receipts": 216,
     "byState": {
       "OPEN": 366,
       "READY": 0,
       "IN_PROGRESS": 0,
       "BLOCKED": 69,
-      "VERIFY": 49,
+      "VERIFY": 50,
       "DONE": 88,
       "DEFERRED": 2,
       "DISPOSED": 0
     },
     "byPriority": {
-      "P0": 363,
+      "P0": 364,
       "P1": 161,
       "P2": 50
     },
@@ -41,7 +41,7 @@
       "ENTERPRISE": 4,
       "EVAL": 5,
       "EVOLUTION": 4,
-      "KERNEL": 128,
+      "KERNEL": 129,
       "LEARNING": 9,
       "OBS": 9,
       "ONBOARDING": 1,
@@ -3626,6 +3626,17 @@
       "updated": "2026-09-03",
       "definitionDigest": "d62f67fdcf1376c3a2abe614ee30f07db52464f89ba3ff9a58bec0aa6faeabae",
       "progressDigest": "2d0ac30f7ef096526b84fd374758e1376bc27c00a7b267a4562546042998ce08",
+      "terminalClosureDigest": null
+    },
+    {
+      "order": 3332,
+      "id": "RECOVERY-BORN-PLANNER-DEPENDENCY-SHAPE-001",
+      "program": "KERNEL",
+      "priority": "P0",
+      "state": "VERIFY",
+      "updated": "2026-09-03",
+      "definitionDigest": "1e29302c3519b23ef7136c577acc2bbe6fe93975422398052745fb68dce831da",
+      "progressDigest": "99205bde16be6208f12c0c6cf53a9d9a66a04cd0d8ef76cea15d98a0f7375d6c",
       "terminalClosureDigest": null
     },
     {
@@ -8527,6 +8538,16 @@
         "mode": "ONE_SHOT",
         "status": "consumed",
         "transitionAt": "2026-09-04T02:11:33+03:00"
+      },
+      "g7AttemptIdentity": null
+    },
+    {
+      "id": "GR-2026-09-04-PLANNER-DEP-SHAPE-01",
+      "authorityDigest": "0897e06375709d012974f9a27b3ae17ede3c7c1517fbb147a6467ea3c882eb2f",
+      "lifecycle": {
+        "mode": "ONE_SHOT",
+        "status": "consumed",
+        "transitionAt": "2026-09-04T03:11:56+03:00"
       },
       "g7AttemptIdentity": null
     }
@@ -16144,7 +16165,8 @@
         "RECOVERY-BORN-523-ATTRIBUTION-UNMEASURABLE-001",
         "CLEAN-DASHBOARD-POLICY-001",
         "RECOVERY-BORN-711-NORMAL-DOCKER-EXACT-ATTEMPT-CUSTODY-001",
-        "RECOVERY-BORN-NATIVE-DO-SLASH-PROVIDER-BOOTSTRAP-001"
+        "RECOVERY-BORN-NATIVE-DO-SLASH-PROVIDER-BOOTSTRAP-001",
+        "RECOVERY-BORN-PLANNER-DEPENDENCY-SHAPE-001"
       ],
       "gates": [
         "G1"
@@ -16210,7 +16232,8 @@
         "RECOVERY-BORN-523-XVERIFY-PRODUCER-MISMATCH-001",
         "RECOVERY-BORN-523-ATTRIBUTION-UNMEASURABLE-001",
         "RECOVERY-BORN-711-NORMAL-DOCKER-EXACT-ATTEMPT-CUSTODY-001",
-        "RECOVERY-BORN-NATIVE-DO-SLASH-PROVIDER-BOOTSTRAP-001"
+        "RECOVERY-BORN-NATIVE-DO-SLASH-PROVIDER-BOOTSTRAP-001",
+        "RECOVERY-BORN-PLANNER-DEPENDENCY-SHAPE-001"
       ],
       "evidenceReceipts": [
         "GR-2026-07-30-RECOVERY-DOGFOOD-BOOTSTRAP-01",
@@ -19562,6 +19585,40 @@
       ],
       "acceptance": "`/do <hedef>` native REPL'de gerçek plan önizlemesi üretir: run-flow controller proposeRun öncesi tek lazy-idempotent provider bootstrap (tool ve slash yolu aynı seam); bootstrap sonrası provider hâlâ yoksa raw ProviderNotFoundError yerine typed `NO_PROVIDERS` HOLD — i18n en+tr, çözülen model + ima edilen provider + kayıtlı küme + çare; hermetik testler (empty-registry → bootstrap → plan; hold mapping; mount default seam; helper idempotency) + `npm run build:all` + Linux/WSL gerçek binary tmux kanıtı; ardından ilk güvenli sınırda dogfood'a dönüş",
       "evidence": "Born 2026-09-04 (Alperen terminal audit; owner-live-2026-09-04-terminal-audit-closure-v2): kanıt zinciri app.tsx:768 → run-flow-controller.ts:184 → run-proposal-compiler.ts:322 → planner.ts:674 → provider.ts:478; canonical sınıf bağı 7083 NATIVE-RUNFLOW-BOOTSTRAP-001 (557-003 yalnız native-tool-registry.ts:764 tool handler'ında); capsule `docs/execution/active/RECOVERY-BORN-NATIVE-DO-SLASH-PROVIDER-BOOTSTRAP-001.md`; DOGFOOD_HEALTH=DEGRADED ilanı bu satırla; `receipt=GR-2026-09-04-NATIVE-DO-BOOTSTRAP-01`; **LOCAL_VERIFIED 2026-09-04** tek seam `src/cli/repl/provider-bootstrap.ts` (tool handler + controller `ensureProviders` default via run.tsx wireRunFlowMount), typed `RunFlowProviderHoldError` code NO_PROVIDERS, i18n `do.slash_no_providers` en+tr; hermetik battery 6 dosya / 88 test yeşil + string-free closure yeşil, `tsc --noEmit` exit 0, i18n-hardcode/model-literal/readability/spawnsync gate'leri temiz, hermeticity baseline aynı 18132 sayı yalnız messages.ts callsite digest ratchet; `npm run build:all`/`build` clean adımı bot aktif (`E_CLEAN_BOT_ACTIVE`, bot.pid) typed HOLD → `tsc` + `copy-assets` ile dist=src (dist/cli/repl/*.js 2026-09-04 02:07); gerçek binary tmux kanıtı: native REPL `/do <hedef>` 56 s'de codex planlayıcısıyla PlanPreviewCard üretti (GATE GEÇTİ · POLİTİKA İZİN VER · topoloji GEÇTİ · özet-imza 2762f110c0ef… · y/n/d) ve onaysız çıkıldı; XVerify ve DONE ayrı owner gate'i; capsule DONE bölümünde ayrıntı",
+      "updated": "2026-09-03"
+    },
+    {
+      "order": 3332,
+      "id": "RECOVERY-BORN-PLANNER-DEPENDENCY-SHAPE-001",
+      "parent": "RECOVERY-DOGFOOD-BORN-001",
+      "program": "KERNEL",
+      "outcome": "AI planner yanıtında görev bağımlılıklarının sayısal indeks veya 'Task N' biçiminde gelmesi Zod şemasında (`dependencies: z.array(z.string())`) `parse_failed` olarak reddediliyor ve schema-retry aynı şekli tekrarlıyor — native `/do` L1 hedefi iki kez planlanamadı; şema-öncesi deterministik bağımlılık-şekli koersiyonu (1-tabanlı indeks → başlık), typed `validation_failed` + parserStage/issue-path diagnostiği ve issue-bilgili retry geri bildirimi (ADR-D-007 bounded recovery, feature yok)",
+      "priority": "P0",
+      "dependsOn": [],
+      "dependents": [],
+      "children": [],
+      "gates": [
+        "G1",
+        "G2"
+      ],
+      "state": "VERIFY",
+      "truth": {
+        "C": "1",
+        "W": "1",
+        "E": "1",
+        "H": "~",
+        "L": "1",
+        "X": "?",
+        "S": "?"
+      },
+      "blockerCode": null,
+      "blockerRemedy": null,
+      "closureBlockedBy": [],
+      "evidenceReceipts": [
+        "GR-2026-09-04-PLANNER-DEP-SHAPE-01"
+      ],
+      "acceptance": "`parsePlannerResponse` sayısal ve 'Task N' bağımlılıklarını görev başlığına deterministik çözer (aralık dışı/kendine referans dokunulmaz, sonra görünür şekilde düşer); JSON parse hatası `parse_failed`, şema hatası `validation_failed` olarak invocation ledger'a stage + bounded issue-path listesiyle (ham çıktı yok) yazılır; schema-retry prompt'u ihlal yollarını adlandırır; hermetik testler (koersiyon, stage ayrımı, zero-config e2e injected spawnFn); tsc; gerçek kanıt: CLI `deckent do` ve native `/do` ile L1 hedefi plan önizlemesi üretir",
+      "evidence": "Born 2026-09-04 (owner-live-2026-09-04-terminal-audit-closure-v2, ikinci recovery onayı): kanıt invocations.db inv-0eaf44e7…/inv-2c4a4138… iki denemede `consumer_settled rejected parse_failed` (exit 0, 63–73 s); `DECKENT_DEBUG=1 deckent do` → `parsePlannerResponse:validation: tasks[2..4].dependencies[*] Expected string, received number`; planner.ts:96 şema, :1693/:1699 settle, :1933 normalizePlannerDependencies yalnız string; capsule `docs/execution/active/RECOVERY-BORN-PLANNER-DEPENDENCY-SHAPE-001.md`; DOGFOOD_HEALTH=DEGRADED ilanı bu satırla; `receipt=GR-2026-09-04-PLANNER-DEP-SHAPE-01`; **LOCAL_VERIFIED 2026-09-04** — `coercePlannerDependencyShape` (1-tabanlı indeks / 'Task N' → başlık, aralık dışı ve kendine referans görünür düşer), `parsePlannerResponseDetailed` (json/schema/wiring/identity stage + bounded Zod issue-path'leri), ledger `consumer_settled` artık `parse_failed` ile `validation_failed`'ı ayırır, tek düzeltici retry her kontrat ihlalini (parse/şema/wiring/model-politikası) tam yol ve model kimliğiyle adlandırır, `.brain/ERRORS.md`'ye `planner:contractViolation` yazılır; 11/11 yeni hermetik test, planner battery'de yeni kırmızı yok (30 pre-existing HEAD ile birebir), tsc exit 0, hermeticity ratchet (aynı 1421), i18n/model-literal/spawnsync temiz, dist=src (`tsc`+`copy-assets`, clean bot-gated); gerçek binary: `deckent do` L1 hedefi 3 koşumda ledger'a `validation_failed` yazdı ve retry ihlali adlandırdı — **residual typed HOLD:** model üretim görevleri için zorunlu `productionWiring` V2 bloğunu ya üretmiyor (`tasks.0.productionWiring:required`) ya geçersiz üretiyor (`:invalid`); digest-pinned verifierAssets isteyen kontrat LLM'ce üretilemez sınıfı, ayrı born satırı/owner kararı gerekir — bu satır plan-üretim kabulünü bu HOLD nedeniyle taşımaz",
       "updated": "2026-09-03"
     },
     {
@@ -29030,6 +29087,6 @@
   ],
   "registryIntegrity": {
     "algorithm": "sha256(canonical-json-utf8)",
-    "value": "2e5f27cc42368bbe441ae85271de8fd501ad31429f5c29b9c1952a7cdf8d1f58"
+    "value": "117339e39a1d8059f7f59e88db8e6a721807994a9d0c7054db86f60f4d8b8e67"
   }
 }

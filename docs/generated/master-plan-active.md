@@ -5,9 +5,9 @@
 
 **Schema:** 3
 
-**Source digest:** `sha256(normalized-lf-utf8):ccce817b8221e5feb8ac49d49786e2002c4131d56fd6b39f2de1a600204f023c`
+**Source digest:** `sha256(normalized-lf-utf8):e192157a8737e0a9ccbebe9a6aea265d5062f9cfae31718d652ddbbc15be2300`
 
-**Rows:** 574 total · 486 active · 88 terminal
+**Rows:** 575 total · 487 active · 88 terminal
 
 ## State summary
 
@@ -17,7 +17,7 @@
 | READY | 0 |
 | IN_PROGRESS | 0 |
 | BLOCKED | 69 |
-| VERIFY | 49 |
+| VERIFY | 50 |
 | DONE | 88 |
 | DEFERRED | 2 |
 | DISPOSED | 0 |
@@ -286,6 +286,7 @@
 | 3328 | `RECOVERY-BORN-711-WSL2-NATIVE-CUSTODY-PROOF-001` | VERIFY | P0 | XPLAT | `RECOVERY-BORN-711-LINUX-INSTALLED-CUSTODY-PROOF-001` | — | WSL2 host native custody ve filesystem capability sonucu gerçek compiled binary ile kanıtlanır |
 | 3329 | `RECOVERY-BORN-711-WSL2-DOCKER-CUSTODY-CANARY-001` | VERIFY | P0 | ASSURANCE | `RECOVERY-BORN-711-LINUX-INSTALLED-CUSTODY-PROOF-001`, `RECOVERY-BORN-711-WSL2-NATIVE-CUSTODY-PROOF-001` | — | WSL2 üzerindeki gerçek Docker Engine normal task custody zincirini ağsız compiled canary ile uçtan uca kanıtlar |
 | 3331 | `RECOVERY-BORN-NATIVE-DO-SLASH-PROVIDER-BOOTSTRAP-001` | VERIFY | P0 | TERMINAL | — | — | Native terminal slash `/do` yolu boş provider registry ile planlayıcıya ulaşır (`Provider not found: "codex"`); 557-003 lazy bootstrap'ı yalnız `deckent_propose_run` tool handler'ında kaldı, slash yolu bootstrap'sız — tek lazy-idempotent bootstrap seam'i controller'a alınır, kalan eksik typed `NO_PROVIDERS` HOLD olur (ADR-D-007 bounded recovery, feature yok) |
+| 3332 | `RECOVERY-BORN-PLANNER-DEPENDENCY-SHAPE-001` | VERIFY | P0 | KERNEL | — | — | AI planner yanıtında görev bağımlılıklarının sayısal indeks veya 'Task N' biçiminde gelmesi Zod şemasında (`dependencies: z.array(z.string())`) `parse_failed` olarak reddediliyor ve schema-retry aynı şekli tekrarlıyor — native `/do` L1 hedefi iki kez planlanamadı; şema-öncesi deterministik bağımlılık-şekli koersiyonu (1-tabanlı indeks → başlık), typed `validation_failed` + parserStage/issue-path diagnostiği ve issue-bilgili retry geri bildirimi (ADR-D-007 bounded recovery, feature yok) |
 | 3343 | `PLATFORM-CLEAN-IDENTITY-ADAPTER-001` | OPEN | P1 | KERNEL | — | — | identity-stable delete adapter'ı Linux-only (/proc/self/fd + fdinfo mnt_id): macOS ve Windows'ta clean.mjs dürüst HOLD (E_CLEAN_IDENTITY_STABLE_DELETE_UNSUPPORTED) — cross-platform-e2e'nin TÜM macos/windows job'ları npm run clean'de düşüyor (08-03'ten beri 40/40 kırmızı aile) |
 | 3345 | `COMPOSITE-WORKER-001` | OPEN | P1 | KERNEL | `KERNEL-ATTEMPT-001` | — | Composite worker / nested team delegasyon kontratı: parent-child execution, authority tavanı, bütçe tavanı, concurrency limiti, completion/failure policy ve nested evidence tree |
 | 3347 | `PLATFORM-EXEC-AUTH-W3-DARWIN-001` | OPEN | P1 | KERNEL | `PLATFORM-EXEC-AUTH-W1-INTERFACE-001`, `PLATFORM-EXEC-AUTH-W2-PROBE-001` | — | Darwin execution-authority adapter'ı: native openat-ailesi N-API modülü + W1 arayüzünün darwin impl'i + gerçek-Mac real-binary clean/lock kanıtı (W2 ölçümü: /dev/fd yolu ölü — native tek yol) |
