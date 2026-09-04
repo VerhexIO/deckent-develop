@@ -1,5 +1,0 @@
-[deckent] scheduler engine: reducer
-[deckent] scheduler engine: reducer
-[deckent] scheduler engine: reducer
-sprint-702 run’ı duraklatıldı ve devam kararı bekliyor
-Repair settlement sonrasında çözümlenmemiş logical task’lar kaldı: 702-005. Circuit-breaker eşiğine ulaşılmadı ancak COMPLETE yine de geçersiz; run açık bir recover veya force-finalize kararı için duraklatıldı.. Kurtarma önizlemesini doğrulayıp şu komutla devam edin: deckent recover sprint-702 --resume

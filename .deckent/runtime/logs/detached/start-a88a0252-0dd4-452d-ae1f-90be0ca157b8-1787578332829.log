@@ -1,6 +1,0 @@
-[deckent] scheduler engine: reducer
-[deckent] scheduler engine: reducer
-[deckent] scheduler engine: reducer
-[deckent] scheduler engine: reducer
-sprint-654 run’ı duraklatıldı ve devam kararı bekliyor
-654-002 için kabul edilen FIX bütçesi tükendi ve tamamlanmamış bağımlı task’lar bloke kaldı: 654-003←654-002, 654-004←654-002. Recovery authority korunarak run duraklatıldı; COMPLETE geçerli bir settlement değildir.. Kurtarma önizlemesini doğrulayıp şu komutla devam edin: deckent recover sprint-654 --resume

@@ -276,3 +276,20 @@ native/exec-authority/.build-stage-*/
 # SQLite WAL side-files (runtime churn, never committed)
 .deckent/*.db-shm
 .deckent/*.db-wal
+
+# Repo cleanup 2026-09-04 (owner-approved G3): runtime data and historical archive are never tracked
+.deckent/settings/resource-log.jsonl
+.deckent/provider-execution-observations.db
+.deckent/provider-execution-observations.db-wal
+.deckent/provider-execution-observations.db-shm
+.deckent/models.db
+.deckent/models.db-wal
+.deckent/models.db-shm
+.deckent/capability-audit.jsonl
+.deckent/autonomous/autonomous.db
+.deckent/autonomous/autonomous.db-wal
+.deckent/autonomous/autonomous.db-shm
+.deckent/runtime/logs/
+.deckent/runtime/evaluations/
+.deckent/runtime/closure-staging/
+docs/archive/

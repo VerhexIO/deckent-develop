@@ -1,5 +1,0 @@
-⚠️ Voice is configured (provider=local) but the backend is unreachable at http://127.0.0.1:8001/health — voice replies will fall back to text. Network error reaching http://127.0.0.1:8001/health: fetch failed
-🟢 Listening for approve/reject on: telegram. Reply "approve <id>" or "reject <id>" from the configured chat. Ctrl-C to stop.
-🧠 Nervous system active (always-on): approvals from any source are consumed and acknowledged here.
-
-Received SIGTERM, exiting…

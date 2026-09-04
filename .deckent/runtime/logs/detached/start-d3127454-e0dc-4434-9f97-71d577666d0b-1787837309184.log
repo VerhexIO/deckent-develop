@@ -1,6 +1,0 @@
-Error: Sprint failed at phase PLAN: Scope gate: 4 write path(s) do not exist and look like a typo or wrong directory:
-  • [701-001] src/cli/surface-contract/registry.ts (no such file; a file with the same name exists at src/agent/tools/registry.ts) → did you mean 'src/agent/tools/registry.ts'?
-  • [701-001] tests/cli/surface-contract/index.test.ts (no such file; a file with the same name exists at tests/cli/index.test.ts) → did you mean 'tests/cli/index.test.ts'?
-  • [701-001] tests/cli/surface-contract/registry.test.ts (no such file; a file with the same name exists at tests/connectors/capabilities/registry.test.ts) → did you mean 'tests/connectors/capabilities/registry.test.ts'?
-  • [701-001] tests/cli/surface-contract/types.test.ts (no such file; a file with the same name exists at tests/core/types.test.ts) → did you mean 'tests/core/types.test.ts'?
-If these are intentional new files, override with acknowledgeScopePaths=true (MCP) / --force-scope (CLI). If a path should be an existing file, fix the DIRECTIVES scope before spawning.

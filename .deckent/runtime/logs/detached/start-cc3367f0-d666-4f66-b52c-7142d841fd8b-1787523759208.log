@@ -1,4 +1,0 @@
-DECKENT_BINARY_IDENTITY_WARN: `dist/` içindeki build bu source checkout ile artık eşleşmiyor (neden: build-source-mismatch). Devam ediliyor — CLI güncel kaynağı yansıtsın diye `npm run build` çalıştırın.
-[deckent] scheduler engine: reducer
-sprint-633 run’ı duraklatıldı ve devam kararı bekliyor
-633-001 için kabul edilen FIX bütçesi tükendi ve tamamlanmamış bağımlı task’lar bloke kaldı: 633-004←633-001, 633-005←633-001. Recovery authority korunarak run duraklatıldı; COMPLETE geçerli bir settlement değildir.. Kurtarma önizlemesini doğrulayıp şu komutla devam edin: deckent recover sprint-633 --resume

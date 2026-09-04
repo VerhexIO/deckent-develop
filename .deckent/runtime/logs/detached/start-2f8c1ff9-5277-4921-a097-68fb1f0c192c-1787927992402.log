@@ -1,5 +1,0 @@
-[deckent] scheduler engine: reducer
-[deckent] scheduler engine: reducer
-[deckent] scheduler engine: reducer
-sprint-708 run’ı duraklatıldı ve devam kararı bekliyor
-708-003 için kabul edilen FIX bütçesi tükendi ve tamamlanmamış bağımlı task’lar bloke kaldı: 708-004←708-003. Recovery authority korunarak run duraklatıldı; COMPLETE geçerli bir settlement değildir.. Kurtarma önizlemesini doğrulayıp şu komutla devam edin: deckent recover sprint-708 --resume
