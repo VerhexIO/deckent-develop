@@ -1,5 +1,44 @@
 # Repository hygiene — 2026-09-06
 
+## Owner-directed document cleanup — 2026-09-07
+
+Owner explicitly requested removal of canary, the temporary cleanup checklist, inactive
+execution capsules and unused follow-up documents. This supersedes the earlier document
+retention exclusion only; it does not authorize history rewriting or claim product DONE.
+Six inactive execution files and eight old follow-up files are removed; current-flow,
+the active 7099 capsule and 714/3357 recovery evidence remain. VERIFY outcomes retain
+their status; their inactive capsule locators resolve through Git at
+`b68b11ddaa4fd2b23bef7a61ed253e5d0de86dfd`, not a claimed live file. Consumed receipt
+registry and closure-batch snapshots are unchanged.
+
+Exact pre-deletion bytes for all 16 removed files are in the temporary recovery bundle
+`/tmp/deckent-doc-cleanup-20260907-5np7Tn/deleted-docs.tar.gz`, SHA-256
+`bf8392c35781c721519b56195650545ea086601b03784c7c7dacb30c4613940a`.
+This is a local temporary recovery copy, not durable or fresh-clone product evidence.
+Tracked historical versions also remain in Git; untracked and dirty bytes require this
+bundle. No Brain database, task, lock, archive receipt or source/test file is deleted.
+
+The removed canary's complete contents (SHA-256
+`3a40f4d925a6a14be18cc3b7ef0501601b30a848dd12e3f1898c58134b7e2942`)
+are retained below as historical effect notes, not new runtime proof:
+
+```text
+run-policy canary executed
+Recovery 3357 isolated-worker append proof 2026-09-05.
+Recovery 3357 fresh settlement proof 2026-09-05
+Recovery 3357 sealed-output settlement proof 2026-09-05.
+```
+
+Remaining checklist work is not silently consumed: MASTER 430 history maintenance stays
+BLOCKED on dirty retained trees and stash disposition; no filter-repo, gc, reflog expiry
+or force push. MASTER 150/220 canonical archive/restore/clean-clone acceptance stays
+BLOCKED. Deferred findings remain `.brain/ERRORS-critical.md` tracking, generated ledger
+and export tracking policy, sprint cold-archive/retention, archive-dependent fresh-clone
+tests, stale test mocks/skips and suite partitioning. They are not newly admitted here.
+The earlier three runtime-file untracking decisions remain applied; memory compact/read
+is separately recorded under 9002, not a new cleanup task. Existing hermeticity/layer
+gate residuals cannot be waived by deleting documents.
+
 Owner request: `temizlik.md` içindeki onaylı işleri uygula, belgeleri ve tamamlanma kanıtlarını uzlaştır.
 Bu belge kalıcı evidence'dır; iş/state/authority SSOT'u `docs/MASTER-PLAN.md`.
 Source/runtime implementation, sprint start/retry/build ve provider mutation bu dilimin dışında.

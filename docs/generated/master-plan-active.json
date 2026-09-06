@@ -3,7 +3,7 @@
   "generatedFrom": "docs/MASTER-PLAN.md",
   "sourceDigest": {
     "algorithm": "sha256(normalized-lf-utf8)",
-    "value": "9e42f94074a3c86bd50d554beaeb84e85862ec4f9445b15ab84b94e5d6682ef1"
+    "value": "642edfe747074065304ab7007b80a9967a2981eac9c58cfcc21d3ec9084ebdba"
   },
   "summary": {
     "total": 578,
@@ -303,7 +303,7 @@
       "state": "BLOCKED",
       "updated": "2026-09-06",
       "definitionDigest": "9f1fafe1865ef49ef4b4e68ef99680210f117d787debcbd9bd40c37b81594e93",
-      "progressDigest": "cf824de6601e450d8ec6d34e13fd0f1dc8d377b968b9011cf280f62fda634ef0",
+      "progressDigest": "f143f822f0eb659e2a1db75a621fe81338afeda06eb13dcecad0867c84f7f87a",
       "terminalClosureDigest": null
     },
     {
@@ -534,7 +534,7 @@
       "state": "BLOCKED",
       "updated": "2026-09-06",
       "definitionDigest": "9bfd3d29477cd065ab71fdab2112d90fb08484505617b7280553ca887731e1e4",
-      "progressDigest": "a06cef135c75e3bc4eb98fda27491488480efef0acb1b75ce89df2b79cd5eebc",
+      "progressDigest": "94044607accbe44eedd3672e6ed520e01526d52611f2324a38253ef8ca390aee",
       "terminalClosureDigest": null
     },
     {
@@ -820,7 +820,7 @@
       "state": "BLOCKED",
       "updated": "2026-09-06",
       "definitionDigest": "3c081137fbdce2c6bf805bb7f0999931c867ab147d7dcec6df380e71825e9552",
-      "progressDigest": "0b146088940340809af32f4335a069b6ea074ba98566f2c7a336411eaeab4c2d",
+      "progressDigest": "97fac1e308ae59103056891dfad35294d974b41cb419d5d61968571acddf52d1",
       "terminalClosureDigest": null
     },
     {
@@ -3623,9 +3623,9 @@
       "program": "TERMINAL",
       "priority": "P0",
       "state": "VERIFY",
-      "updated": "2026-09-03",
+      "updated": "2026-09-06",
       "definitionDigest": "d62f67fdcf1376c3a2abe614ee30f07db52464f89ba3ff9a58bec0aa6faeabae",
-      "progressDigest": "2d0ac30f7ef096526b84fd374758e1376bc27c00a7b267a4562546042998ce08",
+      "progressDigest": "d6c3e38df668deddd77597fe6c31b2a84cb8689eefbd17704a42996b2b6041d5",
       "terminalClosureDigest": null
     },
     {
@@ -3634,9 +3634,9 @@
       "program": "KERNEL",
       "priority": "P0",
       "state": "VERIFY",
-      "updated": "2026-09-03",
+      "updated": "2026-09-06",
       "definitionDigest": "1e29302c3519b23ef7136c577acc2bbe6fe93975422398052745fb68dce831da",
-      "progressDigest": "99205bde16be6208f12c0c6cf53a9d9a66a04cd0d8ef76cea15d98a0f7375d6c",
+      "progressDigest": "18e236fccb96716d8e290533c4562c350a551218d3d638c785f2652cfc550ae9",
       "terminalClosureDigest": null
     },
     {
@@ -3645,9 +3645,9 @@
       "program": "KERNEL",
       "priority": "P0",
       "state": "VERIFY",
-      "updated": "2026-09-04",
+      "updated": "2026-09-06",
       "definitionDigest": "d04f8aa32aa438b083bc540aecd8eecc61fcf6830dee7d31c5ceabe4c5e43d53",
-      "progressDigest": "7aca76d4fd643c7c8780b47d0eb1f786a0611d107c4dddd20d7bf237ebac1100",
+      "progressDigest": "727931e0d724f1f54053904f2f4c5e468436f3378e2a5bfd6f942367a33bbe5e",
       "terminalClosureDigest": null
     },
     {
@@ -9118,7 +9118,7 @@
       ],
       "evidenceReceipts": [],
       "acceptance": "Manifest hash stable; lint/link and clean-clone proof",
-      "evidence": "Fresh destructive approval required 2026-09-06 owner instruction temizlik.md uygulaması: docs/archive ignored/disk-retained kararı ff2e47564 içinde; codex-analysis ve .analysis/audits ailelerinde 52 dosya/1340679 byte yeni docs/archive/analysis-2026-08 altında byte-identical korundu, 48 tracked yol index'ten çıktı. Ön/son manifest eşit, external manifest sha256 ed4654fa81ae2d6557a08bc736ae272dba479106d9b94c1b1667dd229c3c09d0. Terminal SSOT-001/TRUST-ANCHOR-001/TRUST-ANCHOR-002/STATUS-SURFACE-PARITY-001 historical proof alanları değişmez; eski codex-analysis/ yollarının güncel fiziksel karşılığı docs/archive/analysis-2026-08/codex-analysis/, eski .analysis/audits/ karşılığı docs/archive/analysis-2026-08/audits/. Fresh clone arşivi içermez; dependency, canonical manifest/restore ve clean-clone kabulü açık; fiziksel taşıma DONE iddiası değildir. Kanıt: docs/execution/evidence/repo-hygiene-2026-09-06.md.",
+      "evidence": "Fresh destructive approval required 2026-09-06 owner instruction geçici cleanup checklist uygulaması: docs/archive ignored/disk-retained kararı ff2e47564 içinde; codex-analysis ve .analysis/audits ailelerinde 52 dosya/1340679 byte yeni docs/archive/analysis-2026-08 altında byte-identical korundu, 48 tracked yol index'ten çıktı. Ön/son manifest eşit, external manifest sha256 ed4654fa81ae2d6557a08bc736ae272dba479106d9b94c1b1667dd229c3c09d0. Terminal SSOT-001/TRUST-ANCHOR-001/TRUST-ANCHOR-002/STATUS-SURFACE-PARITY-001 historical proof alanları değişmez; eski codex-analysis/ yollarının güncel fiziksel karşılığı docs/archive/analysis-2026-08/codex-analysis/, eski .analysis/audits/ karşılığı docs/archive/analysis-2026-08/audits/. Fresh clone arşivi içermez; dependency, canonical manifest/restore ve clean-clone kabulü açık; fiziksel taşıma DONE iddiası değildir. Kanıt: docs/execution/evidence/repo-hygiene-2026-09-06.md.",
       "updated": "2026-09-06"
     },
     {
@@ -9694,7 +9694,7 @@
       ],
       "evidenceReceipts": [],
       "acceptance": "Exact unchanged path manifest, recoverable moves, link/tests and clean-clone proof",
-      "evidence": "2026-09-03 typed HOLD: sprint-713 is safely IDLE, but sprintless XVerify/observation/heartbeat artifacts have no canonical archive+restore+retention apply path. 2026-09-04 owner-live exact manual-cleanup instruction authorized the observed 92-file set to leave `.tasks`; no bytes were destroyed and the verified recovery copy is `/tmp/deckent-tasks-recovery-20260904T011107+0300` with manifest digest `6e7be541e7602b5d4f825293acad661b027fe8b8a0f32d2ec9ac8e46046713ed`. This manual physical apply does not satisfy the product acceptance contract: REPO-CLEANUP-001 disposition, canonical archive/restore consumer and clean-clone proof remain missing, so status remains BLOCKED rather than being declared DONE 2026-09-06 owner-live temizlik.md uygulaması: önceki ff2e47564 cleanup batch'i ve 54 dosyalık recovery-deleted.tar.gz sha256 a623cf0dabeb4faea35e335859b29269769317a99aaa7c60d44ca9222492bd37 doğrulandı; bu dilimde altı exact detached worktree tüm ignored/untracked/binary içerikleri ve memory.db inode'ları korunarak /home/alperen/deckent-recovery-20260904/worktree-snapshots-20260906 altına taşındı, yalnız altı stale Git registration retired, kayıtlı worktree 11→5; recovery/711 çifti korundu. Analysis 52 dosya/1340679 byte ignored archive'a taşındı. Kanıt/restore haritası docs/execution/evidence/repo-hygiene-2026-09-06.md, dış manifest ed4654fa81ae2d6557a08bc736ae272dba479106d9b94c1b1667dd229c3c09d0. Geçici checklistte önerilen cleanup onayı için canonical receipt bulunamadı; temizlik.md içindeki öneri authenticated receipt yerine geçirilmedi. Product archive/restore consumer ve clean-clone kabulü eksik; BLOCKED korunur.",
+      "evidence": "2026-09-03 typed HOLD: sprint-713 is safely IDLE, but sprintless XVerify/observation/heartbeat artifacts have no canonical archive+restore+retention apply path. 2026-09-04 owner-live exact manual-cleanup instruction authorized the observed 92-file set to leave `.tasks`; no bytes were destroyed and the verified recovery copy is `/tmp/deckent-tasks-recovery-20260904T011107+0300` with manifest digest `6e7be541e7602b5d4f825293acad661b027fe8b8a0f32d2ec9ac8e46046713ed`. This manual physical apply does not satisfy the product acceptance contract: REPO-CLEANUP-001 disposition, canonical archive/restore consumer and clean-clone proof remain missing, so status remains BLOCKED rather than being declared DONE 2026-09-06 owner-live geçici cleanup checklist uygulaması: önceki ff2e47564 cleanup batch'i ve 54 dosyalık recovery-deleted.tar.gz sha256 a623cf0dabeb4faea35e335859b29269769317a99aaa7c60d44ca9222492bd37 doğrulandı; bu dilimde altı exact detached worktree tüm ignored/untracked/binary içerikleri ve memory.db inode'ları korunarak /home/alperen/deckent-recovery-20260904/worktree-snapshots-20260906 altına taşındı, yalnız altı stale Git registration retired, kayıtlı worktree 11→5; recovery/711 çifti korundu. Analysis 52 dosya/1340679 byte ignored archive'a taşındı. Kanıt/restore haritası docs/execution/evidence/repo-hygiene-2026-09-06.md, dış manifest ed4654fa81ae2d6557a08bc736ae272dba479106d9b94c1b1667dd229c3c09d0. Geçici checklistte önerilen cleanup onayı için canonical receipt bulunamadı; geçici cleanup checklist içindeki öneri authenticated receipt yerine geçirilmedi. Product archive/restore consumer ve clean-clone kabulü eksik; BLOCKED korunur.",
       "updated": "2026-09-06"
     },
     {
@@ -10537,7 +10537,7 @@
       ],
       "evidenceReceipts": [],
       "acceptance": "Exact command, recovery and before/after evidence; aggressive repack separately approved",
-      "evidence": "No implicit gc or remote-ref mutation 2026-09-06 bounded read-only prerequisite check: main kirli, beş korunan worktree'nin tümü temiz değil; 11 stash korunuyor. temizlik.md §1 için filter-repo, reflog expiry, gc ve force-push uygulanmadı. 420 REPORT ve 430 APPLY ayrı kimliklerdir. Mirror rehearsal production apply değildir; BLOCKED. Kanıt: docs/execution/evidence/repo-hygiene-2026-09-06.md.",
+      "evidence": "No implicit gc or remote-ref mutation 2026-09-06 bounded read-only prerequisite check: main kirli, beş korunan worktree'nin tümü temiz değil; 11 stash korunuyor. hygiene evidence içindeki history-maintenance HOLD için filter-repo, reflog expiry, gc ve force-push uygulanmadı. 420 REPORT ve 430 APPLY ayrı kimliklerdir. Mirror rehearsal production apply değildir; BLOCKED. Kanıt: docs/execution/evidence/repo-hygiene-2026-09-06.md.",
       "updated": "2026-09-06"
     },
     {
@@ -19642,8 +19642,8 @@
         "GR-2026-09-04-NATIVE-DO-BOOTSTRAP-01"
       ],
       "acceptance": "`/do <hedef>` native REPL'de gerçek plan önizlemesi üretir: run-flow controller proposeRun öncesi tek lazy-idempotent provider bootstrap (tool ve slash yolu aynı seam); bootstrap sonrası provider hâlâ yoksa raw ProviderNotFoundError yerine typed `NO_PROVIDERS` HOLD — i18n en+tr, çözülen model + ima edilen provider + kayıtlı küme + çare; hermetik testler (empty-registry → bootstrap → plan; hold mapping; mount default seam; helper idempotency) + `npm run build:all` + Linux/WSL gerçek binary tmux kanıtı; ardından ilk güvenli sınırda dogfood'a dönüş",
-      "evidence": "Born 2026-09-04 (Alperen terminal audit; owner-live-2026-09-04-terminal-audit-closure-v2): kanıt zinciri app.tsx:768 → run-flow-controller.ts:184 → run-proposal-compiler.ts:322 → planner.ts:674 → provider.ts:478; canonical sınıf bağı 7083 NATIVE-RUNFLOW-BOOTSTRAP-001 (557-003 yalnız native-tool-registry.ts:764 tool handler'ında); capsule `docs/execution/active/RECOVERY-BORN-NATIVE-DO-SLASH-PROVIDER-BOOTSTRAP-001.md`; DOGFOOD_HEALTH=DEGRADED ilanı bu satırla; `receipt=GR-2026-09-04-NATIVE-DO-BOOTSTRAP-01`; **LOCAL_VERIFIED 2026-09-04** tek seam `src/cli/repl/provider-bootstrap.ts` (tool handler + controller `ensureProviders` default via run.tsx wireRunFlowMount), typed `RunFlowProviderHoldError` code NO_PROVIDERS, i18n `do.slash_no_providers` en+tr; hermetik battery 6 dosya / 88 test yeşil + string-free closure yeşil, `tsc --noEmit` exit 0, i18n-hardcode/model-literal/readability/spawnsync gate'leri temiz, hermeticity baseline aynı 18132 sayı yalnız messages.ts callsite digest ratchet; `npm run build:all`/`build` clean adımı bot aktif (`E_CLEAN_BOT_ACTIVE`, bot.pid) typed HOLD → `tsc` + `copy-assets` ile dist=src (dist/cli/repl/*.js 2026-09-04 02:07); gerçek binary tmux kanıtı: native REPL `/do <hedef>` 56 s'de codex planlayıcısıyla PlanPreviewCard üretti (GATE GEÇTİ · POLİTİKA İZİN VER · topoloji GEÇTİ · özet-imza 2762f110c0ef… · y/n/d) ve onaysız çıkıldı; XVerify ve DONE ayrı owner gate'i; capsule DONE bölümünde ayrıntı",
-      "updated": "2026-09-03"
+      "evidence": "Born 2026-09-04 (Alperen terminal audit; owner-live-2026-09-04-terminal-audit-closure-v2): kanıt zinciri app.tsx:768 → run-flow-controller.ts:184 → run-proposal-compiler.ts:322 → planner.ts:674 → provider.ts:478; canonical sınıf bağı 7083 NATIVE-RUNFLOW-BOOTSTRAP-001 (557-003 yalnız native-tool-registry.ts:764 tool handler'ında); historical capsule `git:b68b11ddaa4fd2b23bef7a61ed253e5d0de86dfd:docs/execution/active/RECOVERY-BORN-NATIVE-DO-SLASH-PROVIDER-BOOTSTRAP-001.md` (owner 2026-09-07 inactive-document cleanup; Git history, active filesystem path değil); DOGFOOD_HEALTH=DEGRADED ilanı bu satırla; `receipt=GR-2026-09-04-NATIVE-DO-BOOTSTRAP-01`; **LOCAL_VERIFIED 2026-09-04** tek seam `src/cli/repl/provider-bootstrap.ts` (tool handler + controller `ensureProviders` default via run.tsx wireRunFlowMount), typed `RunFlowProviderHoldError` code NO_PROVIDERS, i18n `do.slash_no_providers` en+tr; hermetik battery 6 dosya / 88 test yeşil + string-free closure yeşil, `tsc --noEmit` exit 0, i18n-hardcode/model-literal/readability/spawnsync gate'leri temiz, hermeticity baseline aynı 18132 sayı yalnız messages.ts callsite digest ratchet; `npm run build:all`/`build` clean adımı bot aktif (`E_CLEAN_BOT_ACTIVE`, bot.pid) typed HOLD → `tsc` + `copy-assets` ile dist=src (dist/cli/repl/*.js 2026-09-04 02:07); gerçek binary tmux kanıtı: native REPL `/do <hedef>` 56 s'de codex planlayıcısıyla PlanPreviewCard üretti (GATE GEÇTİ · POLİTİKA İZİN VER · topoloji GEÇTİ · özet-imza 2762f110c0ef… · y/n/d) ve onaysız çıkıldı; XVerify ve DONE ayrı owner gate'i; capsule DONE bölümünde ayrıntı",
+      "updated": "2026-09-06"
     },
     {
       "order": 3332,
@@ -19678,8 +19678,8 @@
         "GR-2026-09-04-PLANNER-DEP-SHAPE-01"
       ],
       "acceptance": "`parsePlannerResponse` sayısal ve 'Task N' bağımlılıklarını görev başlığına deterministik çözer (aralık dışı/kendine referans dokunulmaz, sonra görünür şekilde düşer); JSON parse hatası `parse_failed`, şema hatası `validation_failed` olarak invocation ledger'a stage + bounded issue-path listesiyle (ham çıktı yok) yazılır; schema-retry prompt'u ihlal yollarını adlandırır; hermetik testler (koersiyon, stage ayrımı, zero-config e2e injected spawnFn); tsc; gerçek kanıt: CLI `deckent do` ve native `/do` ile L1 hedefi plan önizlemesi üretir",
-      "evidence": "Born 2026-09-04 (owner-live-2026-09-04-terminal-audit-closure-v2, ikinci recovery onayı): kanıt invocations.db inv-0eaf44e7…/inv-2c4a4138… iki denemede `consumer_settled rejected parse_failed` (exit 0, 63–73 s); `DECKENT_DEBUG=1 deckent do` → `parsePlannerResponse:validation: tasks[2..4].dependencies[*] Expected string, received number`; planner.ts:96 şema, :1693/:1699 settle, :1933 normalizePlannerDependencies yalnız string; capsule `docs/execution/active/RECOVERY-BORN-PLANNER-DEPENDENCY-SHAPE-001.md`; DOGFOOD_HEALTH=DEGRADED ilanı bu satırla; `receipt=GR-2026-09-04-PLANNER-DEP-SHAPE-01`; **LOCAL_VERIFIED 2026-09-04** — `coercePlannerDependencyShape` (1-tabanlı indeks / 'Task N' → başlık, aralık dışı ve kendine referans görünür düşer), `parsePlannerResponseDetailed` (json/schema/wiring/identity stage + bounded Zod issue-path'leri), ledger `consumer_settled` artık `parse_failed` ile `validation_failed`'ı ayırır, tek düzeltici retry her kontrat ihlalini (parse/şema/wiring/model-politikası) tam yol ve model kimliğiyle adlandırır, `.brain/ERRORS.md`'ye `planner:contractViolation` yazılır; 11/11 yeni hermetik test, planner battery'de yeni kırmızı yok (30 pre-existing HEAD ile birebir), tsc exit 0, hermeticity ratchet (aynı 1421), i18n/model-literal/spawnsync temiz, dist=src (`tsc`+`copy-assets`, clean bot-gated); gerçek binary: `deckent do` L1 hedefi 3 koşumda ledger'a `validation_failed` yazdı ve retry ihlali adlandırdı — **residual typed HOLD:** model üretim görevleri için zorunlu `productionWiring` V2 bloğunu ya üretmiyor (`tasks.0.productionWiring:required`) ya geçersiz üretiyor (`:invalid`); digest-pinned verifierAssets isteyen kontrat LLM'ce üretilemez sınıfı, ayrı born satırı/owner kararı gerekir — bu satır plan-üretim kabulünü bu HOLD nedeniyle taşımaz",
-      "updated": "2026-09-03"
+      "evidence": "Born 2026-09-04 (owner-live-2026-09-04-terminal-audit-closure-v2, ikinci recovery onayı): kanıt invocations.db inv-0eaf44e7…/inv-2c4a4138… iki denemede `consumer_settled rejected parse_failed` (exit 0, 63–73 s); `DECKENT_DEBUG=1 deckent do` → `parsePlannerResponse:validation: tasks[2..4].dependencies[*] Expected string, received number`; planner.ts:96 şema, :1693/:1699 settle, :1933 normalizePlannerDependencies yalnız string; historical capsule `git:b68b11ddaa4fd2b23bef7a61ed253e5d0de86dfd:docs/execution/active/RECOVERY-BORN-PLANNER-DEPENDENCY-SHAPE-001.md` (owner 2026-09-07 inactive-document cleanup; Git history, active filesystem path değil); DOGFOOD_HEALTH=DEGRADED ilanı bu satırla; `receipt=GR-2026-09-04-PLANNER-DEP-SHAPE-01`; **LOCAL_VERIFIED 2026-09-04** — `coercePlannerDependencyShape` (1-tabanlı indeks / 'Task N' → başlık, aralık dışı ve kendine referans görünür düşer), `parsePlannerResponseDetailed` (json/schema/wiring/identity stage + bounded Zod issue-path'leri), ledger `consumer_settled` artık `parse_failed` ile `validation_failed`'ı ayırır, tek düzeltici retry her kontrat ihlalini (parse/şema/wiring/model-politikası) tam yol ve model kimliğiyle adlandırır, `.brain/ERRORS.md`'ye `planner:contractViolation` yazılır; 11/11 yeni hermetik test, planner battery'de yeni kırmızı yok (30 pre-existing HEAD ile birebir), tsc exit 0, hermeticity ratchet (aynı 1421), i18n/model-literal/spawnsync temiz, dist=src (`tsc`+`copy-assets`, clean bot-gated); gerçek binary: `deckent do` L1 hedefi 3 koşumda ledger'a `validation_failed` yazdı ve retry ihlali adlandırdı — **residual typed HOLD:** model üretim görevleri için zorunlu `productionWiring` V2 bloğunu ya üretmiyor (`tasks.0.productionWiring:required`) ya geçersiz üretiyor (`:invalid`); digest-pinned verifierAssets isteyen kontrat LLM'ce üretilemez sınıfı, ayrı born satırı/owner kararı gerekir — bu satır plan-üretim kabulünü bu HOLD nedeniyle taşımaz",
+      "updated": "2026-09-06"
     },
     {
       "order": 3333,
@@ -19716,8 +19716,8 @@
         "GR-2026-09-04-PLANNER-HOST-WIRING-01"
       ],
       "acceptance": "Planner prompt'u modelden yalnız kimlik alanlarını ister; host `hostProofProgram`'ı trusted verifier asset digest'leri ve linux/wsl2-linux/darwin/win32 programıyla tamamlar, `parseProductionWiringContractV2Input` + coverage doğrulaması geçer, authored digest asla kabul edilmez; eksik/uyumsuz kimlik typed `validation_failed` + issue-path ile retry'a gider; hermetik testler (kimlik-önerisi → host-completion → geçerli kontrat; geçersiz kimlik → typed hold), tsc, gate'ler; gerçek kanıt: CLI `deckent do` ve native `/do` ile 7099 v2 L1 hedefi plan önizlemesi üretir; wiring kontrat authority'sine dokunulan noktada owner/ADR amendment kararı açıkça alınır",
-      "evidence": "Born 2026-09-04 (owner karar: 'Üçüncü recovery: host-completed wiring, yeni oturumda'; owner-live-2026-09-04-terminal-audit-closure-v2): kanıt 3332 sonrası `DECKENT_DEBUG=1 deckent do` → `planner:contractViolation attempt 1 — tasks.0.productionWiring:required`, `attempt 2 — tasks.0.productionWiring:invalid`; kontrat `src/core/production-wiring-contract.ts:340`; prompt örneği planner.ts:462/498; capsule `docs/execution/active/RECOVERY-BORN-PLANNER-HOST-COMPLETED-WIRING-001.md`; 2026-09-04 SETTLEMENT: registered identity-only proposal → host-owned exact digest + four-platform program, authored/model digest discarded, task/verifier write separation protected by unchanged overlap guard; CLI flow `a36f802e-…` four-task plan digest `fbe1faad…` and native `/do` flow `87ce58a4-…` three-task plan digest `06332b1e…` both provider transport exit 0 + consumer accepted + gate/policy PASS; native card pre-landing rejected, CLI exact plan retained unstarted; 11-file/213-test battery, tsc and scoped gates, `build:all`, bot restart PID 3728211 PASS; `receipt=GR-2026-09-04-PLANNER-HOST-WIRING-01`",
-      "updated": "2026-09-04"
+      "evidence": "Born 2026-09-04 (owner karar: 'Üçüncü recovery: host-completed wiring, yeni oturumda'; owner-live-2026-09-04-terminal-audit-closure-v2): kanıt 3332 sonrası `DECKENT_DEBUG=1 deckent do` → `planner:contractViolation attempt 1 — tasks.0.productionWiring:required`, `attempt 2 — tasks.0.productionWiring:invalid`; kontrat `src/core/production-wiring-contract.ts:340`; prompt örneği planner.ts:462/498; historical capsule `git:b68b11ddaa4fd2b23bef7a61ed253e5d0de86dfd:docs/execution/active/RECOVERY-BORN-PLANNER-HOST-COMPLETED-WIRING-001.md` (owner 2026-09-07 inactive-document cleanup; Git history, active filesystem path değil); 2026-09-04 SETTLEMENT: registered identity-only proposal → host-owned exact digest + four-platform program, authored/model digest discarded, task/verifier write separation protected by unchanged overlap guard; CLI flow `a36f802e-…` four-task plan digest `fbe1faad…` and native `/do` flow `87ce58a4-…` three-task plan digest `06332b1e…` both provider transport exit 0 + consumer accepted + gate/policy PASS; native card pre-landing rejected, CLI exact plan retained unstarted; 11-file/213-test battery, tsc and scoped gates, `build:all`, bot restart PID 3728211 PASS; `receipt=GR-2026-09-04-PLANNER-HOST-WIRING-01`",
+      "updated": "2026-09-06"
     },
     {
       "order": 3343,
@@ -29241,6 +29241,6 @@
   ],
   "registryIntegrity": {
     "algorithm": "sha256(canonical-json-utf8)",
-    "value": "6ad075351e4954d38a0b32d3ab0fb23d43c2330028f2660c98ca337d29754e20"
+    "value": "70de6fa477d54ea8bb8d62fc91d3d1a6d1c68745aad5341398fc4a75d2de5d25"
   }
 }
