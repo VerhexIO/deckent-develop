@@ -886,3 +886,28 @@ post-hoc provenance, never an ACTIVE self-authorizing grant or runtime settlemen
 The main MASTER was advanced OPEN→VERIFY with official generated projections;
 memory-only staging preserves the separate3357 receipt/work changes. DONE is
 permitted only after the scoped commit bytes match this selected freeze.
+
+### Committed closure — 2026-09-06
+
+Source/VERIFY landing is commit
+`adb705ef5322071e1068dd2acff5d84443fef5ee`, parent
+`753e882b153236e9a2605eb178bd38069e4ad969`. It contains exactly90 paths:
+85 selected source/test/public-doc paths, capsule, this audit, MASTER and its two
+canonical generated views. Root postcommit verification matched85/85 source
+blob hashes to the selected freeze and3/3 governance blobs to the reviewed
+memory-only candidate. The index was empty afterward. Durable root proof:
+`committed-byte-verification.json`, SHA256
+875fde54a6ee05516acf0f66a44297f19397e27c0705e38fbc56aa0fc3323b60.
+Fable438 independently reproduced the exact90path and85hash result, confirmed
+the protected DB digest, live bot172833, unchanged failed728 and canonical MASTER
+gate. Remaining206 dirty entries are preserved, not blanket-classified as unrelated;
+they include local generated compact exports and other recovery work.
+
+MASTER9002 now advances VERIFY→DONE under the already-consumed owner provenance,
+with C/W/E/H/L=1 and X/S outside this outcome-specific certification claim.
+The broader9001 remains OPEN. The temporary capsule is removed under its explicit
+delete-on-consume rule; its complete history remains recoverable as
+`git show adb705ef5322071e1068dd2acff5d84443fef5ee:docs/execution/active/BRAIN-MEMORY-COMPACT-001.md`.
+No DB data, knowledge ID, old sprint disposition or runtime custody is deleted.
+Main running dist remains built from the preserved dirty tree; the committed
+tree build was separately proven. A main-dist-equals-commit claim is not made.
