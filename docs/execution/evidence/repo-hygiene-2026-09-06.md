@@ -97,6 +97,27 @@ Previous cleanup backup `recovery-deleted.tar.gz` (54-file manifest) SHA-256:
 
 ## Verification
 
+### Subsequent owner-approved runtime untracking
+
+After the physical archive slice, the owner explicitly accepted removing exactly three daily
+runtime files from Git tracking while preserving them on disk. This supersedes only those
+three paths in the earlier §6 exclusion; all other deferred candidates remain excluded.
+The files are local/untracked evidence, not fresh-clone assets. No producer/schema change,
+history rewrite, secret rotation, archive pruning or Brain database operation is included.
+
+| Local path | Preserved bytes | SHA-256 at untracking |
+|---|---:|---|
+| .deckent/settings/repl-history | 28260 | accc0b19c5f5338b614ea7ba0a095c6ee6b77d68e905a68a86283da37ca07ff2 |
+| .deckent/runtime/owner-notifications.jsonl | 49203 | 6f633c3bc1d9bccaab772def56c28541f31c90cbd65f1c352c6279a1f9381fd2 |
+| .deckent/runtime/owner-notification-receipts.jsonl | 15343 | e93c29f7bca369d43902b94201952bcf3d67de8dc39ab3bace0ac03055267a78 |
+
+These runtime files may legitimately change later. Git untracking does not remove their
+historical committed contents. Fable reported secret-like vocabulary matches in REPL history;
+actual credential exposure is not established, and values were not displayed. If genuine
+credentials were stored, separate owner-reviewed rotation/history remediation is required.
+
+### Earlier archive slice checks
+
 - LOCAL_VERIFIED: full working-tree MASTER check/write PASS (577 rows); link gate PASS
   (435 scanned files); operating-policy PASS; closure-dispositions PASS (7 authenticated events);
   scoped working-tree and staged whitespace checks PASS.

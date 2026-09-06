@@ -278,6 +278,10 @@ native/exec-authority/.build-stage-*/
 .deckent/*.db-wal
 
 # Repo cleanup 2026-09-04 (owner-approved G3): runtime data and historical archive are never tracked
+# Owner-approved 2026-09-06: keep local runtime evidence on disk, outside Git.
+/.deckent/settings/repl-history
+/.deckent/runtime/owner-notifications.jsonl
+/.deckent/runtime/owner-notification-receipts.jsonl
 .deckent/settings/resource-log.jsonl
 .deckent/provider-execution-observations.db
 .deckent/provider-execution-observations.db-wal
