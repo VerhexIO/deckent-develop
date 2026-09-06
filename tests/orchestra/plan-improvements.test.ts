@@ -212,28 +212,26 @@ describe('B) Structured Parser Bullet/Prose fallback', () => {
 // ═══ F) Context Truncation Priority ═══════════════════════════════════
 
 describe('F) Context Truncation Priority Order', () => {
-  it('preserves DIRECTIVES (priority 1) over PATTERNS (priority 4) when truncating', () => {
+  it('HOLDs rather than discarding PATTERNS behind DIRECTIVES', () => {
     const directives = Array.from({ length: 30 }, (_, i) => `directive-${i}`).join('\n');
     const patterns = Array.from({ length: 30 }, (_, i) => `pattern-${i}`).join('\n');
     const sections = [
       { text: `DIRECTIVES:\n${directives}`, priority: 1 },
       { text: `PATTERNS:\n${patterns}`, priority: 4 },
     ];
-    const result = buildPriorityContextBlock(sections, 35);
-    expect(result).toContain('DIRECTIVES');
-    expect(result).toContain('directive-0');
+    expect(() => buildPriorityContextBlock(sections, 35))
+      .toThrow('BRAIN_PLAN_CONTEXT_LIMIT_EXCEEDED');
   });
 
-  it('preserves MEMORY (priority 2) over DEBT (priority 3) when space is limited', () => {
+  it('HOLDs rather than discarding DEBT behind MEMORY', () => {
     const memory = Array.from({ length: 20 }, (_, i) => `mem-${i}`).join('\n');
     const debt = Array.from({ length: 20 }, (_, i) => `debt-${i}`).join('\n');
     const sections = [
       { text: `MEMORY:\n${memory}`, priority: 2 },
       { text: `DEBT:\n${debt}`, priority: 3 },
     ];
-    const result = buildPriorityContextBlock(sections, 22);
-    expect(result).toContain('MEMORY');
-    expect(result).toContain('mem-0');
+    expect(() => buildPriorityContextBlock(sections, 22))
+      .toThrow('BRAIN_PLAN_CONTEXT_LIMIT_EXCEEDED');
   });
 
   it('includes all sections when maxLines is sufficient', () => {

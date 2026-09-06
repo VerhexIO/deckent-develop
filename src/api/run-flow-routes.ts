@@ -85,6 +85,7 @@ import { deriveRequestPrincipal } from './auth-me-endpoint.js';
 import { resolveCallerTenant, TenantScopeError } from '../core/principal.js';
 import type { ProviderAuthorityRuntimeServiceOpenResult } from '../core/provider-authority-composition.js';
 import { preflightApiBrainProviderAuthority } from './provider-authority-ingress.js';
+import { attendedExecutionProjectId } from '../core/attended-execution-approval.js';
 
 // PRINCIPAL-001 P1a: the API principal's provenance rides into the actor —
 // authorization can now SEE whether it is trusting verified claims, merely
@@ -246,9 +247,10 @@ async function handlePropose(
   // report). An unresolved tenant is an AUTHORIZATION refusal (403), answered
   // here rather than thrown, so the request never hangs. Default-off keeps v1
   // behaviour byte-identical.
+  const principal = deriveRequestPrincipal(req);
   let callerTenant: string;
   try {
-    callerTenant = resolveCallerTenant(deriveRequestPrincipal(req), config.strict_tenant_isolation === true);
+    callerTenant = resolveCallerTenant(principal, config.strict_tenant_isolation === true);
   } catch (err) {
     if (err instanceof TenantScopeError) {
       sendError(res, 403, err.message);
@@ -259,7 +261,6 @@ async function handlePropose(
 
   // Identity is ALWAYS derived server-side from the verified bearer — never
   // from the request body (anti-spoofing, matches process-endpoint.ts).
-  const principal = deriveRequestPrincipal(req);
   const flowId = randomUUID();
   const providerDecision = preflightApiBrainProviderAuthority(
     projectRoot,
@@ -298,7 +299,11 @@ async function handlePropose(
       },
       source: {
         sourceKind: 'intent',
-        baseContext: readContext(projectRoot),
+        baseContext: readContext(projectRoot, {
+          scope: principal.tenantId !== undefined
+            ? { kind: 'tenant', tenantId: callerTenant, projectId: attendedExecutionProjectId(projectRoot) }
+            : { kind: 'local-project', projectId: attendedExecutionProjectId(projectRoot) },
+        }),
         ...(proposalPlannerOverride ? { planner: proposalPlannerOverride } : {}),
       },
       previewOptions: {

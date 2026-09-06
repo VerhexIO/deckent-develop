@@ -3,7 +3,15 @@ import { join } from 'node:path';
 import { existsSync, readFileSync } from 'node:fs';
 import { createInterface } from 'node:readline';
 import { MemoryStore } from '../../core/memory-store.js';
-import { searchMemory } from '../../core/memory-query.js';
+import {
+  readMemoryDetail,
+  readMemoryView,
+  renderMemoryReadView,
+} from '../../core/memory-read-service.js';
+import { resolveMemoryReadConfig } from '../../core/config.js';
+import type { MemoryReadLimitsV1 } from '../../core/memory-read-contract.js';
+import { buildMemoryReadLabels } from '../../core/memory-read-labels.js';
+import { attendedExecutionProjectId } from '../../core/attended-execution-approval.js';
 import { parseDecisionsMd, parseMemoryMd, parseDebtMd } from '../../core/memory-import.js';
 import { writeGuardedExports } from '../../core/memory-export.js';
 import { syncAdrFilesToDb } from '../../core/adr-file-sync.js';
@@ -15,67 +23,150 @@ import { getMessage, getLanguage } from '../helpers/messages.js';
 import { memoryCatalogMessage } from '../helpers/message-catalog/cli-memory-catalog.js';
 import { detectLang } from '../helpers/i18n.js';
 import type { EntryRelation } from '../../core/memory-types.js';
+import type { ResolvedConfig } from '../../core/config-types.js';
+import { buildMemoryExportLabels } from '../../core/memory-export-labels.js';
+
+type MemoryRuntimeConfig = Pick<ResolvedConfig, 'language' | 'memory_export' | 'memory_read'>;
+
+function resolvedMemoryReadLimits(configured: Readonly<MemoryReadLimitsV1>, requestedLimit?: unknown): Readonly<MemoryReadLimitsV1> | null {
+  if (requestedLimit !== undefined && (typeof requestedLimit !== 'string' || requestedLimit.trim().length === 0)) return null;
+  const parsed = typeof requestedLimit === 'string' ? Number.parseInt(requestedLimit, 10) : undefined;
+  if (parsed === undefined) return configured;
+  if (!Number.isSafeInteger(parsed) || parsed <= 0 || String(parsed) !== requestedLimit) return null;
+  return Object.freeze({ ...configured, maxEntries: Math.min(configured.maxEntries, parsed) });
+}
+
+function renderMemoryDetail(entry: {
+  readonly title: string;
+  readonly source: string;
+  readonly status: string;
+  readonly sprint_id: string | null;
+  readonly updated_at: string;
+  readonly content: string;
+}, labels: ReturnType<typeof buildMemoryReadLabels>): string {
+  return [
+    `## ${entry.title}`,
+    `- ${labels.source}: ${entry.source}`,
+    `- ${labels.status}: ${entry.status}`,
+    `- ${labels.sprint}: ${entry.sprint_id ?? ''}`,
+    `- ${labels.updatedAt}: ${entry.updated_at}`,
+    '',
+    entry.content,
+  ].join('\n');
+}
 
 function registerMemoryRecall(mem: Command): void {
   mem
     .command('recall')
-    .argument('<query>', memoryCatalogMessage('cli.memcat.recall.arg.query', getLanguage(undefined)))
+    .argument('[query]', memoryCatalogMessage('cli.memcat.recall.arg.query', getLanguage(undefined)))
     .description(getMessage('cli.recall.desc', getLanguage(undefined)))
     .option('-t, --type <types>', memoryCatalogMessage('cli.memcat.recall.opt.type', getLanguage(undefined)), '')
     .option('-n, --limit <n>', memoryCatalogMessage('cli.memcat.recall.opt.limit', getLanguage(undefined)), '5')
     .option('--sprint-min <n>', memoryCatalogMessage('cli.memcat.recall.opt.sprint_min', getLanguage(undefined)))
     .option('-m, --mode <mode>', memoryCatalogMessage('cli.memcat.recall.opt.mode', getLanguage(undefined)), 'or')
     .option('--json', memoryCatalogMessage('cli.memcat.shared.opt.json', getLanguage(undefined)))
+    .option('--cursor <cursor>', getMessage('memory_read.cursor_help', getLanguage(undefined)))
+    .option('--detail <detailRef>', getMessage('memory_read.detail_help', getLanguage(undefined)))
     .addHelpText('after', memoryCatalogMessage('cli.memcat.recall.help.paths', getLanguage(undefined)))
-    .action((query: string, opts) => {
+    .action(async (query: string | undefined, opts) => {
       const root = resolveProjectRoot();
-      const lang = detectLang(root);
+      let memoryReadConfig: ReturnType<typeof resolveMemoryReadConfig>;
+      try {
+        memoryReadConfig = resolveMemoryReadConfig(root, 'cli');
+      } catch {
+        if (opts.json) print(JSON.stringify({ schemaVersion: 1, view: { state: 'HOLD', consumer: 'cli', scope: null, reasonCode: 'QUERY_FAILED', requiredIds: [] } }));
+        printError(getMessage('memory_read.hold', detectLang(root), { reason: 'QUERY_FAILED' }));
+        process.exitCode = 1;
+        return;
+      }
+      const lang = getLanguage(memoryReadConfig.language);
+      const labels = buildMemoryReadLabels(getMessage, lang === 'tr' ? 'tr' : 'en');
       const dbPath = join(root, BRAIN_DIR, MEMORY_DB_FILE);
 
       if (!existsSync(dbPath)) {
-        printError(getMessage('recall.db_not_found', lang));
+        if (opts.json) print(JSON.stringify({ schemaVersion: 1, view: { state: 'HOLD', consumer: 'cli', scope: null, reasonCode: 'QUERY_FAILED', requiredIds: [] } }));
+        printError(getMessage('memory_read.hold', lang, { reason: 'QUERY_FAILED' }));
+        process.exitCode = 1;
         return;
       }
 
-      const store = new MemoryStore(dbPath);
+      let store: MemoryStore | undefined;
       try {
+        store = new MemoryStore(dbPath, { readOnly: true });
+        const scope = { kind: 'local-project' as const, projectId: attendedExecutionProjectId(root) };
+        if (typeof opts.detail === 'string') {
+          const detail = readMemoryDetail(store, {
+            consumer: 'cli',
+            scope,
+            detailRef: opts.detail,
+          });
+          if (detail.state === 'HOLD') {
+            if (opts.json) print(JSON.stringify({ schemaVersion: 1, detail }));
+            printError(getMessage('memory_read.hold', lang, { reason: detail.reasonCode }));
+            process.exitCode = 1;
+            return;
+          }
+          if (opts.json) {
+            print(JSON.stringify({ schemaVersion: 1, detail }));
+            return;
+          }
+          print(renderMemoryDetail(detail.entry, labels));
+          return;
+        }
+        if (typeof query !== 'string' || query.trim().length === 0) {
+          if (opts.json) print(JSON.stringify({ schemaVersion: 1, view: { state: 'HOLD', consumer: 'cli', scope, reasonCode: 'INVALID_REQUEST', requiredIds: [] } }));
+          printError(getMessage('memory_read.hold', lang, { reason: 'INVALID_REQUEST' }));
+          process.exitCode = 1;
+          return;
+        }
         const types = opts.type ? opts.type.split(',').filter(Boolean) : undefined;
-        const mode = opts.mode === 'and' ? 'and' as const : 'or' as const;
-        const results = searchMemory(store, {
-          text: query,
-          type: types,
-          limit: parseInt(opts.limit, 10) || 5,
-          sprint_range: opts.sprintMin ? { min: parseInt(opts.sprintMin, 10) } : undefined,
-          mode,
+        if (opts.mode !== 'and' && opts.mode !== 'or') {
+          if (opts.json) print(JSON.stringify({ schemaVersion: 1, view: { state: 'HOLD', consumer: 'cli', scope, reasonCode: 'INVALID_REQUEST', requiredIds: [] } }));
+          printError(getMessage('memory_read.hold', lang, { reason: 'INVALID_REQUEST' }));
+          process.exitCode = 1;
+          return;
+        }
+        const mode = opts.mode;
+        const limits = resolvedMemoryReadLimits(memoryReadConfig.memory_read, opts.limit);
+        if (limits === null) {
+          if (opts.json) print(JSON.stringify({ schemaVersion: 1, view: { state: 'HOLD', consumer: 'cli', scope, reasonCode: 'INVALID_REQUEST', requiredIds: [] } }));
+          printError(getMessage('memory_read.hold', lang, { reason: 'INVALID_REQUEST' }));
+          process.exitCode = 1;
+          return;
+        }
+        const view = readMemoryView(store, {
+          consumer: 'cli',
+          scope,
+          query: {
+            text: query,
+            type: types,
+            sprint_range: opts.sprintMin ? { min: Number.parseInt(opts.sprintMin, 10) } : undefined,
+            mode,
+          },
+          limits,
+          ...(typeof opts.cursor === 'string' ? { cursor: opts.cursor } : {}),
         });
-
+        if (view.state === 'HOLD') {
+          if (opts.json) print(JSON.stringify({ schemaVersion: 1, view }));
+          printError(getMessage('memory_read.hold', lang, { reason: view.reasonCode }));
+          process.exitCode = 1;
+          return;
+        }
         if (opts.json) {
-          print(JSON.stringify(results.map((r) => ({
-            type: r.entry.type,
-            title: r.entry.title,
-            sprintId: r.entry.sprint_id,
-            summary: r.entry.summary,
-            snippet: r.snippet,
-          }))));
+          print(JSON.stringify({ schemaVersion: 1, view }));
           return;
         }
-
-        if (results.length === 0) {
-          print(getMessage('recall.no_results', lang, { query }));
+        if (view.state === 'ABSENT') {
+          print(getMessage('memory_read.absent', lang));
           return;
         }
-
-        print(getMessage('recall.results_header', lang, { count: String(results.length), query }));
-        for (let i = 0; i < results.length; i++) {
-          const r = results[i]!;
-          const sprint = r.entry.sprint_id ? ` (${r.entry.sprint_id})` : '';
-          print(`  ${i + 1}. [${r.entry.type}] ${r.entry.title}${sprint}`);
-          if (r.snippet) print(`     ${r.snippet.replace(/>>>/g, '\x1b[1m').replace(/<<</g, '\x1b[0m')}`);
-          if (r.entry.summary) print(`     ${r.entry.summary}`);
-          print('');
-        }
+        print(renderMemoryReadView(view, labels));
+      } catch {
+        if (opts.json) print(JSON.stringify({ schemaVersion: 1, view: { state: 'HOLD', consumer: 'cli', scope: null, reasonCode: 'QUERY_FAILED', requiredIds: [] } }));
+        printError(getMessage('memory_read.hold', lang, { reason: 'QUERY_FAILED' }));
+        process.exitCode = 1;
       } finally {
-        store.close();
+        store?.close();
       }
     });
 }
@@ -202,9 +293,12 @@ export function registerMemory(program: Command): void {
 
   mem.command('export')
     .description(getMessage('cli.memory.export.desc', getLanguage(undefined)))
-    .action(() => {
+    .action(async () => {
       const root = resolveProjectRoot();
-      const lang = getLanguage();
+      const config: MemoryRuntimeConfig = await loadConfig(root).catch(
+        (): MemoryRuntimeConfig => ({ language: 'en' }),
+      );
+      const lang = getLanguage(config.language);
       const brainDir = join(root, BRAIN_DIR);
       const exportsDir = join(brainDir, MEMORY_EXPORTS_DIR);
       const dbPath = join(brainDir, MEMORY_DB_FILE);
@@ -214,9 +308,19 @@ export function registerMemory(program: Command): void {
         return;
       }
 
-      const store = new MemoryStore(dbPath);
+      const store = new MemoryStore(dbPath, { readOnly: true });
       try {
-        const result = writeGuardedExports(store, exportsDir);
+        const result = writeGuardedExports(store, exportsDir, {
+          labels: buildMemoryExportLabels(getMessage, lang === 'tr' ? 'tr' : 'en'),
+          ...(config.memory_export?.max_inline_lines !== undefined
+            ? { maxInlineLines: config.memory_export.max_inline_lines } : {}),
+          ...(config.memory_export?.max_inline_bytes !== undefined
+            ? { maxInlineBytes: config.memory_export.max_inline_bytes } : {}),
+          ...(config.memory_export?.summary_inline_lines !== undefined
+            ? { summaryInlineLines: config.memory_export.summary_inline_lines } : {}),
+          ...(config.memory_export?.summary_inline_bytes !== undefined
+            ? { summaryInlineBytes: config.memory_export.summary_inline_bytes } : {}),
+        });
         if (result.skipped.length > 0) {
           printError(getMessage('memory.export.guard_hold', lang, {
             files: result.skipped.join(', '),

@@ -488,7 +488,7 @@ CLI ile okuma/yazma: \`deckent config read\` / \`deckent config set key value\`
 
 | Ayar | Değerler | Varsayılan | Açıklama |
 |------|----------|-----------|----------|
-| memory_budget | sayı | 900 | .brain/ toplam satır bütçesi |
+| memory_budget | sayı | 900 | Tamamlanan sprintlerde tutulan girdiler için çürüme eşiği |
 | decay_after_sprints | sayı | 5 | Kaç sprint sonra decay başlar |
 
 ## Sprint Ayarları
@@ -539,7 +539,7 @@ CLI read/write: \`deckent config read\` / \`deckent config set key value\`
 
 | Setting | Values | Default | Description |
 |---------|--------|---------|-------------|
-| memory_budget | number | 900 | .brain/ total line budget |
+| memory_budget | number | 900 | Retained-entry decay threshold across completed sprints |
 | decay_after_sprints | number | 5 | Sprints before decay |
 
 ## Sprint Settings

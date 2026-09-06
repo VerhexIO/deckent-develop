@@ -12,6 +12,7 @@ vi.mock('../../src/cli/helpers/process.js', () => ({ resolveProjectRoot: () => c
 
 import { archiveTerminalOperations, registerArchive, inspectArchiveTerminalParity } from '../../src/cli/commands/archive.js';
 import { getMessage } from '../../src/cli/helpers/messages.js';
+import { buildMemoryExportLabels } from '../../src/core/memory-export-labels.js';
 import { MemoryStore } from '../../src/core/memory-store.js';
 import { resolveSprintArchiveDir } from '../../src/core/sprint-archive.js';
 import type { SprintTerminalReceiptV1 } from '../../src/core/sprint-terminal-publication.js';
@@ -172,6 +173,16 @@ describe('archive terminal operator surface', () => {
 
   it('repairs through the real Commander surface, persists authority, and verifies idempotent replay', async () => {
     const authority = terminalFixture();
+    write('.deckent/config.json', JSON.stringify({
+      language: 'tr',
+      memory_export: {
+        max_inline_lines: 901,
+        max_inline_bytes: 4097,
+        summary_inline_lines: 27,
+        summary_inline_bytes: 513,
+      },
+    }));
+    const seal = vi.spyOn(archiveTerminalOperations, 'seal');
 
     const first = await run(repairArgs(authority));
     const firstReport = JSON.parse(first.stdout) as {
@@ -198,6 +209,13 @@ describe('archive terminal operator surface', () => {
     expect(firstReport.applicationReceipt.manifestDigest).toMatch(/^[a-f0-9]{64}$/u);
     expect(firstReport.applicationReceipt.brainIndexSha256).toMatch(/^[a-f0-9]{64}$/u);
     expect(firstReport.applicationReceipt.guardedSummarySha256).toMatch(/^[a-f0-9]{64}$/u);
+    expect(seal.mock.calls[0]?.[3]).toEqual({
+      labels: buildMemoryExportLabels(getMessage, 'tr'),
+      maxInlineLines: 901,
+      maxInlineBytes: 4097,
+      summaryInlineLines: 27,
+      summaryInlineBytes: 513,
+    });
     expect(JSON.parse(replay.stdout)).toMatchObject({ disposition: 'idempotent', terminalComplete: true });
     expect(JSON.parse(retiredCounterReplay.stdout)).toMatchObject({ disposition: 'idempotent', terminalComplete: true });
     expect(retiredCounterReplay.exitCode).toBe(0);

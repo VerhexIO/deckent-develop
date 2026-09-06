@@ -27,7 +27,18 @@ import {
 import { createCliToolDispatcher } from '../cli/commands/chat-tool-bridge.js';
 import { createPersistentClaudeSession } from '../cli/commands/chat-session.js';
 import { classifyActionRisk, type AgenticAction } from '../cli/commands/agentic-confirm.js';
-import { makeGatedDispatcher, hasRealPendingCheckpoint, buildBotSystemPrompt, summarizeArgs } from './bot-agentic.js';
+import {
+  makeGatedDispatcher,
+  hasRealPendingCheckpoint,
+  buildBotSystemPrompt,
+  makeBotMemoryReadDispatcher,
+  readBotMemoryGrounding,
+  summarizeArgs,
+  type BotMemoryGroundingV1,
+  type BotMemoryPromptLabelsV1,
+  type BotMemoryReadAuthorityV1,
+  type BotMemoryToolLabelsV1,
+} from './bot-agentic.js';
 import { parkBotAction, isSprintScopedDestructive, attachApprovalMessageId } from './bot-action-store.js';
 import { getCurrentSprintId } from '../monitor/sprint-state.js';
 import { createBuiltinRegistry, buildMediaSink, runCapability } from './capabilities/index.js';
@@ -40,10 +51,15 @@ import type { ArtifactStore, BotCapabilitiesConfig, MediaAttachment } from './ca
 import { approvalCallbackData } from './callback-router.js';
 import { markdownToTelegramHtml } from './markdown-to-html.js';
 import { getMessage } from '../cli/helpers/messages.js';
+import { canonicalJson } from '../core/audit-writer.js';
+import { attendedExecutionProjectId } from '../core/attended-execution-approval.js';
+import { resolveMemoryReadConfig } from '../core/config.js';
+import { buildMemoryReadLabels } from '../core/memory-read-labels.js';
+import type { MemoryReadScopeV1 } from '../core/memory-read-contract.js';
 import type { PerTurnConnector, ConnectorId } from './types.js';
 import type { CapabilityRegistry } from './capabilities/registry.js';
 import type { ResolvedPrincipal } from './identity/provider.js';
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { shortCodeFor } from '../core/approval-short-code.js';
 
 /**
@@ -221,6 +237,8 @@ export interface ChatResponderDeps {
    * Default: undefined → no artifact context (backward-compat, default-off).
    */
   artifacts?: ArtifactStore;
+  /** Hermetic factory seam for the same single-child production lifecycle. */
+  persistentProviderFactory?: (input: Readonly<{ systemPrompt: string }>) => PersistentProvider;
 }
 
 /** Per-turn media connector — optional 3rd argument to ChatResponder calls. */
@@ -254,14 +272,113 @@ export interface ChatResponder {
 }
 
 /**
- * Build a responder: (sessionId, text) → agentic reply. Turns for the SAME
- * sessionId are serialized (queued) so concurrent/overlapping messages never
- * corrupt the shared conversation; different sessions run concurrently.
+ * Build a responder: (sessionId, text) → agentic reply. Stateless/subscription
+ * turns serialize per session. Agentic turns serialize globally because the
+ * responder owns exactly one warm child; scope/session/revision changes rotate
+ * that child before another turn may enter it.
  */
 type PersistentProvider = ChatProviderAdapter & { exit?(): Promise<void> };
 
+type BotMemoryAuthorityState =
+  | BotMemoryReadAuthorityV1
+  | Readonly<{ state: 'HOLD'; reasonCode: string; toolLabels: Readonly<BotMemoryToolLabelsV1> }>;
+
+interface BotMemoryTurnV1 {
+  readonly authority: BotMemoryAuthorityState;
+  readonly grounding: BotMemoryGroundingV1;
+  readonly promptLabels: Readonly<BotMemoryPromptLabelsV1>;
+  readonly providerIdentity: string;
+  readonly memorySessionId: string;
+  readonly language: string;
+}
+
+function botIdentityDigest(value: unknown): string {
+  return createHash('sha256').update(canonicalJson(value)).digest('hex');
+}
+
+function botMemoryScope(root: string, principal: ResolvedPrincipal | undefined): MemoryReadScopeV1 {
+  const projectId = attendedExecutionProjectId(root);
+  return principal === undefined
+    ? Object.freeze({ kind: 'local-project', projectId })
+    : Object.freeze({ kind: 'tenant', tenantId: principal.tenantId, projectId });
+}
+
+function botMemoryPromptLabels(language: string): Readonly<BotMemoryPromptLabelsV1> {
+  return Object.freeze({
+    heading: getMessage('bot.memory.context.heading', language),
+    guidance: getMessage('bot.memory.context.guidance', language),
+    absent: getMessage('bot.memory.context.absent', language),
+    hold: (reasonCode: string) => getMessage('bot.memory.context.hold', language, { reason: reasonCode }),
+  });
+}
+
+function botMemoryToolLabels(language: string): Readonly<BotMemoryToolLabelsV1> {
+  return Object.freeze({
+    invalidRequest: getMessage('bot.memory.tool.invalid_request', language),
+    absent: getMessage('bot.memory.context.absent', language),
+    unavailable: (reasonCode: string) => getMessage('bot.memory.tool.unavailable', language, { reason: reasonCode }),
+  });
+}
+
+function prepareBotMemoryTurn(
+  root: string,
+  sessionId: string,
+  principal: ResolvedPrincipal | undefined,
+  fallbackLanguage: string,
+): BotMemoryTurnV1 {
+  const scope = botMemoryScope(root, principal);
+  const principalIdentity = principal === undefined ? null : Object.freeze({
+    userId: principal.userId,
+    role: principal.role,
+    permissions: Object.freeze([...principal.permissions].sort()),
+    tenantId: principal.tenantId,
+    verified: principal.verified,
+    source: principal.source,
+  });
+  const memorySessionId = `bot-memory-v1:${botIdentityDigest({ sessionId, scope, principal: principalIdentity })}`;
+  let language = fallbackLanguage;
+  let authority: BotMemoryAuthorityState;
+  let grounding: BotMemoryGroundingV1;
+  try {
+    const config = resolveMemoryReadConfig(root, 'bot');
+    language = config.language;
+    authority = Object.freeze({
+      root,
+      scope,
+      limits: config.memory_read,
+      labels: buildMemoryReadLabels(getMessage, language),
+      toolLabels: botMemoryToolLabels(language),
+    });
+    grounding = readBotMemoryGrounding(authority);
+  } catch {
+    authority = Object.freeze({
+      state: 'HOLD',
+      reasonCode: 'MEMORY_READ_CONFIG_UNAVAILABLE',
+      toolLabels: botMemoryToolLabels(language),
+    });
+    grounding = Object.freeze({ state: 'HOLD', reasonCode: 'MEMORY_READ_CONFIG_UNAVAILABLE' });
+  }
+  const revision = grounding.state === 'HOLD' ? `hold:${grounding.reasonCode}` : grounding.revision;
+  return Object.freeze({
+    authority,
+    grounding,
+    promptLabels: botMemoryPromptLabels(language),
+    providerIdentity: botIdentityDigest({
+      sessionId,
+      scope,
+      principal: principalIdentity,
+      revision,
+      limits: 'state' in authority ? null : authority.limits,
+      language,
+    }),
+    memorySessionId,
+    language,
+  });
+}
+
 export function makeChatResponder(deps: ChatResponderDeps = {}): ChatResponder {
   const chains = new Map<string, Promise<unknown>>();
+  let agenticChain: Promise<unknown> = Promise.resolve();
   const lang = deps.lang ?? 'en';
 
   // Capability registry + config — built once per responder (flag-gated default-off).
@@ -271,23 +388,49 @@ export function makeChatResponder(deps: ChatResponderDeps = {}): ChatResponder {
   // Agentic mode holds ONE warm persistent child across every turn (the whole
   // point — eliminates per-message cold-start); created lazily on first use.
   let persistent: PersistentProvider | undefined;
-  function agenticProvider(): ChatProviderAdapter {
-    if (deps.provider) return deps.provider;
+  let persistentIdentity: string | undefined;
+  let externalProviderIdentity: string | undefined;
+  let providerLifecycleBlocked = false;
+  async function agenticProvider(turn: BotMemoryTurnV1, sessionId: string): Promise<ChatProviderAdapter> {
+    if (providerLifecycleBlocked) throw new Error('BOT_PROVIDER_LIFECYCLE_HOLD');
+    if (deps.provider) {
+      if (externalProviderIdentity !== undefined && externalProviderIdentity !== turn.providerIdentity) {
+        throw new Error('BOT_PROVIDER_SCOPE_ROTATION_UNAVAILABLE');
+      }
+      externalProviderIdentity = turn.providerIdentity;
+      return deps.provider;
+    }
+    if (persistent && persistentIdentity !== turn.providerIdentity) {
+      const prior = persistent;
+      persistent = undefined;
+      persistentIdentity = undefined;
+      if (!prior.exit) {
+        providerLifecycleBlocked = true;
+        throw new Error('BOT_PROVIDER_SCOPE_ROTATION_UNAVAILABLE');
+      }
+      try {
+        await prior.exit();
+      } catch {
+        providerLifecycleBlocked = true;
+        throw new Error('BOT_PROVIDER_LIFECYCLE_HOLD');
+      }
+    }
     if (!persistent) {
-      // Ground the persistent session in the live project context (summary.md) so
-      // conversational answers are deckent-specific and accurate, not hollow.
       // Append capability catalog when enabled — bot learns which tools it may call.
-      const basePrompt = buildBotSystemPrompt(deps.root);
+      const basePrompt = buildBotSystemPrompt(turn.grounding, turn.promptLabels);
       const capCatalog = describeCapabilities(
         capRegistry,
         (id) => {
           const c = capRegistry.get(id);
-          return c ? resolvePolicy(c, { chatKey: 'session', config: capConfig, edition: 'solo' }) : 'unavailable';
+          return c ? resolvePolicy(c, { chatKey: sessionId, config: capConfig, edition: 'solo' }) : 'unavailable';
         },
-        lang,
+        turn.language,
       );
       const systemPrompt = capCatalog ? basePrompt + capCatalog : basePrompt;
-      persistent = createPersistentClaudeSession({ systemPrompt });
+      persistent = deps.persistentProviderFactory
+        ? deps.persistentProviderFactory({ systemPrompt })
+        : createPersistentClaudeSession({ systemPrompt });
+      persistentIdentity = turn.providerIdentity;
     }
     return persistent;
   }
@@ -301,12 +444,24 @@ export function makeChatResponder(deps: ChatResponderDeps = {}): ChatResponder {
     let provider: ChatProviderAdapter;
     let dispatcher: McpToolDispatcher;
     let confirm: (action: AgenticAction) => Promise<boolean>;
+    const memoryTurn = deps.root === undefined
+      ? undefined
+      : prepareBotMemoryTurn(deps.root, sessionId, principal, lang);
 
     if (deps.agentic) {
       if (!deps.root) throw new Error('chat-bridge: agentic mode requires `root` for the action store');
       const root = deps.root;
-      provider = agenticProvider();
-      const inner = deps.dispatcher ?? createCliToolDispatcher();
+      try {
+        provider = await agenticProvider(memoryTurn!, sessionId);
+      } catch {
+        provider = {
+          async send() {
+            throw new Error('BOT_PROVIDER_LIFECYCLE_HOLD');
+          },
+        };
+      }
+      const baseInner = deps.dispatcher ?? createCliToolDispatcher({ projectRoot: root });
+      const inner = makeBotMemoryReadDispatcher(baseInner, memoryTurn!.authority);
       // Slice 1.1: build the media sink from the PER-TURN connector when provided,
       // falling back to the static dep, then to the no-media sentinel.
       // This ensures a chat-turn capability's media (e.g. screenshot → photo) is
@@ -391,7 +546,12 @@ export function makeChatResponder(deps: ChatResponderDeps = {}): ChatResponder {
       confirm = async () => true; // gating lives in the wrapper, not here
     } else {
       provider = deps.provider ?? defaultSubscriptionProvider();
-      dispatcher = deps.dispatcher ?? createCliToolDispatcher();
+      const inner = deps.dispatcher ?? createCliToolDispatcher(
+        deps.root === undefined ? {} : { projectRoot: deps.root },
+      );
+      dispatcher = memoryTurn === undefined
+        ? inner
+        : makeBotMemoryReadDispatcher(inner, memoryTurn.authority);
       confirm = deps.confirm ?? denyRiskyConfirm;
     }
 
@@ -419,8 +579,8 @@ export function makeChatResponder(deps: ChatResponderDeps = {}): ChatResponder {
       maxTurns: deps.maxTurns ?? 1,
       maxToolHops: deps.maxToolHops ?? 6,
       ...(deps.memory
-        ? { memory: deps.memory, sessionId, resumeLimit: deps.resumeLimit ?? 30 }
-        : { sessionId }),
+        ? { memory: deps.memory, sessionId: memoryTurn?.memorySessionId ?? sessionId, resumeLimit: deps.resumeLimit ?? 30 }
+        : { sessionId: memoryTurn?.memorySessionId ?? sessionId }),
     });
 
     const streamed = collected.join('').trim();
@@ -429,6 +589,13 @@ export function makeChatResponder(deps: ChatResponderDeps = {}): ChatResponder {
   }
 
   const responder = ((sessionId: string, text: string, mediaConnector?: PerTurnMediaConnector, _detectedLang?: string, principal?: ResolvedPrincipal): Promise<string> => {
+    if (deps.agentic) {
+      const next = agenticChain
+        .catch(() => undefined)
+        .then(() => runTurn(sessionId, text, mediaConnector, principal));
+      agenticChain = next.then(() => undefined, () => undefined);
+      return next;
+    }
     const prev = chains.get(sessionId) ?? Promise.resolve();
     const next = prev.catch(() => undefined).then(() => runTurn(sessionId, text, mediaConnector, principal));
     chains.set(
@@ -442,8 +609,13 @@ export function makeChatResponder(deps: ChatResponderDeps = {}): ChatResponder {
 
   responder.dispose = async (): Promise<void> => {
     try {
-      await persistent?.exit?.();
+      await agenticChain.catch(() => undefined);
+      const prior = persistent;
+      persistent = undefined;
+      persistentIdentity = undefined;
+      await prior?.exit?.();
     } catch {
+      providerLifecycleBlocked = true;
       // best-effort — the child also dies with the host process
     }
   };

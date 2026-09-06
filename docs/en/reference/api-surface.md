@@ -26,7 +26,10 @@ The first request is an explicit authentication exemption. The status request us
 | `GET /api/history` | Sprint history. | `src/api/server.ts:893-897` |
 | `GET /api/config`, `/api/config/defaults` | Current project-file view and defaults view. | `src/api/server.ts:898-911` |
 | `GET /api/doctor` | Readiness diagnostics. | `src/api/server.ts:912-917` |
-| `GET /api/memory`, `/api/memory/search?q=` | Memory projection and FTS5 search. | `src/api/server.ts:918-925`; `src/api/memory-search-endpoint.ts:2-38` |
+| `GET /api/memory` | Bounded, principal-scoped compatibility projection: `{content, schemaVersion:1, view}`. It is not a global export-file bypass. | `src/api/memory-search-endpoint.ts` |
+| `GET /api/memory/search?v=1&q=&type=&status=&sprint_min=&mode=&limit=&cursor=` | Versioned bounded view. The verified principal determines tenant/local-project scope; URL parameters cannot select a tenant. `AVAILABLE`, `ABSENT`, and typed `HOLD` are explicit. | `src/api/memory-search-endpoint.ts`; `src/core/memory-read-service.ts` |
+| `GET /api/memory/detail?v=1&ref=` | Versioned complete-entry read for one opaque detail reference, revalidated against the same scope. | `src/api/memory-search-endpoint.ts`; `src/core/memory-read-service.ts` |
+| `GET /api/memory/search?q=` | Legacy array compatibility. Successful reads retain the array shape; an unavailable/held read is a typed non-200 response, never an empty success array. | `src/api/memory-search-endpoint.ts` |
 | `GET /api/debt`, `/api/tasks`, `/api/workers`, `/api/agents` | Debt, task, worker, and agent views. | `src/api/server.ts:926-984` |
 | `GET /api/routing/distribution` | Routing distribution view. | `src/api/server.ts:985-1001` |
 | `GET /api/job/:id`, `/api/worker/:id/log` | Detached job and worker-log snapshots. | `src/api/server.ts:1002-1032` |

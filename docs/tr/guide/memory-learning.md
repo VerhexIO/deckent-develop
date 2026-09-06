@@ -4,15 +4,19 @@
 
 Deckent product memory'si repository-host instruction memory değil, `.brain/memory.db`'dir. ADR, memory, sprint record, debt, pattern, retrospective, chat, audit material, relation/history, document tracking ve KPI projection saklar. [Kanıt: `AGENTS.md:69-73`; `src/core/memory-store.ts:100-338`; `docs/tr/db.md` içindeki gerçek PRAGMA inventory]
 
-## Recall
+## Sınırlı recall
 
-`recall <query>`; type filter, result limit, minimum sprint, OR/AND FTS token joining ve JSON output destekler. “Goal Mission Flow” için gerçek query beş mixed memory/ADR/sprint result döndürdü ve normalized match'leri işaretledi. [Kanıt: `src/cli/commands/recall.ts:11-50`; gerçek `recall ... --json`, 2026-08-01]
+`memory recall <query>`, generated Markdown satırlarını filtrelemek yerine query-first, read-only ve consistent bir view okur. Sonuç `AVAILABLE`, `ABSENT` veya typed `HOLD` olur. `AVAILABLE` yalnız bütçeye alınmış tam unit'leri içerir; entry/byte/line bütçesi dışındaki kayıtlar content-slice edilmeden opaque detail reference ile deferred kalır. `ABSENT` dürüst no-match sonucudur. `HOLD` başarı değildir: CLI typed reason yazar ve `1` ile çıkar.
 
 ```bash
-node dist/cli/entry.js recall "Goal Mission Flow" --json
+node dist/cli/entry.js memory recall "Goal Mission Flow" --json
 ```
 
-Operator broad context yerine authority aradığında dar type filter kullanın—örneğin architecture change öncesi yalnız ADR recall. Search ranking evidence retrieval'dır, policy precedence değildir. [Kanıt: yukarıdaki recall option'ları; precedence `AGENTS.md:116-127`]
+`--json` versioned envelope döndürür. Sonraki bounded page için opaque `nextCursor` değerini `--cursor` ile; deferred tek complete entry için opaque reference'ı `--detail` ile kullanın. Invalid, stale, cross-scope veya changed reference `HOLD` ile fail-closed olur; caller reference üretmez ve tenant'ı query parameter'dan çıkarmaz. Type filter, `--sprint-min` ve `--mode and|or` retrieval'ı daraltır. Search ranking evidence retrieval'dır, policy precedence değildir. [Kanıt: `src/cli/commands/memory.ts`; `src/core/memory-read-{contract,service}.ts`; precedence `AGENTS.md:116-127`]
+
+Read budget, retained-memory lifecycle'tan ayrıdır. `memory_read` shared limit sağlar; `memory_read_profiles` named consumer için override eder. Global authored değerler project authored değerlerden önce merge edilir; named profile kendi shared layer'ından daha özeldir. Default worker profile 128 KiB / 512 complete-content line'dır; diğer reader'lar 32 KiB / 200 line default'u kullanır. Bunlar view-selection limitidir; deletion, retention veya decay threshold değildir. [Kanıt: `src/core/config.ts:resolveMemoryReadProfiles`; `src/core/memory-read-contract.ts`]
+
+MCP `deckent_memory_query`, aynı scoped reader'ı kullanır. Successful response versioned structured view/detail data içerir; `HOLD`, yalnız rendered prose değil typed payload taşıyan MCP error olarak işaretlenir. `deckent://memory` resource; bounded human rendering yanında complete body'leri tekrar etmeden scope, selection revision, selected ID, deferred opaque reference ve cursor machine metadata'sı sunar. Server project ve tenant scope'u tool argument'tan değil authority'den kurar. [Kanıt: `src/mcp/tools/memory-query.ts`; `src/mcp/resources/memory.ts`]
 
 ## Remember ve relations
 
@@ -24,7 +28,7 @@ Audit'te remember/rebuild/export/backup mutation çalıştırılmadı. [Kanıt: 
 
 Gerçek `memory stats` run 1.764 entry ve schema v1 bildirdi; ADR, audit, chat, debt, finding, identity, memory, pattern, retro ve sprint type'larına ayrıldı. Bu dated repository snapshot'tır. [Kanıt: real output, 2026-08-01]
 
-`memory export`, DB content'i `.brain/exports/*.md` içine project eder; `memory rebuild` reverse import yapar; `memory backup`, SQLite backup/checkpoint behavior kullanır. Generated Markdown data/projection'dır, policy authority değildir. [Kanıt: `src/cli/commands/memory.ts:17-200`; `AGENTS.md:112-114`]
+`memory export`, DB content'i `.brain/exports/*.md` içine project eder; `memory rebuild` reverse import yapar; `memory backup`, SQLite backup/checkpoint behavior kullanır. Generated Markdown data/projection'dır, policy authority değildir ve bounded recall source'u değildir. [Kanıt: `src/cli/commands/memory.ts`; `AGENTS.md:112-114`]
 
 ## ADR memory
 

@@ -4,6 +4,7 @@ import {
   getDefaultConfig,
   deepMerge,
   DEFAULT_TIMEOUT_CONFIG,
+  mergeConfigs,
 } from '../../src/core/config.js';
 import type { DeckentConfig, ResolvedConfig } from '../../src/core/types.js';
 
@@ -38,6 +39,31 @@ describe('createDefaultConfig — Sprint 156 dependency pipeline default flip', 
     // singleton return that would let one test poison another.
     (a as ResolvedConfig).dependency_pipeline_enabled = false;
     expect((b as ResolvedConfig).dependency_pipeline_enabled).toBe(true);
+  });
+});
+
+describe('memory_export resolved human-view limits', () => {
+  it('uses the four bounded-render defaults without constraining durable records', () => {
+    const config = createDefaultConfig();
+    expect(config.memory_export).toEqual({
+      max_inline_lines: 3000,
+      max_inline_bytes: 256 * 1024,
+      summary_inline_lines: 200,
+      summary_inline_bytes: 16 * 1024,
+    });
+  });
+
+  it('deep-merges global and project overrides into one effective render config', () => {
+    const resolved = mergeConfigs(
+      { memory_export: { max_inline_lines: 900, max_inline_bytes: 4096 } },
+      { memory_export: { summary_inline_lines: 25, summary_inline_bytes: 512 } },
+    );
+    expect(resolved.memory_export).toEqual({
+      max_inline_lines: 900,
+      max_inline_bytes: 4096,
+      summary_inline_lines: 25,
+      summary_inline_bytes: 512,
+    });
   });
 });
 

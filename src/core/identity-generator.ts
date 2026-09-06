@@ -242,7 +242,10 @@ export interface MemoryExportResult {
  * Run memory export: read from DB, write to .brain/exports/*.md.
  * This regenerates all 4 export files from the SQLite DB.
  */
-export async function runMemoryExport(projectRoot: string): Promise<MemoryExportResult> {
+export async function runMemoryExport(
+  projectRoot: string,
+  renderOptions: import('./memory-export.js').MemoryExportRenderOptions = {},
+): Promise<MemoryExportResult> {
   const result: MemoryExportResult = { success: true, filesWritten: [], errors: [] };
 
   try {
@@ -254,32 +257,18 @@ export async function runMemoryExport(projectRoot: string): Promise<MemoryExport
     }
 
     const { MemoryStore } = await import('./memory-store.js');
-    const { exportSummaryMd, exportDecisionsMd, exportMemoryMd, exportDebtMd } = await import('./memory-export.js');
+    const { writeGuardedExports } = await import('./memory-export.js');
 
-    const store = new MemoryStore(dbPath);
-    const exportsDir = join(projectRoot, BRAIN_DIR, 'exports');
-    mkdirSync(exportsDir, { recursive: true });
-
-    const exports: Array<{ name: string; fn: (s: typeof store) => string }> = [
-      { name: 'summary.md', fn: exportSummaryMd },
-      { name: 'decisions.md', fn: exportDecisionsMd },
-      { name: 'memory.md', fn: exportMemoryMd },
-      { name: 'debt.md', fn: exportDebtMd },
-    ];
-
-    for (const exp of exports) {
-      try {
-        const content = exp.fn(store);
-        const filePath = join(exportsDir, exp.name);
-        writeFileSync(filePath, content, 'utf-8');
-        result.filesWritten.push(exp.name);
-      } catch (e) {
-        result.errors.push(`${exp.name}: ${e}`);
-        result.success = false;
-      }
+    const store = new MemoryStore(dbPath, { readOnly: true });
+    try {
+      const exportsDir = join(projectRoot, BRAIN_DIR, 'exports');
+      const guarded = writeGuardedExports(store, exportsDir, renderOptions);
+      result.filesWritten.push(...guarded.written);
+      result.errors.push(...guarded.warnings);
+      result.success = guarded.skipped.length === 0;
+    } finally {
+      store.close();
     }
-
-    store.close();
   } catch (e) {
     result.success = false;
     result.errors.push(`memory export failed: ${e}`);
@@ -459,6 +448,8 @@ export interface PostFinalizeHookOptions {
   onRuleRegen?: (projectRoot: string) => void | Promise<void>;
   /** Skip memory export step */
   skipMemoryExport?: boolean;
+  /** Optional caller-owned labels for the guarded memory export render. */
+  memoryExportRenderOptions?: import('./memory-export.js').MemoryExportRenderOptions;
   /**
    * Skip identity regeneration step.
    *
@@ -541,7 +532,7 @@ export async function runPostFinalizeHooks(opts: PostFinalizeHookOptions): Promi
   // Step 1: Memory export → exports/* regenerate
   if (!opts.skipMemoryExport) {
     try {
-      result.memoryExport = await runMemoryExport(opts.projectRoot);
+      result.memoryExport = await runMemoryExport(opts.projectRoot, opts.memoryExportRenderOptions);
       debugLog('postFinalizeHooks:memoryExport',
         `${result.memoryExport.filesWritten.length} files written, ${result.memoryExport.errors.length} errors`);
     } catch (e) {

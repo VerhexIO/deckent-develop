@@ -12,7 +12,7 @@ import type {
   BrainContext, SprintSizeRecommendation, PlannerResult, ModelType,
 } from '../core/types.js';
 import { ALL_PROVIDER_NAMES } from '../core/types.js';
-import { BRAIN_PLAN_TIMEOUT_MS, BRAIN_PLAN_MAX_CONTEXT_LINES } from '../core/constants.js';
+import { BRAIN_PLAN_TIMEOUT_MS } from '../core/constants.js';
 import type {
   ProviderAdapter,
   ProviderPlannerCommand,
@@ -279,52 +279,10 @@ export function buildPriorityContextBlock(
   // Total lines without any truncation
   const totalLines = sections.reduce((sum, s) => sum + (s.text ? s.text.split('\n').length + 1 : 0), 0);
 
-  if (totalLines <= maxLines) {
-    // No truncation needed — join all non-empty sections in order
-    return sections.filter(s => s.text).map(s => s.text).join('\n\n');
+  if (!Number.isSafeInteger(maxLines) || maxLines <= 0 || totalLines > maxLines) {
+    throw new RangeError('BRAIN_PLAN_CONTEXT_LIMIT_EXCEEDED');
   }
-
-  // Need to truncate: allocate lines proportionally, protecting higher priority sections
-  // Sort by priority (ascending = higher importance first)
-  const sorted = sections.map((s, i) => ({ ...s, origIndex: i })).sort((a, b) => a.priority - b.priority);
-
-  const included = new Set<number>();
-  let linesUsed = 0;
-
-  for (const section of sorted) {
-    if (!section.text) continue;
-    const sectionLines = section.text.split('\n').length + 1; // +1 for separator
-    if (linesUsed + sectionLines <= maxLines) {
-      included.add(section.origIndex);
-      linesUsed += sectionLines;
-    } else if (linesUsed < maxLines) {
-      // Partially include this section
-      included.add(section.origIndex);
-      break;
-    } else {
-      break; // no more room
-    }
-  }
-
-  // Reconstruct in original order, truncating partial sections
-  const resultParts: string[] = [];
-  let remainingLines = maxLines;
-
-  for (let i = 0; i < sections.length; i++) {
-    const section = sections[i]!;
-    if (!section.text || !included.has(i)) continue;
-    const sectionLineArr = section.text.split('\n');
-    if (sectionLineArr.length <= remainingLines) {
-      resultParts.push(section.text);
-      remainingLines -= sectionLineArr.length + 1;
-    } else {
-      // Partial inclusion
-      resultParts.push(sectionLineArr.slice(0, remainingLines).join('\n'));
-      break;
-    }
-  }
-
-  return resultParts.join('\n\n');
+  return sections.filter(s => s.text).map(s => s.text).join('\n\n');
 }
 
 // ─── buildPlanPrompt ──────────────────────────────────────────────
@@ -443,10 +401,14 @@ export function buildPlanPrompt(
     { text: fileTreeText, priority: 8 },
   ];
 
-  const contextBlock = buildPriorityContextBlock(
-    [{ text: `Project: ${projectName}`, priority: 0 }, ...prioritySections],
-    BRAIN_PLAN_MAX_CONTEXT_LINES,
-  );
+  // Directives are plan authority; memory has already been selected as bounded
+  // whole units by the canonical read service. A second line cap here silently
+  // erased both, so production composition preserves every admitted section.
+  // Provider capacity/admission remains the one input-budget authority.
+  const contextBlock = [{ text: `Project: ${projectName}`, priority: 0 }, ...prioritySections]
+    .filter(section => section.text)
+    .map(section => section.text)
+    .join('\n\n');
 
   // Inject worst combinations from OutcomeTracker.getWorstCombinations() when available
   // so the AI planner avoids historically poor agent+skill combos

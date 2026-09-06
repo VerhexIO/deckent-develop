@@ -71,6 +71,23 @@ const TERMINAL_NATIVE_PROVIDER_HOST_PROOF_ASSETS = Object.freeze([
   }),
 ]);
 
+const MEMORY_COMPACT_READ_EXPORT_HOST_PROOF_ADAPTER_ID =
+  'deckent-memory-compact-read-export-v1';
+const MEMORY_COMPACT_READ_EXPORT_HOST_PROOF_GROUP_ID =
+  'deckent:memory-compact-read-export';
+const MEMORY_COMPACT_READ_EXPORT_HOST_PROOF_SCHEMA_ID =
+  'deckent.host-proof.memory-compact-read-export.v1';
+const MEMORY_COMPACT_READ_EXPORT_HOST_PROOF_ASSETS = Object.freeze([
+  Object.freeze({
+    path: CLOSURE_OS_HOST_PROOF_HARNESS_PATH,
+    role: 'trusted-harness' as const,
+  }),
+  Object.freeze({
+    path: 'scripts/memory-compact-host-proof-observer.mjs',
+    role: 'trusted-harness' as const,
+  }),
+]);
+
 export interface ProductionWiringHostProofIdentity {
   readonly producer: { readonly producerId: string };
   readonly canonicalConsumer: {
@@ -117,6 +134,42 @@ export const TERMINAL_NATIVE_PROVIDER_PROOF_IDENTITY: ProductionWiringHostProofI
     proofTargets: Object.freeze([
       Object.freeze({
         proofTargetId: 'deckent.terminal.native-provider-resolution-execution',
+        kind: 'consumer-execution' as const,
+      }),
+    ]),
+  });
+
+/** Prompt-safe identity for the bounded, source-preserving memory read/export topology. */
+export const MEMORY_COMPACT_READ_EXPORT_PROOF_IDENTITY: ProductionWiringHostProofIdentity =
+  Object.freeze({
+    producer: Object.freeze({
+      producerId: 'deckent.memory-store.entry-read-model',
+    }),
+    canonicalConsumer: Object.freeze({
+      consumerId: 'deckent.memory-export.compact-renderers',
+      relationship: 'invokes-producer' as const,
+    }),
+    affectedIngresses: Object.freeze([
+      Object.freeze({
+        ingressId: 'deckent.memory-export.write-guarded-exports',
+        kind: 'ingress' as const,
+      }),
+    ]),
+    enablementAuthority: Object.freeze({
+      authorityId: 'deckent.memory-export.source-preserving-contract',
+      mechanism: 'unconditional' as const,
+    }),
+    proofTargets: Object.freeze([
+      Object.freeze({
+        proofTargetId: 'deckent.memory-export.source-preservation',
+        kind: 'consumer-execution' as const,
+      }),
+      Object.freeze({
+        proofTargetId: 'deckent.memory-export.legacy-epoch-recency-grouping',
+        kind: 'consumer-execution' as const,
+      }),
+      Object.freeze({
+        proofTargetId: 'deckent.memory-export.meaning-unit-integrity',
         kind: 'consumer-execution' as const,
       }),
     ]),
@@ -606,6 +659,21 @@ const REGISTERED_HOST_PROOF_PROFILES: readonly RegisteredHostProofProfile[] = Ob
     assets: TERMINAL_NATIVE_PROVIDER_HOST_PROOF_ASSETS,
     targetKeys: Object.freeze(identityTargetKeys(TERMINAL_NATIVE_PROVIDER_PROOF_IDENTITY)),
     proposalIdentity: TERMINAL_NATIVE_PROVIDER_PROOF_IDENTITY,
+    platformPolicy: Object.freeze({
+      linux: 'supported' as const,
+      'wsl2-linux': 'supported' as const,
+      darwin: 'capability-unavailable' as const,
+      win32: 'capability-unavailable' as const,
+    }),
+  }),
+  Object.freeze({
+    adapterId: MEMORY_COMPACT_READ_EXPORT_HOST_PROOF_ADAPTER_ID,
+    observationGroupId: MEMORY_COMPACT_READ_EXPORT_HOST_PROOF_GROUP_ID,
+    harnessPath: CLOSURE_OS_HOST_PROOF_HARNESS_PATH,
+    schemaId: MEMORY_COMPACT_READ_EXPORT_HOST_PROOF_SCHEMA_ID,
+    assets: MEMORY_COMPACT_READ_EXPORT_HOST_PROOF_ASSETS,
+    targetKeys: Object.freeze(identityTargetKeys(MEMORY_COMPACT_READ_EXPORT_PROOF_IDENTITY)),
+    proposalIdentity: MEMORY_COMPACT_READ_EXPORT_PROOF_IDENTITY,
     platformPolicy: Object.freeze({
       linux: 'supported' as const,
       'wsl2-linux': 'supported' as const,

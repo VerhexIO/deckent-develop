@@ -15,11 +15,13 @@ import {
 } from '../../core/sprint-archive.js';
 import { DeckentError } from '../../core/errors.js';
 import type { SprintTerminalReceiptV1 } from '../../core/sprint-terminal-publication.js';
+import { loadConfig } from '../../core/config.js';
 import { getLangFromConfig } from '../helpers/config-reader.js';
-import { getMessage } from '../helpers/messages.js';
+import { getLanguage, getMessage } from '../helpers/messages.js';
 import { memoryCatalogMessage } from '../helpers/message-catalog/cli-memory-catalog.js';
 import { print, printError } from '../helpers/output.js';
 import { resolveProjectRoot } from '../helpers/process.js';
+import { buildMemoryExportLabels } from '../../core/memory-export-labels.js';
 
 interface ArchiveSelectionOptions {
   readonly sprint?: string;
@@ -393,14 +395,16 @@ export function registerArchive(program: Command): void {
     .requiredOption('--expected-hot-digest <sha256>', getMessage('archive.option.expected_hot_digest', getLangFromConfig(resolveProjectRoot())))
     .requiredOption('--reason <text>', getMessage('archive.option.reason', getLangFromConfig(resolveProjectRoot())))
     .option('--json', getMessage('archive.option.json', getLangFromConfig(resolveProjectRoot())))
-    .action((options: ArchiveTerminalOptions) => {
-      const root = resolveProjectRoot(); const lang = getLangFromConfig(root);
+    .action(async (options: ArchiveTerminalOptions) => {
+      const root = resolveProjectRoot(); let lang = getLangFromConfig(root);
       let coreInvocationAttempted = false;
       let coreResult: unknown = null;
       let verificationResult: unknown = null;
       let sprintId: string | undefined;
       let hotJournalPath: string | undefined;
       try {
+        const config = await loadConfig(root);
+        lang = getLanguage(config.language);
         sprintId = exactTerminalSprint(options); const reason = options.reason?.trim() ?? '';
         const sequence = Number(options.finalSequence);
         if (!reason) {
@@ -436,6 +440,16 @@ export function registerArchive(program: Command): void {
           expectedHotJournalSha256: options.expectedHotDigest ?? '',
           operatorReason: reason,
           adoptBrain: true,
+        }, {
+          labels: buildMemoryExportLabels(getMessage, lang === 'tr' ? 'tr' : 'en'),
+          ...(config.memory_export?.max_inline_lines !== undefined
+            ? { maxInlineLines: config.memory_export.max_inline_lines } : {}),
+          ...(config.memory_export?.max_inline_bytes !== undefined
+            ? { maxInlineBytes: config.memory_export.max_inline_bytes } : {}),
+          ...(config.memory_export?.summary_inline_lines !== undefined
+            ? { summaryInlineLines: config.memory_export.summary_inline_lines } : {}),
+          ...(config.memory_export?.summary_inline_bytes !== undefined
+            ? { summaryInlineBytes: config.memory_export.summary_inline_bytes } : {}),
         });
         coreResult = result;
         if (!result.terminalComplete || !result.receipt || result.applicationReceipt?.state !== 'applied') {

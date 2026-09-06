@@ -206,6 +206,8 @@ export interface MemoryQueryParams {
   source?: EntrySource[];
   /** Filter by status(es). */
   status?: string[];
+  /** Filter by priority values. */
+  priority?: string[];
   /** ADR-G-019 class filter. Omitted means all classes. */
   adr_class?: Array<'G' | 'D' | 'UG' | 'UP'>;
   /** ADR-G-019 scope filter. Omitted means all scopes. */

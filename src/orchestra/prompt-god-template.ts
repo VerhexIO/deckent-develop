@@ -27,6 +27,7 @@ import {
   type ProductionWiringEvidence,
 } from '../core/production-wiring-contract.js';
 import type { MemoryEntryV2 } from '../core/memory-types.js';
+import type { MemoryReadEntryV1 } from '../core/memory-read-contract.js';
 import { selectRelevantAdrs, buildAdrPromptSection } from './adr-selector.js';
 import { personaCoreBody, selectGuidanceSlice } from '../core/persona-guidance.js';
 import type { ModelTier } from '../core/model-equivalence.js';
@@ -105,6 +106,8 @@ export interface SegmentedPrompt {
  * Callers construct this from their available data.
  */
 export interface SprintContext {
+  /** Explicit authority root for prompt-side observations; absent means pure compilation. */
+  projectRoot?: string;
   /** Host-bound identity for the one-write worker activity projection. */
   heartbeatIdentity?: {
     readonly attemptId: string;
@@ -126,6 +129,18 @@ export interface SprintContext {
   projectContext?: string;
   /** All accepted ADR entries from memory store */
   allAdrs?: MemoryEntryV2[];
+  /** Scoped selections with their read-service authority classification. */
+  memoryAdrs?: readonly MemoryReadEntryV1[];
+  /** Whole-unit, bounded memory context selected by the host read service. */
+  memoryContext?: string;
+  /** Digest binding the exact bounded memory selection rendered above. */
+  memorySelectionRevisionDigest?: string;
+  /** Caller-resolved presentation labels for canonical scoped memory. */
+  memoryLabels?: {
+    readonly contextHeading: string;
+    readonly revision: string;
+    readonly unavailable: string;
+  };
   /** Worker effort level */
   effort?: 'max' | 'high' | 'medium' | 'low';
   /** Registry-resolved model tier used only to add tier-appropriate guidance. */
@@ -726,6 +741,9 @@ export function buildTaskPromptSegmented(task: Task, ctx: SprintContext): Segmen
 
   // ── 2b. Project Context Block (deterministic, always-on data — not a skill) ─
   const projectContextBlock = buildProjectContextBlock(ctx.projectContext);
+  const memoryContextBlock = ctx.memoryContext?.trim()
+    ? `=== ${ctx.memoryLabels?.contextHeading ?? 'Relevant Project Memory'} ===\n${ctx.memoryContext}`
+    : '';
 
   // ── 3. ADR Block (topN=3, relevance-scored) ─────────────────────────
   // Sprint 182 PQ-5 (F7): threshold-based filtering. ADRs below
@@ -736,6 +754,8 @@ export function buildTaskPromptSegmented(task: Task, ctx: SprintContext): Segmen
     ctx.allAdrs,
     adrIds,
     ctx.adrMinRelevance ?? DEFAULT_ADR_MIN_RELEVANCE,
+    ctx.memoryAdrs,
+    ctx.projectRoot,
   );
 
   // ── 4. Scope Rules (sanitized) ──────────────────────────────────────
@@ -796,6 +816,7 @@ export function buildTaskPromptSegmented(task: Task, ctx: SprintContext): Segmen
     agentBlock,
     skillBlock,
     projectContextBlock,
+    memoryContextBlock,
     adrBlock,
     scopeBlock,
     depsBlock,
@@ -1037,7 +1058,31 @@ function buildAdrBlock(
   allAdrs: MemoryEntryV2[] | undefined,
   outIds: string[],
   minScore: number,
+  canonicalScopedSelection?: readonly MemoryReadEntryV1[],
+  auditProjectRoot?: string,
 ): string {
+  if (canonicalScopedSelection !== undefined) {
+    if (canonicalScopedSelection.length === 0) return '';
+    const canonicalEntries = canonicalScopedSelection.map(selection => selection.entry);
+    const content = canonicalScopedSelection.map(selection => {
+      const entry = selection.entry;
+      outIds.push(entry.id);
+      if (selection.reasons.includes('REQUIRED')) {
+        return `## ${entry.id}: ${entry.title}\n\n${entry.content}`;
+      }
+      return buildAdrPromptSection([{
+        adrId: entry.id,
+        title: entry.title,
+        score: selection.relevance,
+        matchReasons: [],
+      }], 'full', canonicalEntries, 'operative', false)
+        .replace('### Contract (binding)', '### Background contract')
+        .replace('[full text:', '[background — full text:');
+    }).filter(Boolean).join('\n\n');
+    if (!content) return '';
+    return `=== Mandatory Architecture Rules (ADR) ===\nA full-body ADR is BINDING for THIS task: violating it requires a NO_GO result + an ADR amendment proposal. A binding ADR must never be truncated; if its full body is unavailable, fail closed. An entry marked "[background …]" is BACKGROUND: use it as context, not as an enforcement gate. These are the only two ADR render and enforcement states.\n\n${content}\n`;
+  }
+
   if (!allAdrs || allAdrs.length === 0) return '';
 
   const ranked = selectRelevantAdrs(task, allAdrs, 3);
@@ -1052,7 +1097,7 @@ function buildAdrBlock(
   // PCOMP-W3 (injection audit): this is the LIVE injection call-site — record
   // the decision (id + score + tier + reasons) so a false positive is
   // reproducible from data. Fail-soft inside logInjectionAudit.
-  logInjectionAudit(process.cwd(), task, filtered);
+  if (auditProjectRoot !== undefined) logInjectionAudit(auditProjectRoot, task, filtered);
 
   // PROMPT-W1 (a): scope-gate ADR bodies for code-development tasks so that
   // ADRs not intersecting the task scope render as a condensed head+summary+
@@ -2095,6 +2140,7 @@ interface RenderInput {
   skillBlock: string;
   /** Deterministic project-context data block — rendered right after skills. */
   projectContextBlock: string;
+  memoryContextBlock: string;
   adrBlock: string;
   scopeBlock: string;
   depsBlock: string;
@@ -2469,7 +2515,7 @@ export function resolveTargetedTestPaths(
 }
 
 function renderSegments(input: RenderInput): PromptSegment[] {
-  const { compilePlan, coreExternalized, agentBlock, skillBlock, projectContextBlock, adrBlock, scopeBlock, depsBlock, sharedBlock, handoffBlock, commsInstructionBlock, executionAuthorityBlock, runPolicyBlock, productionWiringBlock, workerGuideContract, task, effort, modelTier, idempotencyKey, emitIdempotency, preExistingFailures, toolInventory, toolAllowlist, taskProfiles } = input;
+  const { compilePlan, coreExternalized, agentBlock, skillBlock, projectContextBlock, memoryContextBlock, adrBlock, scopeBlock, depsBlock, sharedBlock, handoffBlock, commsInstructionBlock, executionAuthorityBlock, runPolicyBlock, productionWiringBlock, workerGuideContract, task, effort, modelTier, idempotencyKey, emitIdempotency, preExistingFailures, toolInventory, toolAllowlist, taskProfiles } = input;
 
   // Tier-tagged assembly (Sprint 330 330-019). Push order below IS the default
   // production order — `buildTaskPromptSegmented` joins these contents with
@@ -2517,6 +2563,7 @@ function renderSegments(input: RenderInput): PromptSegment[] {
   if (skillBlock) push('T1', 'skills', skillBlock);
   if (projectContextBlock) push('T1', 'project-context', projectContextBlock);
   if (agentBlock) push('T1', 'persona', agentBlock);
+  if (memoryContextBlock) push('T2', 'memory', memoryContextBlock);
   if (adrBlock) push('T2', 'adr', adrBlock);
   // Run-wide policy (486-017): same digest-bound content for every task in this
   // run (original or FIX), so it shares the T1 (project/run-stable) tier with ADRs.

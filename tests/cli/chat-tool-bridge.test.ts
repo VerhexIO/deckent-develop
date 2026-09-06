@@ -33,12 +33,26 @@ describe('createCliToolDispatcher — chat-tool-bridge.ts', () => {
     expect(spawnFn).toHaveBeenCalledWith(['recall', 'docker']);
   });
 
-  it('deckent_memory_query without query → mcp-error, no spawn', async () => {
+  it('deckent_memory_query without query or detail_ref → mcp-error, no spawn', async () => {
     const spawnFn = vi.fn() as unknown as CliToolSpawnFn;
     const d = createCliToolDispatcher({ spawnFn });
     const out = await d.dispatch('deckent_memory_query', {});
-    expect(out).toBe('[mcp-error] recall: query required');
+    expect(out).toBe('[mcp-error] recall: query or detail_ref required');
     expect(spawnFn).not.toHaveBeenCalled();
+  });
+
+  it('deckent_memory_query forwards opaque continuation and detail references without inventing a query', async () => {
+    const spawnFn = vi.fn().mockResolvedValue('complete entry') as unknown as CliToolSpawnFn;
+    const d = createCliToolDispatcher({ spawnFn });
+    await d.dispatch('deckent_memory_query', {
+      detail_ref: 'memory-read-detail-v1.reference',
+      cursor: 'memory-read-cursor-v1.reference',
+    });
+    expect(spawnFn).toHaveBeenCalledWith([
+      'recall',
+      '--cursor', 'memory-read-cursor-v1.reference',
+      '--detail', 'memory-read-detail-v1.reference',
+    ]);
   });
 
   it('deckent_plan → spawns `plan` (confirm-gated one layer up in run.tsx)', async () => {

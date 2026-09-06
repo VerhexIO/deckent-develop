@@ -28,8 +28,17 @@ const mockMcpMemStore = {
   restore: vi.fn(),
   getSchemaVersion: vi.fn().mockReturnValue(1),
 };
+const memoryReadMocks = vi.hoisted(() => ({
+  readMemoryView: vi.fn(),
+  renderMemoryReadView: vi.fn(),
+}));
 vi.mock('../../src/core/memory-store.js', () => ({
   MemoryStore: vi.fn().mockImplementation(() => mockMcpMemStore),
+}));
+
+vi.mock('../../src/core/memory-read-service.js', () => ({
+  readMemoryView: memoryReadMocks.readMemoryView,
+  renderMemoryReadView: memoryReadMocks.renderMemoryReadView,
 }));
 
 vi.mock('node:child_process', () => ({
@@ -39,7 +48,8 @@ vi.mock('node:child_process', () => ({
 vi.mock('../../src/core/config.js', () => ({
   resolveBrainModel: () => 'sonnet',  // sprint-431 (431-003) compiler-cagri-zinciri okur
   resolveBrainPlanningMode: (c: any) => c?.brain_planning ?? c?.activeModeConfig?.brain_planning ?? 'auto',  // sprint-429 (429-006)
-  loadConfig: vi.fn(),
+  loadConfig: vi.fn().mockResolvedValue({ language: 'en' }),
+  resolveMemoryReadConfig: vi.fn().mockReturnValue({ language: 'en', memory_read: { maxEntries: 20, maxCandidates: 128, maxBytes: 32768, maxLines: 200 } }),
 }));
 
 vi.mock('../../src/core/utils.js', async (importOriginal) => {
@@ -107,6 +117,8 @@ function createMockServer(): MockServer {
 describe('MCP Resources', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    memoryReadMocks.readMemoryView.mockReturnValue({ state: 'ABSENT' });
+    memoryReadMocks.renderMemoryReadView.mockReturnValue('');
   });
 
   describe('deckent://dashboard', () => {
@@ -179,19 +191,22 @@ describe('MCP Resources', () => {
       registerMemoryResource(mock as unknown as import('@modelcontextprotocol/sdk/server/mcp.js').McpServer);
 
       vi.mocked(existsSync).mockReturnValue(true);
-      // MemoryStore returns memory entries
-      mockMcpMemStore.getByType.mockImplementation((type: string) => {
-        if (type === 'memory') return [{ id: 'm1', type: 'memory', title: 'Learned Patterns', content: '- Pattern A', status: 'active', metadata: '{}', created_at: '', updated_at: '', deleted_at: null }];
-        return [];
+      memoryReadMocks.readMemoryView.mockReturnValue({
+        state: 'AVAILABLE',
+        scope: { kind: 'local-project', projectId: 'project-test' },
+        selectionRevisionDigest: 'sha256:selection',
+        queryDigest: 'sha256:query',
+        entries: [], deferred: [], nextCursor: null,
       });
+      memoryReadMocks.renderMemoryReadView.mockReturnValue('- Pattern A');
 
       const handler = mock.resources.get('memory')!.handler;
       const result = await handler(new URL('deckent://memory'));
 
-      expect(result.contents[0]!.text).toContain('Pattern A');
+      expect(JSON.parse(result.contents[0]!.text).rendered).toContain('Pattern A');
     });
 
-    it('returns empty string when no MEMORY.md', async () => {
+    it('returns a typed unavailable hold when memory.db is absent', async () => {
       const { registerMemoryResource } = await import('../../src/mcp/resources/memory.js');
       const mock = createMockServer();
       registerMemoryResource(mock as unknown as import('@modelcontextprotocol/sdk/server/mcp.js').McpServer);
@@ -201,7 +216,7 @@ describe('MCP Resources', () => {
       const handler = mock.resources.get('memory')!.handler;
       const result = await handler(new URL('deckent://memory'));
 
-      expect(result.contents[0]!.text).toBe('');
+      expect(JSON.parse(result.contents[0]!.text).metadata.reasonCode).toBe('QUERY_FAILED');
     });
   });
 
@@ -340,6 +355,8 @@ describe('MCP Resources — Comprehensive Suite', () => {
         // Reset MemoryStore mock to default empty returns after clearAllMocks
         mockMemStore.getByType.mockReturnValue([]);
         mockMemStore.getById.mockReturnValue(null);
+        memoryReadMocks.readMemoryView.mockReturnValue({ state: 'ABSENT' });
+        memoryReadMocks.renderMemoryReadView.mockReturnValue('');
     });
     // ── config resource ────────────────────────────────────────────────
     describe('deckent://config', () => {
@@ -598,22 +615,27 @@ describe('MCP Resources — Comprehensive Suite', () => {
             const mock = createMockServer();
             registerMemoryResource(mock as unknown as import("@modelcontextprotocol/sdk/server/mcp.js").McpServer);
             vi.mocked(existsSync).mockReturnValue(true);
-            mockMemStore.getByType.mockReturnValue([
-                { id: 'mem-1', type: 'memory', title: 'Learned Patterns', content: '- spawnSync is safe from injection\n- readJsonSafe returns null on error', source: 'brain', summary: null, status: 'active', priority: 'normal', sprint_id: null, sprint_num: 0, tag_text: '', metadata: '{}', created_at: '', updated_at: '', deleted_at: null },
-            ]);
+            memoryReadMocks.readMemoryView.mockReturnValue({
+                state: 'AVAILABLE',
+                scope: { kind: 'local-project', projectId: 'project-test' },
+                selectionRevisionDigest: 'sha256:selection',
+                queryDigest: 'sha256:query',
+                entries: [], deferred: [], nextCursor: null,
+            });
+            memoryReadMocks.renderMemoryReadView.mockReturnValue('- spawnSync is safe from injection');
             const handler = mock.resources.get('memory')!.handler;
             const result = await handler(new URL('deckent://memory'));
-            expect(result.contents[0]!.text).toContain('spawnSync');
-            expect(result.contents[0]!.mimeType).toBe('text/markdown');
+            expect(JSON.parse(result.contents[0]!.text).rendered).toContain('spawnSync');
+            expect(result.contents[0]!.mimeType).toBe('application/json');
         });
-        it('returns empty string when MEMORY.md does not exist', async () => {
+        it('returns a typed unavailable hold when memory.db does not exist', async () => {
             const { registerMemoryResource } = await import("../../src/mcp/resources/memory.js");
             const mock = createMockServer();
             registerMemoryResource(mock as unknown as import("@modelcontextprotocol/sdk/server/mcp.js").McpServer);
             vi.mocked(existsSync).mockReturnValue(false);
             const handler = mock.resources.get('memory')!.handler;
             const result = await handler(new URL('deckent://memory'));
-            expect(result.contents[0]!.text).toBe('');
+            expect(JSON.parse(result.contents[0]!.text).metadata.reasonCode).toBe('QUERY_FAILED');
         });
         it('returns correct uri in content', async () => {
             const { registerMemoryResource } = await import("../../src/mcp/resources/memory.js");

@@ -94,6 +94,35 @@ vi.mock('../../src/core/utils.js', async (importOriginal) => {
   };
 });
 
+vi.mock('../../src/core/config.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../src/core/config.js')>();
+  return {
+    ...actual,
+    resolveMemoryReadConfig: vi.fn(() => ({
+      memory_read: { maxEntries: 20, maxCandidates: 128, maxBytes: 32_768, maxLines: 200 },
+      language: 'en',
+    })),
+  };
+});
+
+vi.mock('../../src/core/memory-read-service.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../src/core/memory-read-service.js')>()),
+  readMemoryView: vi.fn(() => ({
+    state: 'ABSENT',
+    consumer: 'planner',
+    scope: { kind: 'local-project', projectId: 'fixture-project' },
+    selectionRevisionDigest: `sha256:${'1'.repeat(64)}`,
+    queryDigest: `sha256:${'2'.repeat(64)}`,
+    scopeDigest: `sha256:${'3'.repeat(64)}`,
+    limitsDigest: `sha256:${'4'.repeat(64)}`,
+    candidates: [], entries: [], deferred: [], nextCursor: null,
+  })),
+  renderMemoryReadView: vi.fn(() => ''),
+  resolveMemoryRequiredIds: vi.fn((_store, input) => ({
+    state: 'AVAILABLE', consumer: input.consumer, scope: input.scope, exactIds: input.references,
+  })),
+}));
+
 // This legacy unit suite fully mocks node:fs and supplies raw task results.
 // Settlement behavior has dedicated tmpdir-backed suites; model this suite's
 // authority mode explicitly so the fs mock cannot fabricate a Docker claim.
@@ -273,6 +302,11 @@ import { getNextSprintId } from '../../src/core/utils.js';
 import { updateTaskStatus, releaseAllLocks } from '../../src/agents/worker.js';
 import { callBrainPlanner } from '../../src/orchestra/planner.js';
 import { MemoryStore } from '../../src/core/memory-store.js';
+import {
+  readMemoryView,
+  renderMemoryReadView,
+  resolveMemoryRequiredIds,
+} from '../../src/core/memory-read-service.js';
 
 const mockedCallBrainPlanner = vi.mocked(callBrainPlanner);
 const mockedReadFileSync = vi.mocked(readFileSync);
@@ -301,6 +335,9 @@ const mockedFspWriteFile = vi.mocked(fspWriteFile);
 const mockedAppendFileSync = vi.mocked(appendFileSync);
 const mockedRenameSync = vi.mocked(renameSync);
 const mockedMemoryStore = vi.mocked(MemoryStore);
+const mockedReadMemoryView = vi.mocked(readMemoryView);
+const mockedRenderMemoryReadView = vi.mocked(renderMemoryReadView);
+const mockedResolveMemoryRequiredIds = vi.mocked(resolveMemoryRequiredIds);
 
 // ─── Real-filesystem passthrough (FAZ4A-S5, sprint-controller.test.ts pattern) ──
 // runSprint's PLAN phase (a) opens the provider-execution-observation SQLite
@@ -589,6 +626,18 @@ beforeEach(() => {
   mockedFspStat.mockRejectedValue(new Error('ENOENT'));
   mockedFspWriteFile.mockResolvedValue(undefined);
   mockedMemoryStore.mockImplementation(() => mockMemoryStore as never);
+  mockedResolveMemoryRequiredIds.mockImplementation((_store, input) => ({
+    state: 'AVAILABLE', consumer: input.consumer, scope: input.scope, exactIds: input.references,
+  }));
+  mockedReadMemoryView.mockImplementation((_store, input) => ({
+    state: 'ABSENT', consumer: input.consumer, scope: input.scope,
+    selectionRevisionDigest: `sha256:${'1'.repeat(64)}`,
+    queryDigest: `sha256:${'2'.repeat(64)}`,
+    scopeDigest: `sha256:${'3'.repeat(64)}`,
+    limitsDigest: `sha256:${'4'.repeat(64)}`,
+    candidates: [] as const, entries: [] as const, deferred: [] as const, nextCursor: null,
+  }));
+  mockedRenderMemoryReadView.mockReturnValue('');
   // FAZ4A-S5: useRealFileSystem() passthroughs persist across vi.clearAllMocks
   // (which clears call history only, not implementations) — restore every
   // remaining fs mock to its historical no-op default so the pure-function
@@ -635,6 +684,30 @@ describe('BrainError', () => {
 });
 
 describe('readContext', () => {
+  it('HOLDs an explicit ADR when the memory database is absent', () => {
+    mockedReadFileSync.mockImplementation(path => String(path).includes('DIRECTIVES')
+      ? 'Implement ADR-G-035 exactly.'
+      : '');
+    mockedExistsSync.mockReturnValue(false);
+
+    expect(() => readContext(ROOT)).toThrow(/MEMORY_READ_CONTEXT_HOLD:REQUIRED_ENTRY_MISSING/u);
+  });
+
+  it('bounds full-corpus FTS discovery while preserving explicit ADR authority', () => {
+    const directives = `${Array.from({ length: 2_000 }, (_, index) => `Section ${index} change AND memory`).join('\n')}\nADR-G-035`;
+    mockedReadFileSync.mockImplementation(path => String(path).includes('DIRECTIVES') ? directives : '');
+    mockedExistsSync.mockImplementation(path => String(path).endsWith('/.brain/memory.db'));
+
+    readContext(ROOT);
+
+    const query = mockedReadMemoryView.mock.calls.at(-1)?.[1].query.text ?? '';
+    expect(query.split(/\s+/u)).toHaveLength(64);
+    expect(query).not.toMatch(/\b(?:AND|OR|NOT)\b/u);
+    expect(mockedResolveMemoryRequiredIds).toHaveBeenCalledWith(mockMemoryStore, expect.objectContaining({
+      consumer: 'planner', references: ['adr-g-035'],
+    }));
+  });
+
   it('reads all brain files', () => {
     mockedReadFileSync.mockImplementation((path: unknown) => {
       const p = String(path);
@@ -644,18 +717,46 @@ describe('readContext', () => {
     mockedSpawnSync.mockReturnValue({ ...spawnOk, stdout: '' } as never);
     // DB exists so readContext uses MemoryStore
     mockedExistsSync.mockReturnValue(true);
-    // Seed DB entries
-    mockDbEntries.clear();
-    mockDbEntries.set('mem-1', { id: 'mem-1', type: 'memory', title: 'Memory', content: 'Memory content', status: 'active', metadata: '{}', created_at: new Date().toISOString(), updated_at: new Date().toISOString(), deleted_at: null });
-    mockDbEntries.set('retro-1', { id: 'retro-1', type: 'retro', title: 'Retro', content: 'Retro content', status: 'active', metadata: '{}', created_at: new Date().toISOString(), updated_at: new Date().toISOString(), deleted_at: null });
-    mockDbEntries.set('adr-001', { id: 'adr-001', type: 'adr', title: 'Decisions', content: 'Decisions content', status: 'accepted', metadata: '{}', created_at: new Date().toISOString(), updated_at: new Date().toISOString(), deleted_at: null });
+    const selectedEntry = (id: string, type: string, content: string, status = 'active') => ({
+      entry: {
+        id, type, source: 'brain', title: id, content, summary: null, tag_text: '',
+        title_norm: id, content_norm: content, summary_norm: '', tag_norm: '', status,
+        priority: type === 'debt' ? 'critical' : 'normal', sprint_id: 'sprint-1', sprint_num: 1,
+        lang: 'en', decay_exempt: false, metadata: type === 'debt'
+          ? JSON.stringify({ originTaskId: 'task-1', sprintsOpen: 2 }) : '{}',
+        created_at: '2026-01-01T00:00:00.000Z', updated_at: '2026-01-01T00:00:00.000Z', deleted_at: null,
+      },
+      relevance: 1,
+      contentDigest: `sha256:${'a'.repeat(64)}`,
+      reasons: type === 'identity' || type === 'retro' ? ['PREFERRED_LATEST'] : ['QUERY_MATCH'],
+    });
+    mockedReadMemoryView.mockReturnValueOnce({
+      state: 'AVAILABLE', consumer: 'planner', scope: { kind: 'local-project', projectId: 'fixture-project' },
+      limits: { maxEntries: 20, maxCandidates: 128, maxBytes: 32_768, maxLines: 200 },
+      selectionRevisionDigest: `sha256:${'1'.repeat(64)}`, queryDigest: `sha256:${'2'.repeat(64)}`,
+      scopeDigest: `sha256:${'3'.repeat(64)}`, limitsDigest: `sha256:${'4'.repeat(64)}`,
+      candidates: [], deferred: [], nextCursor: null,
+      entries: [
+        selectedEntry('mem-1', 'memory', 'Memory content'),
+        selectedEntry('retro-1', 'retro', 'Retro content'),
+        selectedEntry('pattern-1', 'pattern', 'Pattern content'),
+        selectedEntry('adr-g-001', 'adr', 'Decision content', 'accepted'),
+        selectedEntry('project-identity', 'identity', 'Identity content'),
+        selectedEntry('debt-1', 'debt', 'Debt content'),
+      ],
+    } as never);
+    mockedRenderMemoryReadView.mockReturnValueOnce('Bounded memory content');
 
     const ctx = readContext(ROOT);
     expect(ctx.directives).toContain('Build A');
-    expect(ctx.memory).toContain('Memory');
-    expect(ctx.retro).toContain('Retro');
-    expect(ctx.decisions).toContain('Decisions');
-    mockDbEntries.clear();
+    expect(ctx.memory).toBe('Bounded memory content');
+    expect(ctx.retro).toBe('Retro content');
+    expect(ctx.patterns).toContain('pattern-1');
+    expect(ctx.decisions).toContain('Decision content');
+    expect(ctx.projectIdentity).toBe('Identity content');
+    expect(ctx.debt).toEqual([expect.objectContaining({ id: 'debt-1', priority: 'CRITICAL' })]);
+    expect(ctx.memorySelectionRevisionDigest).toMatch(/^sha256:/u);
+    expect(mockMemoryStore.getByType).not.toHaveBeenCalled();
   });
 
   it('returns empty string for missing files', () => {
@@ -709,14 +810,25 @@ describe('readContext', () => {
     mockedReadFileSync.mockImplementation(() => '');
     mockedSpawnSync.mockReturnValue(spawnOk);
     mockedExistsSync.mockReturnValue(true);
-    mockDbEntries.clear();
-    mockDbEntries.set('debt-1', {
-      id: 'debt-1', type: 'debt', title: 'some debt', content: 'debt desc',
-      source: 'brain', status: 'active', priority: 'normal',
-      sprint_id: 's-1', sprint_num: 1,
-      metadata: JSON.stringify({ originTaskId: 't-1', originSprintId: 's-1', sprintsOpen: 1 }),
-      tag_text: 'debt', created_at: '2026-03-16', updated_at: '2026-03-16', deleted_at: null,
-    });
+    mockedReadMemoryView.mockReturnValueOnce({
+      state: 'AVAILABLE', consumer: 'planner', scope: { kind: 'local-project', projectId: 'fixture-project' },
+      limits: { maxEntries: 20, maxCandidates: 128, maxBytes: 32_768, maxLines: 200 },
+      selectionRevisionDigest: `sha256:${'1'.repeat(64)}`, queryDigest: `sha256:${'2'.repeat(64)}`,
+      scopeDigest: `sha256:${'3'.repeat(64)}`, limitsDigest: `sha256:${'4'.repeat(64)}`,
+      candidates: [], deferred: [], nextCursor: null,
+      entries: [{
+        entry: {
+          id: 'debt-1', type: 'debt', title: 'some debt', content: 'debt desc',
+          source: 'brain', status: 'active', priority: 'normal',
+          sprint_id: 's-1', sprint_num: 1,
+          metadata: JSON.stringify({ originTaskId: 't-1', originSprintId: 's-1', sprintsOpen: 1 }),
+          tag_text: 'debt', title_norm: 'some debt', content_norm: 'debt desc', summary: null,
+          summary_norm: '', tag_norm: 'debt', lang: 'en', decay_exempt: false,
+          created_at: '2026-03-16', updated_at: '2026-03-16', deleted_at: null,
+        },
+        relevance: 1, contentDigest: `sha256:${'a'.repeat(64)}`, reasons: ['QUERY_MATCH'],
+      }],
+    } as never);
 
     const ctx = readContext(ROOT);
     expect(ctx.debt).toHaveLength(1);
@@ -901,6 +1013,25 @@ describe('planSprint', () => {
       existingTasks: [] as Task[], projectState: { gitStatus: '', fileTree: [] },
     };
   }
+
+  it('reselects bounded memory when directives change after context capture', async () => {
+    mockedExistsSync.mockImplementation(path => String(path).endsWith('/.brain/memory.db'));
+    const ctx = {
+      ...makeContext('New task intent'),
+      memorySelectionRevisionDigest: `sha256:${'a'.repeat(64)}`,
+      memoryReadInputDigest: `sha256:${'b'.repeat(64)}`,
+      memoryReadScope: { kind: 'local-project' as const, projectId: 'fixture-project' },
+      memoryReadLimits: config.memory_read,
+      memoryReadLanguage: config.language,
+    };
+
+    await planSprint(ROOT, config, ctx, recommendation, { mode: 'structured', dryRun: true });
+
+    expect(mockedReadMemoryView).toHaveBeenCalledWith(mockMemoryStore, expect.objectContaining({
+      consumer: 'planner',
+      query: { text: 'new task intent' },
+    }));
+  });
 
   it('auto-increments sprint number from sprints dir', async () => {
     mockedGetNextSprintId.mockReturnValue('sprint-003');

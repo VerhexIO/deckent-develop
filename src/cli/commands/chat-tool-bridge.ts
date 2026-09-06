@@ -510,8 +510,17 @@ export function createCliToolDispatcher(opts: CliToolDispatcherOptions = {}): Mc
       let cliArgs: string[];
       if (name === 'deckent_memory_query') {
         const query = typeof args['query'] === 'string' ? (args['query'] as string).trim() : '';
-        if (query.length === 0) return failure('[mcp-error] recall: query required', 'tool-error');
-        cliArgs = ['recall', query];
+        const cursor = typeof args['cursor'] === 'string' ? (args['cursor'] as string).trim() : '';
+        const detailRef = typeof args['detail_ref'] === 'string' ? (args['detail_ref'] as string).trim() : '';
+        if (query.length === 0 && detailRef.length === 0) {
+          return failure('[mcp-error] recall: query or detail_ref required', 'tool-error');
+        }
+        cliArgs = [
+          'recall',
+          ...(query.length > 0 ? [query] : []),
+          ...(cursor.length > 0 ? ['--cursor', cursor] : []),
+          ...(detailRef.length > 0 ? ['--detail', detailRef] : []),
+        ];
       } else {
         const built = cliArgsFor(name, args);
         if (!built) return failure(`[mcp-error] tool not allowed: ${name}`, 'tool-error');

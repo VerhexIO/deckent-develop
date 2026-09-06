@@ -962,14 +962,6 @@ async function handleRequest(
       return;
     }
 
-    if (url === '/api/memory') {
-      // B8: memory is DB-first; serve the generated exports/memory.md view.
-      const content = readTextFile(join(projectRoot, BRAIN_DIR, 'exports', 'memory.md'));
-      if (content === null) { sendError(res, 404, 'Memory export not found'); return; }
-      sendJson(res, { content });
-      return;
-    }
-
     if (url === '/api/debt') {
       // Task #4d: DEBT.md is DB-first; serve the generated exports/debt.md view.
       const content = readTextFile(join(projectRoot, BRAIN_DIR, 'exports', 'debt.md'));
@@ -1236,9 +1228,8 @@ async function handleRequest(
       if (registerEvolutionRoutes(url, res, projectRoot)) return;
     }
 
-    // Memory FTS5 search: /api/memory/search?q= (216-012)
-    // T4b: `req` MUST be threaded — without it the caller principal is never
-    // derived and tenant scoping is a no-op (every caller saw all tenants).
+    // Memory reader: legacy array search and bounded v1 view/detail routes.
+    // `req` is mandatory so tenant scope is derived from the verified caller.
     if (registerMemorySearch(url, res, projectRoot, req)) return;
     if (registerNervousRoutes(url, method, res, projectRoot)) return;
     if (registerAutonomousRoutes(url, method, res, projectRoot, req, {

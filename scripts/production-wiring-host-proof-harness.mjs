@@ -22,6 +22,9 @@ export const CLOSURE_OS_AUTHORITY_SCHEMA_ID = 'deckent.host-proof.closure-os-aut
 export const TERMINAL_NATIVE_PROVIDER_ADAPTER_ID = 'deckent-terminal-native-provider-resolution-v1';
 export const TERMINAL_NATIVE_PROVIDER_OBSERVATION_GROUP_ID = 'deckent:terminal-native-provider-resolution';
 export const TERMINAL_NATIVE_PROVIDER_SCHEMA_ID = 'deckent.host-proof.terminal-native-provider-resolution.v1';
+export const MEMORY_COMPACT_READ_EXPORT_ADAPTER_ID = 'deckent-memory-compact-read-export-v1';
+export const MEMORY_COMPACT_READ_EXPORT_OBSERVATION_GROUP_ID = 'deckent:memory-compact-read-export';
+export const MEMORY_COMPACT_READ_EXPORT_SCHEMA_ID = 'deckent.host-proof.memory-compact-read-export.v1';
 
 const REQUEST_KIND = 'deckent-production-wiring-host-proof-request-v1';
 const OUTCOME_KIND = 'deckent-production-wiring-host-proof-outcome';
@@ -101,6 +104,39 @@ const TERMINAL_NATIVE_PROVIDER_TARGET_KEYS = Object.freeze([
   'proof-target:deckent.terminal.native-provider-resolution-execution',
 ].sort());
 
+const MEMORY_COMPACT_READ_EXPORT_OBSERVER_PATH =
+  'scripts/memory-compact-host-proof-observer.mjs';
+const MEMORY_COMPACT_READ_EXPORT_REQUIRED_ASSETS = Object.freeze([
+  Object.freeze({
+    path: 'scripts/production-wiring-host-proof-harness.mjs',
+    role: 'trusted-harness',
+  }),
+  Object.freeze({
+    path: MEMORY_COMPACT_READ_EXPORT_OBSERVER_PATH,
+    role: 'trusted-harness',
+  }),
+]);
+const MEMORY_COMPACT_READ_EXPORT_TARGET_KEYS = Object.freeze([
+  'affected-ingress:deckent.memory-export.write-guarded-exports',
+  'canonical-consumer:deckent.memory-export.compact-renderers',
+  'enablement-authority:deckent.memory-export.source-preserving-contract',
+  'producer:deckent.memory-store.entry-read-model',
+  'proof-target:deckent.memory-export.legacy-epoch-recency-grouping',
+  'proof-target:deckent.memory-export.meaning-unit-integrity',
+  'proof-target:deckent.memory-export.source-preservation',
+].sort());
+const MEMORY_COMPACT_READ_EXPORT_OBSERVATION = canonicalJson({
+  checks: [
+    'deterministic-projection',
+    'legacy-epoch-recency-grouping',
+    'meaning-unit-integrity',
+    'source-preservation',
+  ],
+  kind: 'deckent-memory-compact-read-export-observation-v1',
+  outcome: 'observed',
+  version: 1,
+});
+
 const PROFILES = Object.freeze([
   Object.freeze({
     adapterId: CLOSURE_OS_AUTHORITY_ADAPTER_ID,
@@ -117,6 +153,14 @@ const PROFILES = Object.freeze([
     assets: TERMINAL_NATIVE_PROVIDER_REQUIRED_ASSETS,
     targetKeys: TERMINAL_NATIVE_PROVIDER_TARGET_KEYS,
     observer: 'terminal-native-provider',
+  }),
+  Object.freeze({
+    adapterId: MEMORY_COMPACT_READ_EXPORT_ADAPTER_ID,
+    schemaId: MEMORY_COMPACT_READ_EXPORT_SCHEMA_ID,
+    observationGroupId: MEMORY_COMPACT_READ_EXPORT_OBSERVATION_GROUP_ID,
+    assets: MEMORY_COMPACT_READ_EXPORT_REQUIRED_ASSETS,
+    targetKeys: MEMORY_COMPACT_READ_EXPORT_TARGET_KEYS,
+    observer: 'memory-compact-read-export',
   }),
 ]);
 
@@ -397,6 +441,18 @@ function observerInvocation(root, request) {
       // processSucceeded() is therefore the authoritative predicate; stdout is
       // diagnostic only and never a model-authored success token.
       accepts: result => result.stderr.byteLength === 0,
+    });
+  }
+  if (request.profile.observer === 'memory-compact-read-export') {
+    return Object.freeze({
+      executable: process.execPath,
+      args: [
+        '--import',
+        'tsx',
+        resolve(root, MEMORY_COMPACT_READ_EXPORT_OBSERVER_PATH),
+      ],
+      accepts: result => result.stderr.byteLength === 0
+        && Buffer.from(result.stdout).toString('utf8') === MEMORY_COMPACT_READ_EXPORT_OBSERVATION,
     });
   }
   return null;

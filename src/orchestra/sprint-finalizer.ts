@@ -27,6 +27,8 @@ import type {
 } from '../core/types.js';
 import { resolveBillingModeForAuth } from '../core/cost-calculator.js';
 import { getMessage } from '../cli/helpers/messages.js';
+import { buildMemoryExportLabels } from '../core/memory-export-labels.js';
+import type { MemoryExportRenderOptions } from '../core/memory-export.js';
 import {
   projectAttributedTaskWork,
   projectSprintWorkAttribution,
@@ -855,6 +857,17 @@ export interface FinalizeSprintOptions {
    * caller/public-result verdict at the sprint terminal boundary.
    */
   exactTerminalAuthorities?: ReadonlyMap<string, ExactAcceptedTaskTerminalAuthorityRead>;
+}
+
+function configuredMemoryExportRenderOptions(config?: ResolvedConfig): MemoryExportRenderOptions {
+  const limits = config?.memory_export;
+  return {
+    labels: buildMemoryExportLabels(getMessage, config?.language === 'tr' ? 'tr' : 'en'),
+    ...(limits?.max_inline_lines !== undefined ? { maxInlineLines: limits.max_inline_lines } : {}),
+    ...(limits?.max_inline_bytes !== undefined ? { maxInlineBytes: limits.max_inline_bytes } : {}),
+    ...(limits?.summary_inline_lines !== undefined ? { summaryInlineLines: limits.summary_inline_lines } : {}),
+    ...(limits?.summary_inline_bytes !== undefined ? { summaryInlineBytes: limits.summary_inline_bytes } : {}),
+  };
 }
 
 const TSC_SETTLEMENT_TIMEOUT_MS = 240_000;
@@ -2329,7 +2342,7 @@ function replayExistingTerminalSeal(input: {
     adoptBrain: seal.brainAdoptionRequired,
     terminalEventsProjectionSha256: expectedProjection,
     postSealPolicySha256: expectedPostSealPolicy,
-  });
+  }, configuredMemoryExportRenderOptions(input.config));
   if (!resumed.terminalComplete || !resumed.receipt || resumed.applicationReceipt?.state !== 'applied') {
     throw new FinalizerTerminalEvidenceError(
       `SPRINT_ARCHIVE_EXISTING_SEAL_RESUME_HOLD:${resumed.reasonCode ?? 'unknown'}`,
@@ -2485,7 +2498,7 @@ export function publishOutermostSprintTerminalArchive(input: {
       adoptBrain: input.skipMemoryExport !== true,
       terminalEventsProjectionSha256: terminalEventsProjectionDigest(input.terminalEvents),
       postSealPolicySha256: postSealPolicyDigest(input.config),
-    });
+    }, configuredMemoryExportRenderOptions(input.config));
     // A staged seal receipt is already immutable authority even when its
     // application remains HOLD. Callers must not append a recovery event over
     // that exact final-event identity; retry proceeds through the core repair.
@@ -5596,6 +5609,7 @@ export async function finalizeSprint(
       // The outer terminal seal performs the guarded Brain adoption and binds
       // its digest in the applied archive-side application receipt.
       skipMemoryExport: true,
+      memoryExportRenderOptions: configuredMemoryExportRenderOptions(opts?.config),
       skipIdentityRegen: opts?.skipIdentityRegen,
     });
 

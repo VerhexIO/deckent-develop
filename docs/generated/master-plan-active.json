@@ -3,26 +3,26 @@
   "generatedFrom": "docs/MASTER-PLAN.md",
   "sourceDigest": {
     "algorithm": "sha256(normalized-lf-utf8)",
-    "value": "fac06b95300ef933a4b8994b5a446dcec88f674b709b39b19b6942f04bea3f07"
+    "value": "474c246d52f7b0fc124b941a7fb8d68f06d43fe8de2ae30cf5f19b2f365754a9"
   },
   "summary": {
-    "total": 576,
-    "active": 488,
+    "total": 578,
+    "active": 490,
     "terminal": 88,
-    "receipts": 217,
+    "receipts": 218,
     "byState": {
-      "OPEN": 366,
+      "OPEN": 367,
       "READY": 0,
       "IN_PROGRESS": 0,
       "BLOCKED": 69,
-      "VERIFY": 51,
+      "VERIFY": 52,
       "DONE": 88,
       "DEFERRED": 2,
       "DISPOSED": 0
     },
     "byPriority": {
       "P0": 365,
-      "P1": 161,
+      "P1": 163,
       "P2": 50
     },
     "byProgram": {
@@ -42,7 +42,7 @@
       "EVAL": 5,
       "EVOLUTION": 4,
       "KERNEL": 130,
-      "LEARNING": 9,
+      "LEARNING": 11,
       "OBS": 9,
       "ONBOARDING": 1,
       "OPS": 6,
@@ -565,9 +565,9 @@
       "program": "TRUTH",
       "priority": "P2",
       "state": "BLOCKED",
-      "updated": "2026-07-26",
+      "updated": "2026-09-06",
       "definitionDigest": "3a37fad781335b42e5623f0f48f0c34508304548a58d430bdac19f1dbaae78f0",
-      "progressDigest": "89ba9814cde1325df767f9b90306ccf5c4ee3fd313c8633e27fee3029c116cdb",
+      "progressDigest": "881477c958c5a19e301d1a87447a35a2a44898517158b5d02c19eb7da747fa48",
       "terminalClosureDigest": null
     },
     {
@@ -5867,9 +5867,31 @@
       "program": "LEARNING",
       "priority": "P0",
       "state": "OPEN",
-      "updated": "2026-07-26",
+      "updated": "2026-09-06",
       "definitionDigest": "9628046ea49bda9ef5eafddec008f42a65e82f3d809e8e68c86664eaca596133",
-      "progressDigest": "6ffa422e8729c117e6b43792604c75f43baa792405641818fb4e5f2f2bdcc6fb",
+      "progressDigest": "a8ffd12d65744583370ac8942d0328ba3354aa9e35325b02791cc6316c708477",
+      "terminalClosureDigest": null
+    },
+    {
+      "order": 9001,
+      "id": "BRAIN-MEMORY-LIFECYCLE-001",
+      "program": "LEARNING",
+      "priority": "P1",
+      "state": "OPEN",
+      "updated": "2026-09-06",
+      "definitionDigest": "15560624d4aba595f645989c82be509b524bbc4314edec02fbaa94cd0bd0f111",
+      "progressDigest": "90d33d43733ca6a0cd1d3c98964ada5c32fddf9d749fbfb5b352405dee8c924e",
+      "terminalClosureDigest": null
+    },
+    {
+      "order": 9002,
+      "id": "BRAIN-MEMORY-COMPACT-001",
+      "program": "LEARNING",
+      "priority": "P1",
+      "state": "VERIFY",
+      "updated": "2026-09-06",
+      "definitionDigest": "83460c22241e619851c34efebc73f2587f8a74e4a0fc6739648aea6bb747e229",
+      "progressDigest": "a4174c81e9251f0a13fcf5dd99c6d362448daab6abe59cd2ba523ec6fa3fe7b3",
       "terminalClosureDigest": null
     },
     {
@@ -8571,6 +8593,16 @@
         "transitionAt": "2026-09-04T10:57:40+03:00"
       },
       "g7AttemptIdentity": null
+    },
+    {
+      "id": "GR-2026-09-06-MEMORY-MANUAL-CLOSURE-01",
+      "authorityDigest": "5849a3bb2cfb3019bb090c864b388cb719f8d7d70b1d7c183eaa85d43d451f60",
+      "lifecycle": {
+        "mode": "ONE_SHOT",
+        "status": "consumed",
+        "transitionAt": "2026-09-06T20:09:08.406Z"
+      },
+      "g7AttemptIdentity": null
     }
   ],
   "workItems": [
@@ -8820,6 +8852,7 @@
         "SSOT-002"
       ],
       "dependents": [
+        "BRAIN-MEMORY-LIFECYCLE-001",
         "CATALOG-STATS-AUTHORITY-001",
         "DATA-GOV-001",
         "ERROR-SEVERITY-001",
@@ -9749,7 +9782,9 @@
       "dependsOn": [
         "MEMORY-AUTHORITY-001"
       ],
-      "dependents": [],
+      "dependents": [
+        "BRAIN-MEMORY-LIFECYCLE-001"
+      ],
       "children": [],
       "gates": [
         "G4"
@@ -9771,8 +9806,8 @@
       ],
       "evidenceReceipts": [],
       "acceptance": "Read-only before/after SQL plan, backup hash, exact transaction and integrity proof",
-      "evidence": "No DB mutation in this plan rewrite",
-      "updated": "2026-07-26"
+      "evidence": "No DB mutation in this plan rewrite. Owner 2026-09-06 product-memory audit admission: docs/execution/evidence/brain-memory-audit-2026-09-06.md; bugünkü BRAIN-MEMORY-COMPACT-001 yalnız source-preserving read/projection revizyonudur ve bu satırın exact G4 transaction/integrity authority'sini bypass etmez. Geniş DB/knowledge lifecycle BRAIN-MEMORY-LIFECYCLE-001 altında mevcut öncelikler sonrasındadır; bu mevcut bakım satırının definition/state/truth'u değişmedi",
+      "updated": "2026-09-06"
     },
     {
       "order": 250,
@@ -20112,6 +20147,7 @@
         "APPROVAL-001",
         "APPROVAL-DECISION-AUTHORITY-001",
         "AUTONOMOUS-STATE-AUTHORITY-001",
+        "BRAIN-MEMORY-LIFECYCLE-001",
         "DATA-GOV-001",
         "ENTERPRISE-AUTH-001",
         "NERVOUS-APPROVAL-SETTLEMENT-001",
@@ -27186,6 +27222,7 @@
       ],
       "dependents": [],
       "children": [
+        "BRAIN-MEMORY-LIFECYCLE-001",
         "TRAINING-TRACE-001",
         "PROMPT-001",
         "ROUTING-001",
@@ -27213,6 +27250,7 @@
       "closureBlockedBy": [
         "KERNEL-001",
         "AUDIT-001",
+        "BRAIN-MEMORY-LIFECYCLE-001",
         "TRAINING-TRACE-001",
         "PROMPT-001",
         "ROUTING-001",
@@ -27223,8 +27261,93 @@
       ],
       "evidenceReceipts": [],
       "acceptance": "Outcome evidence changes routing/promotion only through eval, canary, rollback and owner policy",
-      "evidence": "Existing loop partial; training trace unwired",
-      "updated": "2026-07-26"
+      "evidence": "Existing loop partial; training trace unwired. Owner 2026-09-06 kabulü: BRAIN-MEMORY-LIFECYCLE-001 product-memory/enterprise/post-production programı bu parent altında; bugünkü tek execution adayı BRAIN-MEMORY-COMPACT-001, geniş DB/graph/vector işi mevcut öncelikler sonrasında. Kanıt docs/execution/evidence/brain-memory-audit-2026-09-06.md; 9037 outcome/routing authority'si ve çalışan learning loop'u korunur, host core-memory 190/235 ile birleştirilmez",
+      "updated": "2026-09-06"
+    },
+    {
+      "order": 9001,
+      "id": "BRAIN-MEMORY-LIFECYCLE-001",
+      "parent": "LEARNING-001",
+      "program": "LEARNING",
+      "outcome": "Kanıt-temelli büyüyen ürün belleği: bounded semantic çalışma bağlamı, katmanlı bilgi ve AI-enterprise/post-production yaşam döngüsü",
+      "priority": "P1",
+      "dependsOn": [
+        "MEMORY-DB-001",
+        "PROMPT-001",
+        "ROUTING-OUTCOME-LEARNING-AUTHORITY-001",
+        "PRINCIPAL-001",
+        "TENANT-001",
+        "STATE-RETENTION-001",
+        "DATA-GOV-001"
+      ],
+      "dependents": [],
+      "children": [
+        "BRAIN-MEMORY-COMPACT-001"
+      ],
+      "gates": [
+        "G2",
+        "G1",
+        "G4"
+      ],
+      "state": "OPEN",
+      "truth": {
+        "C": "~",
+        "W": "~",
+        "E": "~",
+        "H": "?",
+        "L": "0",
+        "X": "?",
+        "S": "?"
+      },
+      "blockerCode": null,
+      "blockerRemedy": null,
+      "closureBlockedBy": [
+        "MEMORY-DB-001",
+        "PROMPT-001",
+        "ROUTING-OUTCOME-LEARNING-AUTHORITY-001",
+        "TENANT-001",
+        "STATE-RETENTION-001",
+        "DATA-GOV-001",
+        "BRAIN-MEMORY-COMPACT-001"
+      ],
+      "evidenceReceipts": [],
+      "acceptance": "Solo dogfood ve milyon-ölçek kurum aynı canonical memory service authority'sini kullanır; kalıcı knowledge ile working context ve storage/retrieval/token/turn/time/cost birimleri ayrılır, 3000 öğrenme tavanı veya anlamsız byte/line truncation olmaz; evidence/receipt-bound observation-hypothesis-verified fact-negative learning-policy ayrımı, confidence/novelty/contradiction/supersession/human correction ve idempotent incremental reducer ile memory/V2/V3/catalog tutarlılığı sağlanır, çalışan outcome-routing-promotion döngüsü korunur; versioned schema+migration CAS/fencing/transaction, corruption quarantine, lossless restore ve rollback içerir; exact metric/index/materialized query, FTS ve opt-in yerel never-calls-home semantic vector ile endpoint/provenance-valid typed graph yeniden kurulabilir projection'lardır, ANN truth authority değildir; project/session/user/org scope, principal/tenant/ACL/purpose/consent, poisoning/redaction, permission-aware cache/index invalidation, retention/legal hold ve kontrollü silme tüm türevlerde uygulanır; hot/warm/cold ve indexed/lazy retrieval toplam corpus'u her çağrıda yüklemez, bütçe öncesi meaning-preserving selection ve output/verification reserve, resumable checkpoint/continuation ve total-cost guard vardır; Terminal/Desktop primary control, Dashboard observability, CLI/API/MCP/connectors aynı revision/scope/source/selection rationale/freshness/correction read-modelini tüketir; post-production schema/index/embedding upgrade, reindex/backfill, DR restore, incident/corruption recovery, rollout/canary/rollback, SLO alerts/runbooks ve capacity/cost controls kanıtlıdır; Linux/macOS/Windows-native/WSL/offline ve declared deployment capability matrisi dürüst, unsupported fail-closed olur; 10k/100k/1m corpus, warm/cold p50/p95/p99, concurrency, relevance/semantic-integrity, tenant leakage, memory/IO ve correction/replay/load/chaos proof'u gerçek consumer zincirinde pass olur",
+      "evidence": "Owner admission 2026-09-06: bugünkü tek child BRAIN-MEMORY-COMPACT-001; bu geniş program mevcut öncelikli işler sonrasında execution'a alınır, post-production kapsamı güvenlik/durability kusurlarını release sonrasına erteleme izni değildir. Analiz ve B1–B11 kanıtları: docs/execution/evidence/brain-memory-audit-2026-09-06.md §§1–6; kapsam/kapanış ayrımı §7. 429 learning kapasite doluluğu değildir; mevcut ilişkilerin etki sayısı ve milyon-ölçek performans kanıtlanmadı. ADR-G-035/G-032 canonical accepted recall ile teyit edildi; vector DB vendor değişimi/remote embeddings kararı yok. MEMORY-DB-001 exact maintenance authority, 9037 learning-event authority olarak yeniden uygulanmaz; 190/235 host core-memory projection ayrı kapsamdır. Admission DONE, runtime dispatch veya schema migration receipt'i değildir",
+      "updated": "2026-09-06"
+    },
+    {
+      "order": 9002,
+      "id": "BRAIN-MEMORY-COMPACT-001",
+      "parent": "BRAIN-MEMORY-LIFECYCLE-001",
+      "program": "LEARNING",
+      "outcome": "Bugünkü ürün belleğini kayıpsız compact görünüm ve anlam-koruyan bounded recall ile işlevsel hale getir",
+      "priority": "P1",
+      "dependsOn": [],
+      "dependents": [],
+      "children": [],
+      "gates": [
+        "G2",
+        "G1"
+      ],
+      "state": "VERIFY",
+      "truth": {
+        "C": "1",
+        "W": "1",
+        "E": "1",
+        "H": "1",
+        "L": "1",
+        "X": "?",
+        "S": "?"
+      },
+      "blockerCode": null,
+      "blockerRemedy": null,
+      "closureBlockedBy": [],
+      "evidenceReceipts": [
+        "GR-2026-09-06-MEMORY-MANUAL-CLOSURE-01"
+      ],
+      "acceptance": "DB/asıl kayıt ID/content/source/time/tags/history/relations ve routing sidecar'ları değiştirilmeden korunan checkpoint+restore/read parity kanıtlanır; epoch sprint öğrenmeleri gerçek Sprint 1'e taşınmadan legacy başlığında kaynaklarına açılan tek compact grup olur, recency sprint_num büyüklüğüne güvenmez; 3000 yalnız isteğe bağlı insan-view hedefidir, DB entry/decay eşiği değildir; budget ölçümleri doğru birim ve gerçek exemption predicate ile açıklanır; canonical query-first selector tam corpus'u önce RAM'e almaz, gerekli policy/ADR ve kritik unresolved bilgiyi korur; claim+koşul+istisna+olumsuzluk+sayı+kaynak bütünlüğü bozulmaz, eksik/oversize bilgi görünür detail/continuation veya typed insufficient-context olur, mandatory context keyfi özetlenmez; planner/worker/MCP resource ve bot hafıza context'i ile CLI/API/Dashboard memory okuması aynı bounded revisioned read/projection kontratına bağlanır, bütün metinleri sonradan byte/line slice ederek sığdırma yapılmaz; renderer/export atomik ve deterministic, legacy/full-detail geri erişimi kayıpsız olur; read-only DB contract, dry-run preimage ve replay/interrupt/restore, existing tenant isolation regression, büyük entry/corpus ve anlam-bütünlüğü testleri ile gerçek binary+dogfood prompt kanıtı sağlanır; yalnız hedefli memory read/export/config-label revizyonu yapılır, DB schema/entry rewrite/delete/decay/rebuild/VACUUM, vector/graph engine, routing öğrenme mutation ve genel runtime token-turn engine yeniden tasarımı kapsam dışıdır",
+      "evidence": "Owner-admitted manual ADR-D-007 implementation; `proof=brain-memory-compact-20260906-shared-read-v1`; evidence docs/execution/evidence/brain-memory-audit-2026-09-06.md sections9-10 and final selected-tree closure appendix. Lossless429-entry parity and live DB SHA76f19889 preserved; actual compiled CLI-MCP-HTTP-Dashboard plus planner-worker-bot ingress PASS. Old728RUN_FAILED unchanged. Final selected test verification and scoped landing are under review; no graph-vector engine or universal-platform-scale closure claimed; `receipt=GR-2026-09-06-MEMORY-MANUAL-CLOSURE-01`",
+      "updated": "2026-09-06"
     },
     {
       "order": 9010,
@@ -27638,6 +27761,7 @@
         "ALP-RUNTIME-001"
       ],
       "dependents": [
+        "BRAIN-MEMORY-LIFECYCLE-001",
         "LEARNING-DOGFOOD-001",
         "PROMPT-INJECTION-TRACE-001",
         "RECOVERY-BORN-483-PROMPT-AUTHORITY-001",
@@ -28066,6 +28190,7 @@
         "TRACE-AUTHORITY-SCHEMA-001"
       ],
       "dependents": [
+        "BRAIN-MEMORY-LIFECYCLE-001",
         "CATALOG-STATS-AUTHORITY-001"
       ],
       "children": [],
@@ -28657,6 +28782,7 @@
       ],
       "dependents": [
         "ASSURANCE-PACK-001",
+        "BRAIN-MEMORY-LIFECYCLE-001",
         "FINE-TUNE-001",
         "TRACE-DATA-GOVERNANCE-001"
       ],
@@ -29150,6 +29276,6 @@
   ],
   "registryIntegrity": {
     "algorithm": "sha256(canonical-json-utf8)",
-    "value": "a05edf70d1d1eaf0def4dfd8e28087d9eba193bd49ea22b1e0f86be150acbcf2"
+    "value": "349d58fcec15a91fa80c9514de4cc29b5b9346cb2ad0e45561f687f4f1127d76"
   }
 }

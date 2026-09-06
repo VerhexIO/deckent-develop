@@ -44,10 +44,14 @@ import {
 import { shellSplit } from './proof-of-function.js';
 import { isFileScopeToken } from './scope-sanitizer.js';
 import { TaskStatus, PROVIDER_MODEL_MAP } from '../core/types.js';
-import { VALID_PROVIDERS_ALL } from '../core/config.js';
+import {
+  resolveMemoryReadConfig,
+  resolveMemoryReadLimitsForConsumer,
+  VALID_PROVIDERS_ALL,
+} from '../core/config.js';
 import { detectTaskType } from './rubric-registry.js';
 import { lintWorkerPromptContract } from './prompt-lint.js';
-import { rubricTypeToKind } from '../core/work-model.js';
+import { rubricTypeToKind, taskKindToAdrDomain, type AdrTaskType } from '../core/work-model.js';
 import { resolveCanonicalModelIdentity } from '../core/model-registry.js';
 import { getModelTier } from '../core/model-equivalence.js';
 import type { TaskDNA } from '../core/routing-types.js';
@@ -59,8 +63,27 @@ import { SkillPoolManager } from '../core/skill-pool.js';
 import { MemoryStore } from '../core/memory-store.js';
 import type { MemoryEntryV2 } from '../core/memory-types.js';
 import { searchMemory } from '../core/memory-query.js';
+import {
+  buildMemoryDiscoveryQuery,
+  readMemoryView,
+  renderMemoryReadView,
+  resolveMemoryPreferredIds,
+  resolveMemoryRequiredIds,
+} from '../core/memory-read-service.js';
+import { buildMemoryReadLabels } from '../core/memory-read-labels.js';
+import type { MemoryReadEntryV1, MemoryReadScopeV1, MemoryReadViewV1 } from '../core/memory-read-contract.js';
+import { attendedExecutionProjectId } from '../core/attended-execution-approval.js';
+import { createRawFileFirstWriterWins } from '../core/approval-file-cas.js';
+import { getMessage } from '../cli/helpers/messages.js';
 import { BRAIN_DIR, EVALUATIONS_DIR, MEMORY_DB_FILE, PROJECT_CONFIG_PATH, TASKS_DIR } from '../core/constants.js';
-import { selectRelevantAdrs, buildAdrPromptSection, classifyInjectionTier } from './adr-selector.js';
+import {
+  TASK_TYPE_ADR_PRESETS,
+  buildAdrPromptSection,
+  classifyInjectionTier,
+  classifyTaskIntent,
+  extractExplicitAdrRefs,
+  selectRelevantAdrs,
+} from './adr-selector.js';
 import type { AdrRelevance } from './adr-selector.js';
 import type { RunFlowPlanSourceAuthority } from '../core/run-flow-contract.js';
 import type { SegmentedPrompt, WorkerExactExecutionAuthority } from './prompt-god-template.js';
@@ -138,6 +161,39 @@ type CoreExternalizationPolicy = {
   legacyCoreChannel?: boolean;
   enabled: (flags: NonNullable<ResolvedConfig['prompt']>) => boolean;
 };
+
+function publishCompiledWorkerPrompt(
+  projectRoot: string,
+  taskId: string,
+  prompt: string,
+  promptSha256: string,
+): void {
+  if (!/^[A-Za-z0-9._-]+$/u.test(taskId) || !/^[a-f0-9]{64}$/u.test(promptSha256)) {
+    throw new DeckentError('DECKENT_E077', `COMPILED_PROMPT_ARTIFACT_WRITE_HOLD:${taskId}`);
+  }
+  const tasksDir = join(projectRoot, TASKS_DIR);
+  const target = join(tasksDir, `.prompt-${taskId}-${promptSha256}.txt`);
+  const bytes = Buffer.from(prompt, 'utf8');
+  let created: boolean;
+  try {
+    mkdirSync(tasksDir, { recursive: true });
+    created = createRawFileFirstWriterWins(target, bytes);
+  } catch (error) {
+    throw new DeckentError('DECKENT_E077', `COMPILED_PROMPT_ARTIFACT_WRITE_HOLD:${taskId}`);
+  }
+  // The canonical publisher fully writes and fsyncs a winner before returning.
+  // Only a losing/idempotent caller must authenticate the pre-existing bytes.
+  if (created) return;
+  try {
+    const existing = readFileSync(target);
+    if (!existing.equals(bytes)
+      || createHash('sha256').update(existing).digest('hex') !== promptSha256) {
+      throw new Error('artifact-mismatch');
+    }
+  } catch {
+    throw new DeckentError('DECKENT_E077', `COMPILED_PROMPT_ARTIFACT_COLLISION_HOLD:${taskId}`);
+  }
+}
 
 const providerCoreExternalizationPolicies: Partial<Record<ProviderName, CoreExternalizationPolicy>> = {
   claude: {
@@ -2283,6 +2339,120 @@ export function resolveWorkerEffort(task: Task): 'max' | 'high' | 'medium' | 'lo
   return 'low';
 }
 
+function workerMemoryScope(task: Task, projectRoot: string): MemoryReadScopeV1 {
+  const projectId = attendedExecutionProjectId(projectRoot);
+  return task.actor?.tenantId
+    ? { kind: 'tenant', tenantId: task.actor.tenantId, projectId }
+    : { kind: 'local-project', projectId };
+}
+
+function renderNonAdrMemory(
+  view: Exclude<MemoryReadViewV1, { state: 'HOLD' }>,
+  language: string,
+): string {
+  if (view.state === 'ABSENT') return '';
+  const filtered = Object.freeze({
+    ...view,
+    entries: Object.freeze(view.entries.filter(({ entry }) => entry.type !== 'adr')),
+    deferred: Object.freeze(view.deferred.filter(({ candidate }) => candidate.type !== 'adr')),
+  });
+  return renderMemoryReadView(filtered, buildMemoryReadLabels(getMessage, language));
+}
+
+function readWorkerMemoryContext(
+  task: Task,
+  projectRoot: string,
+  effectiveConfig?: Pick<ResolvedConfig, 'memory_read' | 'memory_read_profiles' | 'language'>,
+): {
+  allAdrs?: MemoryEntryV2[];
+  memoryAdrs?: readonly MemoryReadEntryV1[];
+  memoryContext?: string;
+  selectionRevisionDigest?: string;
+  memoryLabels?: { contextHeading: string; revision: string; unavailable: string };
+} {
+  const dbPath = join(projectRoot, BRAIN_DIR, MEMORY_DB_FILE);
+  const taskText = `${task.title ?? ''}\n${task.description ?? ''}`;
+  const mandatoryReferences = [...new Set(
+    extractExplicitAdrRefs(taskText).filter(reference => /^adr-[a-z]+-\d+$/iu.test(reference)),
+  )];
+  if (!existsSync(dbPath)) {
+    if (mandatoryReferences.length > 0) {
+      throw new DeckentError('DECKENT_E077', 'MEMORY_READ_CONTEXT_HOLD:REQUIRED_ENTRY_MISSING');
+    }
+    return {};
+  }
+  let store: MemoryStore | undefined;
+  try {
+    store = new MemoryStore(dbPath, { readOnly: true });
+    const scope = workerMemoryScope(task, projectRoot);
+    // Both canonical classifiers return an AdrTaskType vocabulary member; the
+    // legacy orchestra classifier predates the narrower return annotation.
+    const intent: AdrTaskType = task.type !== undefined
+      ? taskKindToAdrDomain(task.type)
+      : classifyTaskIntent(task) as AdrTaskType;
+    const preferredReferences = [...new Set(TASK_TYPE_ADR_PRESETS[intent] ?? [])];
+    const required = resolveMemoryRequiredIds(store, {
+      consumer: 'worker',
+      scope,
+      references: mandatoryReferences,
+    });
+    if (required.state === 'HOLD') {
+      throw new DeckentError('DECKENT_E077', `MEMORY_READ_CONTEXT_HOLD:${required.reasonCode}`);
+    }
+    const preferred = resolveMemoryPreferredIds(store, {
+      consumer: 'worker',
+      scope,
+      references: preferredReferences,
+    });
+    if (preferred.state === 'HOLD') {
+      throw new DeckentError('DECKENT_E077', `MEMORY_READ_CONTEXT_HOLD:${preferred.reasonCode}`);
+    }
+    const queryText = buildMemoryDiscoveryQuery([
+      taskText,
+      ...(task.scope?.directories ?? []),
+      ...(task.scope?.filesRead ?? []),
+      ...(task.scope?.filesWrite ?? []),
+    ].join('\n'));
+    const memoryConfig = effectiveConfig ?? resolveMemoryReadConfig(projectRoot, 'worker');
+    const limits = resolveMemoryReadLimitsForConsumer(memoryConfig, 'worker');
+    const view = readMemoryView(store, {
+      consumer: 'worker',
+      scope,
+      query: queryText.length > 0 ? { text: queryText } : {},
+      limits,
+      requiredIds: [...new Set([...required.exactIds, ...preferred.exactIds])],
+      includeCritical: true,
+    });
+    if (view.state === 'HOLD') {
+      throw new DeckentError('DECKENT_E077', `MEMORY_READ_CONTEXT_HOLD:${view.reasonCode}`);
+    }
+    const allAdrs = view.state === 'AVAILABLE'
+      ? view.entries.map(({ entry }) => entry).filter(entry => entry.type === 'adr' && entry.status === 'accepted')
+      : [];
+    const memoryAdrs = view.state === 'AVAILABLE'
+      ? view.entries.filter(({ entry }) => entry.type === 'adr' && entry.status === 'accepted')
+      : [];
+    const memoryContext = renderNonAdrMemory(view, memoryConfig.language);
+    const memoryLabels = {
+      contextHeading: getMessage('memory_read.context_heading', memoryConfig.language),
+      revision: getMessage('memory_read.revision', memoryConfig.language),
+      unavailable: getMessage('memory_read.unavailable', memoryConfig.language),
+    };
+    return {
+      ...(allAdrs.length > 0 ? { allAdrs } : {}),
+      memoryAdrs,
+      ...(memoryContext.length > 0 ? { memoryContext } : {}),
+      selectionRevisionDigest: view.selectionRevisionDigest,
+      memoryLabels,
+    };
+  } catch (error) {
+    if (error instanceof DeckentError && error.message.startsWith('MEMORY_READ_CONTEXT_HOLD:')) throw error;
+    throw new DeckentError('DECKENT_E077', 'MEMORY_READ_CONTEXT_HOLD:QUERY_FAILED');
+  } finally {
+    store?.close();
+  }
+}
+
 /**
  * Truncate content at a paragraph or section boundary instead of mid-sentence.
  * Looks for the last double-newline, heading, or sentence-ending punctuation before maxLen.
@@ -2817,7 +2987,7 @@ export function buildWorkerPrompt(
   agentPrompt?: string,
   skillPrompts?: Array<{ name: string; content: string }>,
   projectRoot?: string,
-  effectiveConfig?: Pick<ResolvedConfig, 'prompt'>,
+  effectiveConfig?: Pick<ResolvedConfig, 'prompt' | 'worker_comms' | 'memory_read' | 'memory_read_profiles' | 'language'>,
   exactPlanAuthority?: {
     readonly flowId: string;
     readonly revision: number;
@@ -2835,6 +3005,7 @@ export function buildWorkerPrompt(
 ): string {
   const deferredPublication = compilationOptions?.publicationMode === 'deferred';
   const publishDeliveryReceipt = projectRoot !== undefined && !deferredPublication;
+  const explicitProjectRoot = projectRoot;
   projectRoot ??= process.cwd();
   // Legacy task JSON may predate Task.verification and carry `Test:` only in
   // description prose. Migrate exactly once at the production ingress; the
@@ -2862,22 +3033,12 @@ export function buildWorkerPrompt(
   // the spawner's delivery evidence and this render can never disagree.
   const effectiveSkillPrompts = resolveDeliveredSkillPrompts(task, skillPrompts, projectRoot);
 
-  // Load accepted ADRs from Memory V2 if available (best-effort) for the ADR block.
-  let allAdrs: MemoryEntryV2[] | undefined;
-  try {
-    const root = projectRoot;
-    const dbPath = join(root, BRAIN_DIR, MEMORY_DB_FILE);
-    if (existsSync(dbPath)) {
-      const store = new MemoryStore(dbPath);
-      try {
-        allAdrs = store.getByType('adr').filter(a => a.status === 'accepted');
-      } finally {
-        store.close();
-      }
-    }
-  } catch {
-    // ADR loading is best-effort
-  }
+  // Compile-only legacy callers do not carry a project authority. They must not
+  // accidentally query the host cwd's tenant/project memory. Every production
+  // dispatch supplies the explicit root and therefore takes the canonical path.
+  const memoryContext = explicitProjectRoot === undefined
+    ? {}
+    : readWorkerMemoryContext(task, projectRoot, effectiveConfig);
 
   // Sprint 278 COMM-1 (278-003): inject other workers' shared-context notes
   // when worker_comms.enabled && inject_shared. Best-effort; undefined when off.
@@ -3057,11 +3218,16 @@ export function buildWorkerPrompt(
   }
 
   const ctx: SprintContext = {
+    projectRoot,
     agentPrompt,
     agentId: task.assignedAgent ?? 'generic',
     skillPrompts: effectiveSkillPrompts,
     ...(projectContext !== undefined ? { projectContext } : {}),
-    allAdrs,
+    allAdrs: memoryContext.allAdrs,
+    memoryAdrs: memoryContext.memoryAdrs,
+    memoryContext: memoryContext.memoryContext,
+    memorySelectionRevisionDigest: memoryContext.selectionRevisionDigest,
+    memoryLabels: memoryContext.memoryLabels,
     effort,
     modelTier,
     dependencies: [...promptDependencyIds],
@@ -3115,6 +3281,9 @@ export function buildWorkerPrompt(
   if (compilationOptions?.sink) {
     compilationOptions.sink.artifact = artifact;
     compilationOptions.sink.receipt = receipt;
+  }
+  if (publishDeliveryReceipt) {
+    publishCompiledWorkerPrompt(projectRoot, task.id, artifact.prompt, receipt.promptSha256);
   }
   if (publishDeliveryReceipt && !writePromptDeliveryReceipt(projectRoot, receipt)) {
     throw new DeckentError('DECKENT_E077', `PROMPT_DELIVERY_RECEIPT_WRITE_HOLD:${task.id}`);

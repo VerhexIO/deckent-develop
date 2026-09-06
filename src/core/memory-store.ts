@@ -9,6 +9,7 @@
 
 import Database from 'better-sqlite3';
 import type { Database as DatabaseType } from 'better-sqlite3';
+import { types as nodeTypes } from 'node:util';
 import { turkishNormalize } from './memory-normalize.js';
 import { DeckentError } from './errors.js';
 import {
@@ -132,14 +133,23 @@ export class MemoryStore {
   private db: DatabaseType;
   private strictTenantIsolation: boolean;
 
-  constructor(dbPath: string, opts?: { strictTenantIsolation?: boolean }) {
-    this.db = new Database(dbPath);
+  constructor(dbPath: string, opts?: { strictTenantIsolation?: boolean; readOnly?: boolean }) {
+    this.db = new Database(dbPath, opts?.readOnly
+      ? { readonly: true, fileMustExist: true }
+      : undefined);
     // Fail-closed by default (born-563 / P1): a NULL-tenant row must NEVER match
     // an explicit-tenantId query unless a caller deliberately opts back into the
     // legacy permissive behavior. Callers that never pass a tenantId at all
     // (the vast majority of call sites — single-tenant/tenant-unaware reads) are
     // completely unaffected either way, since no tenant clause is built for them.
     this.strictTenantIsolation = opts?.strictTenantIsolation ?? true;
+    if (opts?.readOnly) {
+      // Projection readers must not create/migrate/checkpoint the source database.
+      // SQLite enforces this even if a caller accidentally invokes a write method.
+      this.db.pragma('query_only = ON');
+      this.db.pragma('busy_timeout = 5000');
+      return;
+    }
     this.db.pragma('journal_mode = WAL');
     this.db.pragma('foreign_keys = ON');
     // DB-LOCK RESILIENCE (verified root cause, sprint-348): `.brain/memory.db` is a
@@ -153,6 +163,20 @@ export class MemoryStore {
     // A 5s busy_timeout makes every connection wait-and-retry instead of failing hard.
     this.db.pragma('busy_timeout = 5000');
     this.initSchema();
+  }
+
+  /** Synchronous, consistent read revision; nested calls retain the same snapshot. */
+  readSnapshot<T>(reader: () => T & (T extends PromiseLike<unknown> ? never : unknown)): T {
+    if (nodeTypes.isAsyncFunction(reader)) {
+      throw new TypeError('MEMORY_READ_SNAPSHOT_ASYNC_UNSUPPORTED');
+    }
+    const queryOnly = this.db.pragma('query_only', { simple: true });
+    this.db.pragma('query_only = ON');
+    try {
+      return this.db.transaction(reader).deferred();
+    } finally {
+      this.db.pragma(queryOnly ? 'query_only = ON' : 'query_only = OFF');
+    }
   }
 
   // ── Schema initialization ────────────────────────────────────

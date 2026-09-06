@@ -54,6 +54,7 @@ import {
 import { canonicalJson } from './audit-writer.js';
 import { DeckentError } from './errors.js';
 import { writeGuardedExports } from './memory-export.js';
+import type { MemoryExportRenderOptions } from './memory-export.js';
 import { MemoryStore } from './memory-store.js';
 import type { SprintTerminalReceiptV1 } from './sprint-terminal-publication.js';
 import { debugLog } from './utils.js';
@@ -1920,6 +1921,7 @@ function brainAdoptionProjection(
   sprintId: string,
   manifestDigest: string,
   refresh: boolean,
+  renderOptions?: MemoryExportRenderOptions,
 ): TrustedBrainProjection | null {
   const dbPath = safeBrainDatabasePath(projectRoot);
   if (!dbPath) return null;
@@ -1930,7 +1932,7 @@ function brainAdoptionProjection(
     try {
       const adopted = store.getById(`archive-${sprintId}`);
       if (!adopted) return null;
-      const guarded = writeGuardedExports(store, join(projectRoot, BRAIN_DIR, 'exports'));
+      const guarded = writeGuardedExports(store, join(projectRoot, BRAIN_DIR, 'exports'), renderOptions);
       if (guarded.warnings.length > 0 || !guarded.written.includes('summary.md')) return null;
       const guardedSummarySha256 = hashFile(summaryPath);
       if (!SHA256_HEX_PATTERN.test(guardedSummarySha256)) return null;
@@ -2176,6 +2178,7 @@ export function sealSprintArchiveTerminal(
   projectRoot: string,
   sprintId: string,
   request: SprintArchiveTerminalSealRequest,
+  renderOptions?: MemoryExportRenderOptions,
 ): SprintArchiveTerminalSealResult {
   assertSprintId(sprintId);
   const { receipt, finalEvent } = request;
@@ -2544,7 +2547,7 @@ export function sealSprintArchiveTerminal(
     }
 
     const brain = request.adoptBrain === true
-      ? brainAdoptionProjection(projectRoot, sprintId, reconciled.manifest.contentDigest, true)
+      ? brainAdoptionProjection(projectRoot, sprintId, reconciled.manifest.contentDigest, true, renderOptions)
       : null;
     if (request.adoptBrain === true && !brain) {
       return sealHold('brain_adoption_failed', sealReceipt, staged);

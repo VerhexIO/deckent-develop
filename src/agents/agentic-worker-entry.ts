@@ -21,6 +21,7 @@
 // is launched directly (canonical ESM main-guard) — importing it in tests is safe.
 
 import { fileURLToPath } from 'node:url';
+import { createHash } from 'node:crypto';
 import {
   readFileSync,
   writeFileSync,
@@ -40,6 +41,7 @@ import { setupWorkerApprovalGateFromEnv } from './worker-approval-env.js';
 import { normalizeUsage } from '../core/token-usage.js';
 import { resolveLiveTraceEnabled } from '../core/config.js';
 import { writeTaskHeartbeatFile } from '../core/worker-activity-heartbeat.js';
+import { readPromptDeliveryReceipt } from '../core/prompt-delivery-receipt.js';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -60,6 +62,27 @@ interface TaskJson {
     noGoCriteria?: string;
     techDebtAcceptable?: string;
   };
+}
+
+/** Read the immutable host-compiled prompt bound by the current delivery receipt. */
+export function readHostCompiledWorkerPrompt(
+  projectDir: string,
+  taskId: string,
+): string {
+  const delivery = readPromptDeliveryReceipt(projectDir, taskId);
+  if (delivery.state !== 'AVAILABLE') {
+    throw new Error(`COMPILED_PROMPT_AUTHORITY_HOLD:${delivery.reason}`);
+  }
+  const digest = delivery.receipt.promptSha256;
+  if (!/^[A-Za-z0-9._-]+$/u.test(taskId) || !/^[a-f0-9]{64}$/u.test(digest)) {
+    throw new Error('COMPILED_PROMPT_AUTHORITY_HOLD:invalid-identity');
+  }
+  const path = join(projectDir, TASKS_DIR_NAME, `.prompt-${taskId}-${digest}.txt`);
+  const bytes = readFileSync(path);
+  if (createHash('sha256').update(bytes).digest('hex') !== digest) {
+    throw new Error('COMPILED_PROMPT_AUTHORITY_HOLD:digest-mismatch');
+  }
+  return bytes.toString('utf8');
 }
 
 /**
@@ -385,11 +408,22 @@ export async function runWorkerEntry(
     return { exitCode: 1, resultPath: p, result: r };
   }
 
+  let compiledPrompt: string;
+  try {
+    compiledPrompt = readHostCompiledWorkerPrompt(projectDir, taskId);
+  } catch (err) {
+    const reason = `agentic-worker-entry: compiled prompt unavailable: ${err instanceof Error ? err.message : String(err)}`;
+    const r = buildNoGoResult(taskId, reason, model);
+    const p = writeResultFile(taskId, projectDir, r);
+    writeHeartbeat(taskId, projectDir, 'NO_GO', 2, 0);
+    return { exitCode: 1, resultPath: p, result: r };
+  }
+
   const runnerOpts: AgenticRunnerOptions = {
     taskId,
     model,
     host,
-    prompt: taskJson.description ?? '',
+    prompt: compiledPrompt,
     scope: {
       directories: taskJson.scope?.directories ?? [],
       filesRead: taskJson.scope?.filesRead ?? [],

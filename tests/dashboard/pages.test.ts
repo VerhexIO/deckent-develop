@@ -81,68 +81,9 @@ describe("dashboard/pages — MemoryPage", () => {
     expect(existsSync(filePath)).toBe(true);
   });
 
-  it("imports Tabs components", () => {
+  it("delegates to the shared bounded reader explorer", () => {
     const content = readFileSync(filePath, "utf-8");
-    expect(content).toContain("Tabs");
-    expect(content).toContain("TabsList");
-    expect(content).toContain("TabsTrigger");
-    expect(content).toContain("TabsContent");
-  });
-
-  it("fetches /api/memory", () => {
-    const content = readFileSync(filePath, "utf-8");
-    expect(content).toContain("/api/memory");
-  });
-
-  it("fetches /api/debt", () => {
-    const content = readFileSync(filePath, "utf-8");
-    expect(content).toContain("/api/debt");
-  });
-
-  it("has Memory and Debt tabs", () => {
-    const content = readFileSync(filePath, "utf-8");
-    expect(content).toContain('value="memory"');
-    expect(content).toContain('value="debt"');
-    expect(content).toContain("memory.tab_memory");
-    expect(content).toContain("memory.tab_debt");
-  });
-
-  it("renders memory content using SimpleMarkdown component", () => {
-    const content = readFileSync(filePath, "utf-8");
-    expect(content).toContain("SimpleMarkdown");
-    expect(content).toContain("memoryData.content");
-  });
-
-  it("imports DebtTable and parseDebtMarkdown", () => {
-    const content = readFileSync(filePath, "utf-8");
-    expect(content).toContain("DebtTable");
-    expect(content).toContain("parseDebtMarkdown");
-  });
-
-  it("uses useApi hook for both endpoints", () => {
-    const content = readFileSync(filePath, "utf-8");
-    const apiMatches = content.match(/useApi/g);
-    expect(apiMatches).not.toBeNull();
-    expect(apiMatches!.length).toBeGreaterThanOrEqual(2);
-  });
-
-  it("renders loading states", () => {
-    const content = readFileSync(filePath, "utf-8");
-    expect(content).toContain("memLoading");
-    expect(content).toContain("debtLoading");
-    expect(content).toContain("common.loading");
-  });
-
-  it("renders error states", () => {
-    const content = readFileSync(filePath, "utf-8");
-    expect(content).toContain("memError");
-    expect(content).toContain("debtError");
-  });
-
-  it("has dark theme classes", () => {
-    const content = readFileSync(filePath, "utf-8");
-    expect(content).toContain("bg-zinc-900");
-    expect(content).toContain("bg-zinc-950");
+    expect(content).toContain("MemoryExplorer");
     expect(content).toContain("text-zinc-100");
   });
 });

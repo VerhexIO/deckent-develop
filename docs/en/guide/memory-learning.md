@@ -4,15 +4,19 @@
 
 Deckent's product memory is `.brain/memory.db`, not repository-host instruction memory. It stores ADRs, memories, sprint records, debt, patterns, retrospectives, chat, audit material, relations/history, document tracking, and KPI projections. [Evidence: `AGENTS.md:69-73`; `src/core/memory-store.ts:100-338`; actual PRAGMA inventory in `docs/en/db.md`]
 
-## Recall
+## Bounded recall
 
-`recall <query>` supports type filters, a result limit, minimum sprint, OR/AND FTS token joining, and JSON output. A real query for “Goal Mission Flow” returned five mixed memory/ADR/sprint results and highlighted normalized matches. [Evidence: `src/cli/commands/recall.ts:11-50`; real `recall ... --json`, 2026-08-01]
+`memory recall <query>` is query-first and reads a consistent, read-only bounded view rather than filtering generated Markdown. Its result is one of `AVAILABLE`, `ABSENT`, or typed `HOLD`. `AVAILABLE` contains complete admitted units; records outside the entry, byte, or line budget are deferred with an opaque detail reference, never silently content-sliced. `ABSENT` is an honest no-match result. `HOLD` is not success: the CLI writes its typed reason and exits `1`.
 
 ```bash
-node dist/cli/entry.js recall "Goal Mission Flow" --json
+node dist/cli/entry.js memory recall "Goal Mission Flow" --json
 ```
 
-Use narrow type filters when the operator needs authority rather than broad context—for example ADR-only recall before architecture changes. Search ranking is evidence retrieval, not policy precedence. [Evidence: recall options above; precedence `AGENTS.md:116-127`]
+`--json` returns a versioned envelope. Use its opaque `nextCursor` with `--cursor` for the next bounded page, and a deferred opaque reference with `--detail` to retrieve that one complete entry. Invalid, stale, cross-scope, or changed references fail closed as `HOLD`; callers must not reconstruct references or infer a tenant from query parameters. Type filters, `--sprint-min`, and `--mode and|or` narrow retrieval. Search ranking is evidence retrieval, not policy precedence. [Evidence: `src/cli/commands/memory.ts`; `src/core/memory-read-{contract,service}.ts`; precedence `AGENTS.md:116-127`]
+
+Read budgets are independent from retained-memory lifecycle. `memory_read` supplies shared limits and `memory_read_profiles` can override one named consumer; global authored values are merged before project authored values, while a named profile is more specific than its shared layer. The default worker profile is 128 KiB / 512 complete-content lines; other readers default to 32 KiB / 200 lines. These are view-selection limits, not deletion, retention, or decay thresholds. [Evidence: `src/core/config.ts:resolveMemoryReadProfiles`; `src/core/memory-read-contract.ts`]
+
+MCP's `deckent_memory_query` uses the same scoped reader. Its successful response includes versioned structured view/detail data; `HOLD` is marked as an MCP error with the typed payload, not merely rendered prose. The `deckent://memory` resource exposes a bounded human rendering plus machine metadata (scope, selection revision, selected IDs, deferred opaque references, and cursor), without duplicating complete bodies. The server constructs project and tenant scope from authority, never from a tool argument. [Evidence: `src/mcp/tools/memory-query.ts`; `src/mcp/resources/memory.ts`]
 
 ## Remember and relations
 
@@ -24,7 +28,7 @@ No remember/rebuild/export/backup mutation was run in this audit. [Evidence: own
 
 A real `memory stats` run reported 1,764 entries and schema v1, broken down across ADR, audit, chat, debt, finding, identity, memory, pattern, retro, and sprint types. This is a dated repository snapshot. [Evidence: real output, 2026-08-01]
 
-`memory export` projects DB content into `.brain/exports/*.md`; `memory rebuild` performs the reverse import; `memory backup` uses SQLite backup/checkpoint behavior. Generated Markdown is data/projection, not policy authority. [Evidence: `src/cli/commands/memory.ts:17-200`; `AGENTS.md:112-114`]
+`memory export` projects DB content into `.brain/exports/*.md`; `memory rebuild` performs the reverse import; `memory backup` uses SQLite backup/checkpoint behavior. Generated Markdown is data/projection, not policy authority and is not the bounded recall source. [Evidence: `src/cli/commands/memory.ts`; `AGENTS.md:112-114`]
 
 ## ADR memory
 

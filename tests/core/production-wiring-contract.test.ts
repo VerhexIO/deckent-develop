@@ -2,19 +2,28 @@ import { describe, expect, it } from 'vitest';
 
 import {
   PRODUCTION_WIRING_CONTRACT_VERSION,
+  completeProductionWiringFromProposal,
   createProductionWiringContractV2,
   parseProductionWiringContractV2,
+  productionWiringContractV2InputFromCanonical,
   resolveProductionWiringContract,
   type ProductionWiringContractV2Input,
   type ProductionWiringContractV1,
   type ProductionWiringEvidence,
 } from '../../src/core/production-wiring-contract.js';
 import {
+  MEMORY_COMPACT_READ_EXPORT_PROOF_IDENTITY,
+  TERMINAL_NATIVE_PROVIDER_PROOF_IDENTITY,
   createProductionWiringHostProofProgram,
+  isProductionWiringHostProofIdentityRegistered,
   parseProductionWiringHostProofProgram,
   parseProductionWiringHostProofProgramInput,
   validateProductionWiringHostProofCoverage,
 } from '../../src/core/production-wiring-host-proof.js';
+import {
+  createProductionWiringPlanEvidenceV2,
+  productionWiringVerifierAssetWriteScopeOverlap,
+} from '../../src/core/task-types.js';
 
 const completeAuthorityEvidence: ProductionWiringEvidence = {
   state: 'complete',
@@ -109,6 +118,112 @@ function v2Input(): ProductionWiringContractV2Input {
 }
 
 describe('production wiring contract', () => {
+  const memoryProposal = () => ({
+    version: 1 as const,
+    changeKind: 'runtime-change' as const,
+    ...MEMORY_COMPACT_READ_EXPORT_PROOF_IDENTITY,
+    disposition: { kind: 'production-wiring' as const },
+  });
+
+  it('registers the exact memory compact read/export identity without changing Terminal authority', () => {
+    expect(isProductionWiringHostProofIdentityRegistered(
+      MEMORY_COMPACT_READ_EXPORT_PROOF_IDENTITY,
+    )).toBe(true);
+    expect(isProductionWiringHostProofIdentityRegistered(
+      TERMINAL_NATIVE_PROVIDER_PROOF_IDENTITY,
+    )).toBe(true);
+
+    const terminalContract = completeProductionWiringFromProposal({
+      version: 1,
+      changeKind: 'runtime-change',
+      ...TERMINAL_NATIVE_PROVIDER_PROOF_IDENTITY,
+      disposition: { kind: 'production-wiring' },
+    }, { projectRoot: process.cwd() });
+    expect(terminalContract.hostProofProgram.verifierAssets.map(asset => asset.path)).toEqual([
+      'scripts/production-wiring-host-proof-harness.mjs',
+    ]);
+  });
+
+  it('completes only the exact memory identity into its two-asset bounded platform profile', () => {
+    const contract = completeProductionWiringFromProposal(memoryProposal(), {
+      projectRoot: process.cwd(),
+    });
+
+    expect(contract).toMatchObject({
+      version: 2,
+      producer: MEMORY_COMPACT_READ_EXPORT_PROOF_IDENTITY.producer,
+      canonicalConsumer: MEMORY_COMPACT_READ_EXPORT_PROOF_IDENTITY.canonicalConsumer,
+      affectedIngresses: MEMORY_COMPACT_READ_EXPORT_PROOF_IDENTITY.affectedIngresses,
+      enablementAuthority: MEMORY_COMPACT_READ_EXPORT_PROOF_IDENTITY.enablementAuthority,
+      proofTargets: MEMORY_COMPACT_READ_EXPORT_PROOF_IDENTITY.proofTargets,
+    });
+    expect(contract.hostProofProgram.verifierAssets.map(asset => ({
+      path: asset.path,
+      role: asset.role,
+    }))).toEqual([
+      { path: 'scripts/production-wiring-host-proof-harness.mjs', role: 'trusted-harness' },
+      { path: 'scripts/memory-compact-host-proof-observer.mjs', role: 'trusted-harness' },
+    ]);
+    expect(contract.hostProofProgram.platforms).toEqual(expect.arrayContaining([
+      expect.objectContaining({ platform: 'linux', state: 'supported' }),
+      expect.objectContaining({ platform: 'wsl2-linux', state: 'supported' }),
+      { platform: 'darwin', state: 'unsupported', reasonCode: 'capability-unavailable' },
+      { platform: 'win32', state: 'unsupported', reasonCode: 'capability-unavailable' },
+    ]));
+  });
+
+  it('rejects near-match and foreign memory identities instead of borrowing the registered profile', () => {
+    const nearMatch = {
+      ...MEMORY_COMPACT_READ_EXPORT_PROOF_IDENTITY,
+      proofTargets: MEMORY_COMPACT_READ_EXPORT_PROOF_IDENTITY.proofTargets.map((target, index) =>
+        index === 0 ? { ...target, proofTargetId: `${target.proofTargetId}.renamed` } : target),
+    };
+    const foreign = {
+      ...MEMORY_COMPACT_READ_EXPORT_PROOF_IDENTITY,
+      producer: { producerId: 'deckent.memory-store.foreign-read-model' },
+    };
+
+    expect(isProductionWiringHostProofIdentityRegistered(nearMatch)).toBe(false);
+    expect(isProductionWiringHostProofIdentityRegistered(foreign)).toBe(false);
+    expect(() => completeProductionWiringFromProposal({
+      ...memoryProposal(),
+      ...nearMatch,
+    }, { projectRoot: process.cwd() })).toThrow(/host-proof-profile-unregistered/u);
+    expect(() => completeProductionWiringFromProposal({
+      ...memoryProposal(),
+      ...foreign,
+    }, { projectRoot: process.cwd() })).toThrow(/host-proof-profile-unregistered/u);
+  });
+
+  it('keeps both memory verifier assets outside the later feature task write scope', () => {
+    const contract = completeProductionWiringFromProposal(memoryProposal(), {
+      projectRoot: process.cwd(),
+    });
+    const authority = createProductionWiringPlanEvidenceV2(
+      productionWiringContractV2InputFromCanonical(contract),
+    );
+
+    expect(productionWiringVerifierAssetWriteScopeOverlap({
+      directories: [],
+      filesRead: [
+        'scripts/production-wiring-host-proof-harness.mjs',
+        'scripts/memory-compact-host-proof-observer.mjs',
+      ],
+      filesWrite: ['src/core/memory-query.ts', 'src/core/memory-export.ts'],
+    }, authority)).toBeNull();
+    expect(productionWiringVerifierAssetWriteScopeOverlap({
+      directories: ['scripts/'],
+      filesRead: [],
+      filesWrite: [],
+    }, authority)).toBe('scripts/production-wiring-host-proof-harness.mjs');
+
+    const tampered = structuredClone(contract.hostProofProgram) as unknown as {
+      verifierAssets: Array<{ sha256: string }>;
+    };
+    tampered.verifierAssets[1]!.sha256 = `sha256:${'f'.repeat(64)}`;
+    expect(parseProductionWiringHostProofProgram(tampered)).toBeNull();
+  });
+
   it('canonicalizes a V2 read-only proof program and resolves only exact declared coverage', () => {
     const canonical = createProductionWiringContractV2(v2Input());
     const decision = resolveProductionWiringContract(canonical);

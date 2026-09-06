@@ -37,6 +37,28 @@ describe('validateConfig', () => {
     expect(warnings).toEqual([]);
   });
 
+  it('validates bounded memory_export units and rejects unknown or invalid fields', () => {
+    const valid = buildConfig({
+      memory_export: {
+        max_inline_lines: 1,
+        max_inline_bytes: 1,
+        summary_inline_lines: 0,
+        summary_inline_bytes: 0,
+      },
+    });
+    expect(() => validateConfig(valid)).not.toThrow();
+
+    for (const memory_export of [
+      { max_inline_lines: 0 },
+      { max_inline_bytes: 0 },
+      { summary_inline_lines: 1.5 },
+      { summary_inline_bytes: Number.POSITIVE_INFINITY },
+      { unrecognized_limit: 7 },
+    ]) {
+      expect(() => validateConfig(buildConfig({ memory_export }))).toThrow(ConfigValidationError);
+    }
+  });
+
   // ─── Invalid mode ─────────────────────────────────────────────────
 
   it('throws ConfigValidationError for invalid mode', () => {

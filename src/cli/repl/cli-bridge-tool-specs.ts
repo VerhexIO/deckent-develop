@@ -53,8 +53,12 @@ export const CLI_BRIDGE_TOOLS: readonly CliBridgeToolSpec[] = [
     description: 'Search project memory (ADRs, sprint learnings, debt, patterns) via deckent recall.',
     schema: {
       type: 'object',
-      properties: { query: { type: 'string', description: 'Search query for project memory.' } },
-      required: ['query'],
+      properties: {
+        query: { type: 'string', description: 'Search query for project memory.' },
+        cursor: { type: 'string', description: 'Opaque continuation cursor returned by an earlier memory query.' },
+        detail_ref: { type: 'string', description: 'Opaque detail reference for one deferred complete memory entry.' },
+      },
+      anyOf: [{ required: ['query'] }, { required: ['detail_ref'] }],
     },
   },
   {

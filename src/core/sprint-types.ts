@@ -4,6 +4,7 @@
 import type { Task, TaskEvaluation, ModelType, ProviderName } from './task-types.js';
 import type { PromptGateResult } from './prompt-gate-types.js';
 import type { InvocationReceiptRef } from './invocation-receipt.js';
+import type { MemoryReadLimitsV1, MemoryReadScopeV1 } from './memory-read-contract.js';
 
 // ─── Sprint System ──────────────────────────────────────────────────
 export enum SprintPhase {
@@ -214,6 +215,14 @@ export interface DecayResult {
 export interface BrainContext {
   directives: string;
   memory: string;
+  /** Exact bounded memory selection rendered into `memory`; absent when no DB exists. */
+  memorySelectionRevisionDigest?: string;
+  /** Digest of the exact directives used to select the bounded memory view. */
+  memoryReadInputDigest?: string;
+  /** Scope and view settings bound to the memory selection above. */
+  memoryReadScope?: MemoryReadScopeV1;
+  memoryReadLimits?: Readonly<MemoryReadLimitsV1>;
+  memoryReadLanguage?: string;
   retro: string;
   debt: DebtItem[];
   patterns: string;

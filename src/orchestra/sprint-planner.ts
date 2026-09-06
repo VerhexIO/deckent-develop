@@ -10,7 +10,7 @@ import {
 import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 
 // ─── Core (value imports — enums used at runtime) ──────────────────
 import {
@@ -34,10 +34,30 @@ import {
 
 // ─── Memory V2 ───────────────────────────────────────────────────
 import { MemoryStore } from '../core/memory-store.js';
+import {
+  buildMemoryDiscoveryQuery,
+  readMemoryView,
+  renderMemoryReadView,
+  resolveMemoryRequiredIds,
+} from '../core/memory-read-service.js';
+import { buildMemoryReadLabels } from '../core/memory-read-labels.js';
+import {
+  resolveMemoryReadLimits,
+  type MemoryReadEntryV1,
+  type MemoryReadLimitsV1,
+  type MemoryReadScopeV1,
+  type MemoryReadViewV1,
+} from '../core/memory-read-contract.js';
+import { attendedExecutionProjectId } from '../core/attended-execution-approval.js';
 
 // ─── Core — utils ─────────────────────────────────────────────────
 import { getNextSprintId, readJsonSafe, debugLog } from '../core/utils.js';
-import { readAuthMode, resolveBrainPlanningMode } from '../core/config.js';
+import {
+  readAuthMode,
+  resolveBrainPlanningMode,
+  resolveMemoryReadConfig,
+  resolveMemoryReadLimitsForConsumer,
+} from '../core/config.js';
 import { createPromptCostCanaryTaskAuthority } from '../core/prompt-cost-canary-task-authority.js';
 import { estimateSprintCost } from '../core/cost-calculator.js';
 import { initCostConfig, loadCostConfig } from '../core/cost-config-loader.js';
@@ -129,7 +149,14 @@ import { BUILTIN_DOMAINS } from '../core/routing/vocabulary-builtin.js';
 
 // ─── Sub-module imports ──────────────────────────────────────────
 import { resolveTaskModel, parsePatterns, deduplicatePatterns } from './model-selector.js';
-import { createTask, extractScopeFromDirective, parseStructuredDirectives, plannerTaskToParams, normalizeStructuredTaskDependencies } from './task-builder.js';
+import {
+  createTask,
+  extractScopeFromDirective,
+  normalizeStructuredTaskDependencies,
+  parseStructuredDirectives,
+  plannerTaskToParams,
+} from './task-builder.js';
+import { extractExplicitAdrRefs } from './adr-selector.js';
 import { evaluatePromptGate } from './prompt-gate.js';
 import type { PromptGateResult } from '../core/prompt-gate-types.js';
 import type { InvocationReceiptRef } from '../core/invocation-receipt.js';
@@ -174,80 +201,177 @@ function mergeDeclaredFilesIntoScope(
  * @param projectRoot - Project root directory
  * @returns Complete brain context for sprint planning
  */
-export function readContext(projectRoot: string): BrainContext {
-  const brainPath = join(projectRoot, BRAIN_DIR);
-  const dbPath = join(brainPath, MEMORY_DB_FILE);
+type PlannerMemorySelection = Pick<BrainContext,
+  'memory' | 'memorySelectionRevisionDigest' | 'memoryReadInputDigest'
+  | 'memoryReadScope' | 'memoryReadLimits' | 'memoryReadLanguage'> & {
+    readonly selectedEntries: readonly MemoryReadEntryV1[];
+  };
 
+function renderPlannerGeneralMemory(view: Exclude<MemoryReadViewV1, { state: 'HOLD' }>, language: string): string {
+  if (view.state === 'ABSENT') return '';
+  const legacyProjectionTypes = new Set(['adr', 'debt', 'identity', 'pattern', 'retro']);
+  return renderMemoryReadView(Object.freeze({
+    ...view,
+    entries: Object.freeze(view.entries.filter(({ entry }) => !legacyProjectionTypes.has(entry.type))),
+    deferred: Object.freeze(view.deferred.filter(({ candidate }) => !legacyProjectionTypes.has(candidate.type))),
+  }), buildMemoryReadLabels(getMessage, language));
+}
+
+function readPlannerMemoryContext(
+  projectRoot: string,
+  directives: string,
+  limits?: Partial<MemoryReadLimitsV1>,
+  language = 'en',
+  scope: MemoryReadScopeV1 = {
+    kind: 'local-project',
+    projectId: attendedExecutionProjectId(projectRoot),
+  },
+): PlannerMemorySelection {
+  const dbPath = join(projectRoot, BRAIN_DIR, MEMORY_DB_FILE);
+  const resolvedLimits = resolveMemoryReadLimits(limits);
+  const memoryReadInputDigest = `sha256:${createHash('sha256').update(directives, 'utf8').digest('hex')}`;
+  const explicitAdrReferences = extractExplicitAdrRefs(directives);
+  if (!existsSync(dbPath)) {
+    if (explicitAdrReferences.length > 0) {
+      throw new BrainError('MEMORY_READ_CONTEXT_HOLD:REQUIRED_ENTRY_MISSING', SprintPhase.PLAN);
+    }
+    return {
+      memory: '',
+      selectedEntries: Object.freeze([]),
+      memoryReadInputDigest,
+      memoryReadScope: scope,
+      memoryReadLimits: resolvedLimits,
+      memoryReadLanguage: language,
+    };
+  }
+  let store: MemoryStore | undefined;
+  try {
+    store = new MemoryStore(dbPath, { readOnly: true });
+    const required = resolveMemoryRequiredIds(store, {
+      consumer: 'planner',
+      scope,
+      references: explicitAdrReferences,
+    });
+    if (required.state === 'HOLD') {
+      throw new BrainError(`MEMORY_READ_CONTEXT_HOLD:${required.reasonCode}`, SprintPhase.PLAN);
+    }
+    const queryText = buildMemoryDiscoveryQuery(directives);
+    const view = readMemoryView(store, {
+      consumer: 'planner',
+      scope,
+      query: queryText.length > 0 ? { text: queryText } : {},
+      limits: resolvedLimits,
+      requiredIds: required.exactIds,
+      includeCritical: true,
+      preferredLatestTypes: ['identity', 'retro'],
+    });
+    if (view.state === 'HOLD') {
+      throw new BrainError(`MEMORY_READ_CONTEXT_HOLD:${view.reasonCode}`, SprintPhase.PLAN);
+    }
+    return {
+      memory: renderPlannerGeneralMemory(view, language),
+      selectedEntries: view.state === 'AVAILABLE' ? view.entries : Object.freeze([]),
+      memorySelectionRevisionDigest: view.selectionRevisionDigest,
+      memoryReadInputDigest,
+      memoryReadScope: scope,
+      memoryReadLimits: resolvedLimits,
+      memoryReadLanguage: language,
+    };
+  } catch (error) {
+    if (error instanceof BrainError) throw error;
+    throw new BrainError('MEMORY_READ_CONTEXT_HOLD:QUERY_FAILED', SprintPhase.PLAN);
+  } finally {
+    store?.close();
+  }
+}
+
+function projectPlannerLegacyContext(selectedEntries: readonly MemoryReadEntryV1[]): Pick<BrainContext,
+  'retro' | 'debt' | 'patterns' | 'decisions' | 'projectIdentity'> {
+  const selected = selectedEntries.map(({ entry, reasons }) => ({ entry, reasons }));
+  const retro = selected.find(({ entry, reasons }) => entry.type === 'retro' && reasons.includes('PREFERRED_LATEST'))
+    ?.entry.content ?? '';
+  const projectIdentity = selected.find(({ entry, reasons }) => entry.type === 'identity' && reasons.includes('PREFERRED_LATEST'))
+    ?.entry.content;
+  const patterns = selected.some(({ entry }) => entry.type === 'pattern')
+    ? JSON.stringify(selected
+        .filter(({ entry }) => entry.type === 'pattern')
+        .map(({ entry }) => ({ pattern: entry.title, resolved: entry.status === 'resolved' })))
+    : '';
+  const decisions = selected
+    .filter(({ entry }) => entry.type === 'adr' && entry.status === 'accepted')
+    .map(({ entry }) => `## ${entry.id}: ${entry.title}\n\n**Status:** ${entry.status}\n\n${entry.content}`)
+    .join('\n\n---\n\n');
+  const debt = selected
+    .filter(({ entry }) => entry.type === 'debt' && entry.status !== 'resolved')
+    .map(({ entry }) => {
+      let metadata: Record<string, unknown>;
+      try {
+        const parsed = JSON.parse(entry.metadata || '{}') as unknown;
+        if (parsed === null || Array.isArray(parsed) || typeof parsed !== 'object') throw new Error('invalid-metadata');
+        metadata = parsed as Record<string, unknown>;
+      } catch {
+        throw new BrainError('MEMORY_READ_CONTEXT_HOLD:INVALID_DEBT_METADATA', SprintPhase.PLAN);
+      }
+      const debtClass = metadata['class'];
+      const originScope = metadata['originScope'];
+      const validDebtClass = debtClass === 'verified-no-result'
+        || debtClass === 'timeout-partial'
+        || debtClass === 'success-echo'
+        || debtClass === 'standard'
+        ? debtClass
+        : undefined;
+      const originScopeRecord = originScope !== null && !Array.isArray(originScope) && typeof originScope === 'object'
+        ? originScope as Record<string, unknown>
+        : null;
+      const originDirectories = originScopeRecord?.['directories'];
+      const originFilesWrite = originScopeRecord?.['filesWrite'];
+      const validOriginScope = Array.isArray(originDirectories)
+        && originDirectories.every((value: unknown) => typeof value === 'string')
+        && Array.isArray(originFilesWrite)
+        && originFilesWrite.every((value: unknown) => typeof value === 'string')
+        ? {
+            directories: [...originDirectories] as string[],
+            filesWrite: [...originFilesWrite] as string[],
+          }
+        : undefined;
+      return {
+        id: entry.id,
+        description: entry.content || entry.title,
+        originTaskId: typeof metadata['originTaskId'] === 'string' ? metadata['originTaskId'] : '',
+        originSprintId: typeof metadata['originSprintId'] === 'string'
+          ? metadata['originSprintId']
+          : entry.sprint_id ?? '',
+        priority: (entry.priority?.toUpperCase() ?? 'NORMAL') as DebtPriority,
+        sprintsOpen: typeof metadata['sprintsOpen'] === 'number' ? metadata['sprintsOpen'] : 0,
+        resolved: false,
+        resolvedInSprintId: undefined,
+        createdAt: entry.created_at,
+        class: validDebtClass,
+        originScope: validOriginScope,
+      } satisfies DebtItem;
+    });
+  return { retro, debt, patterns, decisions, projectIdentity };
+}
+
+export function readContext(
+  projectRoot: string,
+  memoryOptions?: { scope?: MemoryReadScopeV1 },
+): BrainContext {
   // Directives always from file (not in DB)
   const directives = readFileSafe(join(projectRoot, DIRECTIVES_FILE));
 
   // Try DB-first for brain context
-  let memory = '';
-  let retro = '';
-  let patterns = '';
-  let decisions = '';
-  let projectIdentity: string | undefined;
-  let debt: DebtItem[] = [];
-
-  if (existsSync(dbPath)) {
-    try {
-      const store = new MemoryStore(dbPath);
-      try {
-        // Memory: concat all memory entries as markdown
-        const memEntries = store.getByType('memory');
-        memory = memEntries.map(e => `## ${e.title}\n${e.content}`).join('\n\n');
-
-        // Retro: latest retro entry
-        const retroEntries = store.getByType('retro');
-        retro = retroEntries.length > 0 ? retroEntries[0]!.content : '';
-
-        // Patterns: all active patterns as JSON string (backward compat)
-        const patternEntries = store.getByType('pattern');
-        patterns = patternEntries.length > 0
-          ? JSON.stringify(patternEntries.map(p => ({ pattern: p.title, resolved: p.status === 'resolved' })))
-          : '';
-
-        // Decisions: concat all accepted ADRs
-        const adrEntries = store.getByType('adr').filter(a => a.status === 'accepted');
-        decisions = adrEntries.map(a => `## ${a.id}: ${a.title}\n\n**Status:** ${a.status}\n\n${a.content}`).join('\n\n---\n\n');
-
-        // Project Identity
-        const idEntry = store.getByType('identity');
-        projectIdentity = idEntry.length > 0 ? idEntry[0]!.content : undefined;
-
-        // Debt: convert DB entries to DebtItem[]
-        const debtEntries = store.getByType('debt').filter(d => d.status !== 'resolved');
-        debt = debtEntries.map(d => {
-          const meta = JSON.parse(d.metadata || '{}');
-          return {
-            id: d.id,
-            // born-603: surface the FULL note (`content`), not the 80-char-sliced
-            // `title` — injectCriticalDebtTasks pattern-matches honest no-op
-            // fix-wave echoes against this text, and a truncated title can cut
-            // the no-defect marker off before the match. `title` is a
-            // defensive fallback only (content is always set by debt-manager.ts).
-            description: d.content || d.title,
-            originTaskId: meta.originTaskId ?? '',
-            originSprintId: meta.originSprintId ?? d.sprint_id ?? '',
-            priority: (d.priority?.toUpperCase() ?? 'NORMAL') as DebtPriority,
-            sprintsOpen: meta.sprintsOpen ?? 0,
-            resolved: false,
-            resolvedInSprintId: undefined,
-            createdAt: d.created_at,
-            // Sprint 179 W1-1: surface class + originScope to injectCriticalDebtTasks
-            class: meta.class,
-            originScope: meta.originScope,
-          };
-        });
-      } finally {
-        store.close();
-      }
-    } catch {
-      // DB error — fall through to V1
-    }
+  let memoryConfig: ReturnType<typeof resolveMemoryReadConfig>;
+  try {
+    memoryConfig = resolveMemoryReadConfig(projectRoot, 'planner');
+  } catch {
+    throw new BrainError('MEMORY_READ_CONFIG_UNAVAILABLE', SprintPhase.PLAN);
   }
-
-  // If DB didn't populate (no DB or error), fields remain as empty strings/arrays
+  const plannerSelection = readPlannerMemoryContext(projectRoot, directives,
+    memoryConfig.memory_read, memoryConfig.language, memoryOptions?.scope);
+  const { selectedEntries, ...selectedMemory } = plannerSelection;
+  const { retro, debt, patterns, decisions, projectIdentity } = projectPlannerLegacyContext(selectedEntries);
+  const memory = selectedMemory.memory;
 
   // Existing tasks + git status (unchanged)
   const existingTasks: Task[] = [];
@@ -268,7 +392,26 @@ export function readContext(projectRoot: string): BrainContext {
     ? (treeResult.stdout ?? '').split('\n').filter(Boolean)
     : [];
 
-  return { directives, memory, retro, debt, patterns, decisions, projectIdentity, existingTasks, projectState: { gitStatus, fileTree } };
+  return {
+    directives,
+    memory,
+    ...(selectedMemory.memorySelectionRevisionDigest !== undefined
+      ? { memorySelectionRevisionDigest: selectedMemory.memorySelectionRevisionDigest }
+      : {}),
+    ...(selectedMemory.memoryReadInputDigest !== undefined
+      ? { memoryReadInputDigest: selectedMemory.memoryReadInputDigest }
+      : {}),
+    ...(selectedMemory.memoryReadScope !== undefined ? { memoryReadScope: selectedMemory.memoryReadScope } : {}),
+    ...(selectedMemory.memoryReadLimits !== undefined ? { memoryReadLimits: selectedMemory.memoryReadLimits } : {}),
+    ...(selectedMemory.memoryReadLanguage !== undefined ? { memoryReadLanguage: selectedMemory.memoryReadLanguage } : {}),
+    retro,
+    debt,
+    patterns,
+    decisions,
+    projectIdentity,
+    existingTasks,
+    projectState: { gitStatus, fileTree },
+  };
 }
 
 /**
@@ -304,6 +447,22 @@ export async function planSprint(
     deferTaskArtifactProjection?: boolean;
   },
 ): Promise<Sprint> {
+  const memoryReadInputDigest = `sha256:${createHash('sha256').update(context.directives, 'utf8').digest('hex')}`;
+  const plannerMemoryReadLimits = resolveMemoryReadLimitsForConsumer(config, 'planner');
+  if (context.memorySelectionRevisionDigest === undefined
+    || context.memoryReadInputDigest !== memoryReadInputDigest
+    || JSON.stringify(context.memoryReadLimits) !== JSON.stringify(plannerMemoryReadLimits)
+    || context.memoryReadLanguage !== config.language) {
+    const plannerSelection = readPlannerMemoryContext(
+      projectRoot,
+      context.directives,
+      plannerMemoryReadLimits,
+      config.language,
+      context.memoryReadScope,
+    );
+    const { selectedEntries, ...selectedMemory } = plannerSelection;
+    context = { ...context, ...selectedMemory, ...projectPlannerLegacyContext(selectedEntries) };
+  }
   const sprintId = getNextSprintId(projectRoot);
   // G-series plan-time prompt-gate result (persona/decision-space); computed after
   // routing inside the pool try-block, attached to the returned Sprint below.

@@ -5,19 +5,19 @@
 
 **Schema:** 3
 
-**Source digest:** `sha256(normalized-lf-utf8):fac06b95300ef933a4b8994b5a446dcec88f674b709b39b19b6942f04bea3f07`
+**Source digest:** `sha256(normalized-lf-utf8):474c246d52f7b0fc124b941a7fb8d68f06d43fe8de2ae30cf5f19b2f365754a9`
 
-**Rows:** 576 total · 488 active · 88 terminal
+**Rows:** 578 total · 490 active · 88 terminal
 
 ## State summary
 
 | State | Count |
 |---|---:|
-| OPEN | 366 |
+| OPEN | 367 |
 | READY | 0 |
 | IN_PROGRESS | 0 |
 | BLOCKED | 69 |
-| VERIFY | 51 |
+| VERIFY | 52 |
 | DONE | 88 |
 | DEFERRED | 2 |
 | DISPOSED | 0 |
@@ -470,6 +470,8 @@
 | 8099 | `COMPETITIVE-INTEL-001` | OPEN | P2 | PRODUCT | — | — | Recurring competitive telemetry scorecard and trigger-based re-analysis |
 | 8100 | `CI-POSTMERGE-127-TRUTH-001` | VERIFY | P0 | REPO | — | — | Post-#127 main truth closure — hermetic docker-probe pin + ingress baseline realign |
 | 9000 | `LEARNING-001` | OPEN | P0 | LEARNING | `KERNEL-001`, `AUDIT-001` | — | Closed, governed learning and evolution parent |
+| 9001 | `BRAIN-MEMORY-LIFECYCLE-001` | OPEN | P1 | LEARNING | `MEMORY-DB-001`, `PROMPT-001`, `ROUTING-OUTCOME-LEARNING-AUTHORITY-001`, `PRINCIPAL-001`, `TENANT-001`, `STATE-RETENTION-001`, `DATA-GOV-001` | — | Kanıt-temelli büyüyen ürün belleği: bounded semantic çalışma bağlamı, katmanlı bilgi ve AI-enterprise/post-production yaşam döngüsü |
+| 9002 | `BRAIN-MEMORY-COMPACT-001` | VERIFY | P1 | LEARNING | — | — | Bugünkü ürün belleğini kayıpsız compact görünüm ve anlam-koruyan bounded recall ile işlevsel hale getir |
 | 9010 | `TRAINING-TRACE-001` | OPEN | P0 | LEARNING | `KERNEL-SETTLEMENT-001`, `RECEIPT-001` | — | Training trace wired from attempt to accepted outcome |
 | 9011 | `PROMPT-INJECTION-TRACE-001` | OPEN | P0 | LEARNING | `PROMPT-001`, `AUDIT-001`, `STATE-RETENTION-001` | — | Prompt/ADR injection kararları için project-root-bound, versioned, privacy-safe ve outcome-linked causal trace authority |
 | 9012 | `TRACE-DATA-GOVERNANCE-001` | OPEN | P0 | DATA | `DATA-GOV-001`, `STATE-RETENTION-001`, `AUDIT-001` | — | Training trace için purpose-bound consent, rights, classification, tenant isolation, retention ve deletion authority |

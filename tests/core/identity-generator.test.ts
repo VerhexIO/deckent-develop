@@ -26,6 +26,7 @@ import type {
   IdentityContext,
   PostFinalizeHookOptions,
 } from '../../src/core/identity-generator.js';
+import { buildMemoryExportLabels } from '../../src/core/memory-export-labels.js';
 
 // ─── Mocks ──────────────────────────────────────────────────────────
 
@@ -43,18 +44,21 @@ vi.mock('../../src/core/utils.js', () => ({
 
 // Mock memory-store and memory-export for runMemoryExport tests
 const mockClose = vi.fn();
+const mockMemoryStore = vi.fn();
 const mockStore = {
   close: mockClose,
 };
 vi.mock('../../src/core/memory-store.js', () => ({
-  MemoryStore: vi.fn().mockImplementation(() => mockStore),
+  MemoryStore: mockMemoryStore.mockImplementation(() => mockStore),
 }));
 
+const mockWriteGuardedExports = vi.fn(() => ({
+  written: ['summary.md', 'decisions.md', 'memory.md', 'debt.md'],
+  skipped: [],
+  warnings: [],
+}));
 vi.mock('../../src/core/memory-export.js', () => ({
-  exportSummaryMd: vi.fn().mockReturnValue('# Summary'),
-  exportDecisionsMd: vi.fn().mockReturnValue('# Decisions'),
-  exportMemoryMd: vi.fn().mockReturnValue('# Memory'),
-  exportDebtMd: vi.fn().mockReturnValue('# Debt'),
+  writeGuardedExports: (...args: unknown[]) => mockWriteGuardedExports(...args),
 }));
 
 // ─── Helpers ────────────────────────────────────────────────────────
@@ -237,6 +241,20 @@ describe('runMemoryExport', () => {
     expect(mockClose).toHaveBeenCalledOnce();
   });
 
+  it('opens the export snapshot read-only and forwards caller render options', async () => {
+    mockedExistsSync.mockReturnValue(true);
+    const labels = buildMemoryExportLabels((key, language) => `${language}:${key}`, 'tr');
+
+    await runMemoryExport('/test', { labels });
+
+    expect(mockMemoryStore).toHaveBeenCalledWith('/test/.brain/memory.db', { readOnly: true });
+    expect(mockWriteGuardedExports).toHaveBeenCalledWith(
+      mockStore,
+      '/test/.brain/exports',
+      { labels },
+    );
+  });
+
   it('returns error when memory.db not found', async () => {
     mockedExistsSync.mockReturnValue(false);
 
@@ -247,18 +265,32 @@ describe('runMemoryExport', () => {
     expect(result.filesWritten).toHaveLength(0);
   });
 
-  it('handles partial export failure', async () => {
+  it('reports guarded export warnings without declaring success', async () => {
     mockedExistsSync.mockReturnValue(true);
-    const { exportDecisionsMd } = await import('../../src/core/memory-export.js');
-    vi.mocked(exportDecisionsMd).mockImplementationOnce(() => {
-      throw new Error('DB locked');
+    mockWriteGuardedExports.mockReturnValueOnce({
+      written: ['summary.md'],
+      skipped: ['decisions.md'],
+      warnings: ['decisions.md guarded'],
     });
 
     const result = await runMemoryExport('/test');
 
     expect(result.success).toBe(false);
     expect(result.filesWritten).toContain('summary.md');
-    expect(result.errors.some(e => e.includes('decisions.md'))).toBe(true);
+    expect(result.errors).toContain('decisions.md guarded');
+  });
+
+  it('closes the read-only snapshot when guarded rendering throws', async () => {
+    mockedExistsSync.mockReturnValue(true);
+    mockWriteGuardedExports.mockImplementationOnce(() => {
+      throw new Error('guarded renderer failed');
+    });
+
+    const result = await runMemoryExport('/test');
+
+    expect(result.success).toBe(false);
+    expect(result.errors.join('\n')).toContain('guarded renderer failed');
+    expect(mockClose).toHaveBeenCalledOnce();
   });
 });
 
@@ -282,6 +314,24 @@ describe('runPostFinalizeHooks', () => {
     expect(result.identityRegen).toBeNull(); // Sprint 168 C0a-1: skipIdentityRegen default=true (BUG-GG)
     expect(result.ruleRegenCalled).toBe(true);
     expect(ruleRegenFn).toHaveBeenCalledWith('/test');
+  });
+
+  it('forwards memory export render options through the public hook', async () => {
+    mockedExistsSync.mockReturnValue(true);
+    const labels = buildMemoryExportLabels((key, language) => `${language}:${key}`, 'tr');
+
+    await runPostFinalizeHooks({
+      projectRoot: '/test',
+      sprintId: 'sprint-143',
+      metrics: makeMetrics(),
+      memoryExportRenderOptions: { labels },
+    });
+
+    expect(mockWriteGuardedExports).toHaveBeenCalledWith(
+      mockStore,
+      '/test/.brain/exports',
+      { labels },
+    );
   });
 
   it('skips memory export when skipMemoryExport=true', async () => {

@@ -216,10 +216,21 @@ describe('buildPlanPrompt', () => {
     expect(prompt).not.toContain('src/file-149.ts');
   });
 
-  it('truncates context to BRAIN_PLAN_MAX_CONTEXT_LINES', () => {
-    const longDirectives = Array.from({ length: 300 }, (_, i) => `Directive line ${i}`).join('\n');
-    const prompt = buildPlanPrompt(makeContext({ directives: longDirectives }), makeRecommendation(), 'test');
-    expect(prompt.length).toBeGreaterThan(0);
+  it('preserves full directives and canonical whole-unit context beyond 200 lines', () => {
+    const directives = Array.from({ length: 260 }, (_, i) => `Directive line ${i}`).join('\n');
+    const memory = Array.from({ length: 150 }, (_, i) => `Memory unit line ${i}`).join('\n');
+    const decisions = Array.from({ length: 120 }, (_, i) => `Decision line ${i}`).join('\n');
+    const debt: DebtItem[] = [{
+      id: 'critical-tail',
+      description: `${Array.from({ length: 40 }, (_, i) => `Critical line ${i}`).join('\n')}\nCRITICAL_CONTEXT_TAIL`,
+      originTaskId: 'task-1', originSprintId: 'sprint-1', priority: 'CRITICAL' as never,
+      sprintsOpen: 1, resolved: false, createdAt: '',
+    }];
+    const prompt = buildPlanPrompt(makeContext({ directives, memory, decisions, debt }), makeRecommendation(), 'test');
+    expect(prompt).toContain('Directive line 259');
+    expect(prompt).toContain('Memory unit line 149');
+    expect(prompt).toContain('Decision line 119');
+    expect(prompt).toContain('CRITICAL_CONTEXT_TAIL');
   });
 
   it('handles empty context gracefully', () => {
@@ -1024,7 +1035,7 @@ describe('buildPriorityContextBlock', () => {
     expect(result).toContain('MEMORY');
   });
 
-  it('preserves higher-priority sections when truncating', () => {
+  it('HOLDs instead of silently dropping lower-priority sections', () => {
     const directives = Array.from({ length: 50 }, (_, i) => `directive line ${i}`).join('\n');
     const memory = Array.from({ length: 50 }, (_, i) => `memory line ${i}`).join('\n');
     const patterns = Array.from({ length: 50 }, (_, i) => `pattern line ${i}`).join('\n');
@@ -1033,20 +1044,25 @@ describe('buildPriorityContextBlock', () => {
       { text: `MEMORY:\n${memory}`, priority: 2 },
       { text: `PATTERNS:\n${patterns}`, priority: 4 },
     ];
-    const result = buildPriorityContextBlock(sections, 60);
-    // DIRECTIVES (priority 1) must be preserved over PATTERNS (priority 4)
-    expect(result).toContain('DIRECTIVES');
-    expect(result).toContain('directive line');
+    expect(() => buildPriorityContextBlock(sections, 60))
+      .toThrow('BRAIN_PLAN_CONTEXT_LIMIT_EXCEEDED');
   });
 
-  it('drops lowest priority sections first when over limit', () => {
+  it('HOLDs when even the highest-priority meaning unit exceeds the caller limit', () => {
+    const wholeDirective = ['DIRECTIVES:', 'line-1', 'line-2', 'line-3', 'MANDATORY-END'].join('\n');
+    expect(() => buildPriorityContextBlock([
+      { text: wholeDirective, priority: 1 },
+      { text: 'MEMORY:\nlower-priority', priority: 2 },
+    ], 3)).toThrow('BRAIN_PLAN_CONTEXT_LIMIT_EXCEEDED');
+  });
+
+  it('never drops the lowest-priority section to satisfy a legacy limit', () => {
     const sections = [
       { text: 'DIRECTIVES:\nKeep this', priority: 1 },
       { text: 'FILE TREE:\nMaybe drop this', priority: 8 },
     ];
-    const result = buildPriorityContextBlock(sections, 5);
-    expect(result).toContain('DIRECTIVES');
-    // FILE TREE has lower priority and may be dropped
+    expect(() => buildPriorityContextBlock(sections, 3))
+      .toThrow('BRAIN_PLAN_CONTEXT_LIMIT_EXCEEDED');
   });
 
   it('skips empty text sections', () => {

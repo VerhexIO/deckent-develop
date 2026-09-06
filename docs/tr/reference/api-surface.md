@@ -26,7 +26,10 @@ curl -N "http://127.0.0.1:3100/api/events?token=$DECKENT_API_TOKEN"
 | `GET /api/history` | Sprint history. | `src/api/server.ts:893-897` |
 | `GET /api/config`, `/api/config/defaults` | Current project-file view ve defaults view. | `src/api/server.ts:898-911` |
 | `GET /api/doctor` | Readiness diagnostics. | `src/api/server.ts:912-917` |
-| `GET /api/memory`, `/api/memory/search?q=` | Memory projection ve FTS5 search. | `src/api/server.ts:918-925`; `src/api/memory-search-endpoint.ts:2-38` |
+| `GET /api/memory` | Bounded, principal-scoped compatibility projection döndürür: `{content, schemaVersion:1, view}`. Global export-file bypass değildir. | `src/api/memory-search-endpoint.ts` |
+| `GET /api/memory/search?v=1&q=&type=&status=&sprint_min=&mode=&limit=&cursor=` | Versioned bounded view. Verified principal tenant/local-project scope'u belirler; URL parameter tenant seçemez. `AVAILABLE`, `ABSENT` ve typed `HOLD` açıktır. | `src/api/memory-search-endpoint.ts`; `src/core/memory-read-service.ts` |
+| `GET /api/memory/detail?v=1&ref=` | Bir opaque detail reference için aynı scope altında yeniden doğrulanan versioned complete-entry read. | `src/api/memory-search-endpoint.ts`; `src/core/memory-read-service.ts` |
+| `GET /api/memory/search?q=` | Legacy array compatibility. Successful read array shape'i korur; unavailable/held read empty success array değil typed non-200 response'tur. | `src/api/memory-search-endpoint.ts` |
 | `GET /api/debt`, `/api/tasks`, `/api/workers`, `/api/agents` | Debt, task, worker ve agent görünümü. | `src/api/server.ts:926-984` |
 | `GET /api/routing/distribution` | Routing distribution görünümü. | `src/api/server.ts:985-1001` |
 | `GET /api/job/:id`, `/api/worker/:id/log` | Detached job ve worker-log snapshot'ları. | `src/api/server.ts:1002-1032` |

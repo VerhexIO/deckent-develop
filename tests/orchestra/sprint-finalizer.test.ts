@@ -205,6 +205,9 @@ import * as observabilityMod from '../../src/core/observability.js';
 import * as eventStreamMod from '../../src/orchestra/event-stream.js';
 import { writeEvent as writeCanonicalEvent } from '../../src/core/event-stream.js';
 import { MemoryStore } from '../../src/core/memory-store.js';
+import { getMessage } from '../../src/cli/helpers/messages.js';
+import { buildMemoryExportLabels } from '../../src/core/memory-export-labels.js';
+import * as skillAttributionMod from '../../src/core/routing/skill-attribution.js';
 
 import {
   runHonestyCheck,
@@ -217,6 +220,7 @@ import {
   publishFencedSprintTerminalReceipt,
 } from '../../src/orchestra/sprint-finalizer.js';
 import type { FinalizeSprintOptions, SelfAuditResult } from '../../src/orchestra/sprint-finalizer.js';
+import type { ResolvedConfig } from '../../src/core/types.js';
 import { GO_WITH_GATE_FAILURE } from '../../src/orchestra/result-evaluator.js';
 import { runDecay as mockRunDecay, auditBrainBudget as mockAuditBrainBudget } from '../../src/orchestra/debt-manager.js';
 import { tryCodeVerifiedDone, writeCodeVerifiedResult } from '../../src/monitor/auditor.js';
@@ -1214,6 +1218,58 @@ describe('sprint-finalizer — post-finalize hooks (Sprint 143 Task 10)', () => 
     };
     expect(callArgs.skipMemoryExport).toBe(true);
     expect(callArgs.skipIdentityRegen).toBe(true);
+  });
+
+  it('derives Turkish memory-export labels from the resolved project config', async () => {
+    const sprint = makeSprint('sprint-143');
+    const { evaluations, results } = settledFixture(sprint);
+    // This test is intentionally self-contained: terminal skill-attribution
+    // integrity binds provider/auth and provider-reported usage. Do not depend
+    // on broader recovery fixture rewrites to reach the memory-export seam.
+    sprint.tasks[0]!.provider = 'codex';
+    sprint.tasks[0]!.authMode = 'subscription';
+    results[0]!.tokenUsage = {
+      inputTokens: 0,
+      outputTokens: 0,
+      cacheReadTokens: 0,
+      provider: 'codex',
+      model: 'sonnet',
+    };
+    const config = {
+      language: 'tr',
+      memory_export: {
+        max_inline_lines: 901,
+        max_inline_bytes: 4097,
+        summary_inline_lines: 27,
+        summary_inline_bytes: 513,
+      },
+    } as ResolvedConfig;
+
+    // Skill-attribution receipt cutover belongs to the inherited recovery lane.
+    // Keep this memory-export forwarding proof at its own seam while the selected
+    // HEAD tree still emits an unprefixed logical-settlement digest there.
+    const attributionWrite = vi.spyOn(skillAttributionMod, 'writeSkillAttributionBatch')
+      .mockImplementation(() => undefined);
+    try {
+      await finalizeSprint(PROJECT_ROOT, sprint, evaluations, results, {
+        skipDecay: true,
+        skipHooks: true,
+        config,
+      });
+    } finally {
+      attributionWrite.mockRestore();
+    }
+
+    const callArgs = mockRunPostFinalizeHooks.mock.calls[0][0] as {
+      memoryExportRenderOptions?: unknown;
+    };
+    expect(callArgs.memoryExportRenderOptions).toEqual({
+      labels: buildMemoryExportLabels(getMessage, 'tr'),
+      maxInlineLines: 901,
+      maxInlineBytes: 4097,
+      summaryInlineLines: 27,
+      summaryInlineBytes: 513,
+    });
   });
 
   it('finalizeSprint continues when post-finalize hooks fail (fail-safe)', async () => {

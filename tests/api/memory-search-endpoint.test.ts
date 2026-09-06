@@ -119,6 +119,39 @@ describe('GET /api/memory/search', () => {
   });
 });
 
+describe('GET /api/memory/search v1 bounded reader', () => {
+  let handle: TestServerHandle;
+  afterEach(async () => {
+    if (handle) { await handle.close(); handle = undefined as unknown as TestServerHandle; }
+  });
+
+  it('returns the versioned scoped view and a typed HOLD instead of a fake empty result when the DB is absent', async () => {
+    handle = await startTestServer({ disableAuth: true });
+    const absent = await call(handle, '/api/memory/search?v=1&q=needle');
+    expect(absent.status).toBe(200);
+    expect(absent.json<{ schemaVersion: number; view: { state: string; reasonCode: string } }>()).toMatchObject({ schemaVersion: 1, view: { state: 'HOLD', reasonCode: 'QUERY_FAILED' } });
+
+    seedMemory(handle.projectRoot, [{ title: 'Scoped complete entry', content: 'needle whole entry body' }]);
+    const available = await call(handle, '/api/memory/search?v=1&q=needle&type=memory');
+    expect(available.status).toBe(200);
+    expect(available.json<{ schemaVersion: number; view: { state: string; entries: Array<{ entry: { content: string } }> } }>()).toMatchObject({
+      schemaVersion: 1,
+      view: { state: 'AVAILABLE', entries: [{ entry: { content: 'needle whole entry body' } }] },
+    });
+  });
+
+  it('upgrades the /api/memory compatibility route to a bounded v1 scoped projection', async () => {
+    handle = await startTestServer({ disableAuth: true });
+    seedMemory(handle.projectRoot, [{ title: 'Memory alias', content: 'bounded alias content', type: 'memory' }]);
+    const response = await call(handle, '/api/memory');
+    expect(response.status).toBe(200);
+    expect(response.json<{ schemaVersion: number; content: string; view: { state: string } }>()).toMatchObject({
+      schemaVersion: 1,
+      view: { state: 'AVAILABLE' },
+    });
+  });
+});
+
 // ═══ TENANT-001 T4b (GR-2026-08-08-TENANT-T4B-01) — memory-search tenant scope ═
 // Measured 2026-08-08: the widest tenant leak in the product. server.ts called
 // registerMemorySearch WITHOUT `req`, so the principal was never derived and

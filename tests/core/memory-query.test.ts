@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdtempSync, rmSync } from 'node:fs';
+import Database from 'better-sqlite3';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { MemoryStore } from '../../src/core/memory-store.js';
@@ -92,6 +93,21 @@ describe('searchMemory — FTS', () => {
   it('returns empty for non-matching query', () => {
     const results = searchMemory(store, { text: 'xyznonexistent' });
     expect(results).toEqual([]);
+  });
+
+  it('treats embedded quotes and punctuation as literal FTS input', () => {
+    store.insert({
+      id: 'mem-quoted-change',
+      type: 'memory',
+      title: 'Quoted change marker',
+      content: 'The "change": field remains searchable without leaking FTS syntax.',
+      sprint_id: 'sprint-141',
+      sprint_num: 141,
+    });
+
+    expect(() => searchMemory(store, { text: '"change":' })).not.toThrow();
+    expect(searchMemory(store, { text: '"change":' }).map(result => result.entry.id))
+      .toContain('mem-quoted-change');
   });
 
   it('Turkish normalize: "brain import" finds ADR-008 (Turkish content)', () => {
@@ -351,6 +367,11 @@ describe('escapeFts5Query', () => {
     expect(escapeFts5Query('dock* beat*', 'and')).toBe('"dock"* "beat"*');
   });
 
+  it('doubles embedded quotes in literals and wildcard bases', () => {
+    expect(escapeFts5Query('"change":')).toBe('"""change"":"');
+    expect(escapeFts5Query('change"*')).toBe('"change"""*');
+  });
+
   it('handles empty input', () => {
     expect(escapeFts5Query('')).toBe('');
     expect(escapeFts5Query('   ')).toBe('');
@@ -376,5 +397,19 @@ describe('MemoryQueryError', () => {
     const cause = new Error('sqlite error');
     const err = new MemoryQueryError('FTS5 failed', cause);
     expect(err.cause).toBe(cause);
+  });
+
+  it('fails closed when an explicit tenant query targets a schema without tenant_id', () => {
+    const legacyPath = join(tmpDir, 'legacy-no-tenant.db');
+    const legacyDb = new Database(legacyPath);
+    legacyDb.exec('CREATE TABLE entries (id TEXT PRIMARY KEY)');
+    legacyDb.close();
+    const legacyStore = new MemoryStore(legacyPath, { readOnly: true });
+    try {
+      expect(() => searchMemory(legacyStore, { tenantId: 'tenant-a' }))
+        .toThrowError(/requires entries\.tenant_id/u);
+    } finally {
+      legacyStore.close();
+    }
   });
 });

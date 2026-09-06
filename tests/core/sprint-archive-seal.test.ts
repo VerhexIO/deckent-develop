@@ -16,6 +16,7 @@ import { Worker } from 'node:worker_threads';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { MemoryStore } from '../../src/core/memory-store.js';
+import { buildMemoryExportLabels } from '../../src/core/memory-export-labels.js';
 import {
   isSprintArchivePathContained,
   publishSprintArchiveArtifact,
@@ -359,6 +360,26 @@ describe('typed terminal archive seal', () => {
     });
     expect(existsSync(join(root, '.brain', 'exports', 'summary.md'))).toBe(true);
     expect(verification.ok).toBe(true);
+  });
+
+  it('forwards caller-owned labels through Brain adoption without persisting render options', () => {
+    persistMarker(true);
+    createBrain();
+    const content = journal();
+    const hot = write(`.deckent/recently-works/${sprintId}-events.jsonl`, content);
+    const labels = buildMemoryExportLabels((key, language) => `${language}:${key}`, 'tr');
+
+    const result = sealSprintArchiveTerminal(
+      root,
+      sprintId,
+      request(hot, content, null, { adoptBrain: true }),
+      { labels },
+    );
+    const receiptPath = join(resolveSprintArchiveDir(root, sprintId), 'terminal-seal-receipt.json');
+
+    expect(result).toMatchObject({ terminalComplete: true, applicationReceipt: { state: 'applied', brainAdopted: true } });
+    expect(readFileSync(join(root, '.brain', 'exports', 'summary.md'), 'utf8')).toContain(`# ${labels.summaryTitle}`);
+    expect(JSON.parse(readFileSync(receiptPath, 'utf8'))).not.toHaveProperty('renderOptions');
   });
 
   it('binds the writer-owned adopted row while another live Brain WAL connection remains open', () => {

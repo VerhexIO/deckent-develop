@@ -1,200 +1,250 @@
 // @vitest-environment happy-dom
 import React from "react";
-import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
-import { render, screen, fireEvent, cleanup } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { LanguageProvider } from "../../src/dashboard/src/i18n/LanguageProvider";
-import MemoryExplorer, {
-  parseAdrEntries,
-  filterMemoryContent,
-  type AdrEntry,
-} from "../../src/dashboard/src/components/MemoryExplorer";
+import MemoryExplorer from "../../src/dashboard/src/components/MemoryExplorer";
 
-vi.mock("../../src/dashboard/src/hooks/useApi", () => ({
-  useApi: vi.fn(() => ({ data: null, loading: false, error: null, refetch: vi.fn() })),
+const memoryHooks = vi.hoisted(() => ({
+  useMemoryRead: vi.fn(),
+  useMemoryDetail: vi.fn(),
+}));
+const fetchJson = vi.hoisted(() => vi.fn((url: string) => {
+  if (url === '/api/config') return Promise.resolve({ language: 'en' });
+  return Promise.reject(new Error(`UNEXPECTED_DASHBOARD_REQUEST:${url}`));
 }));
 
-vi.mock("../../src/dashboard/src/lib/api", () => ({
-  fetchJson: vi.fn().mockRejectedValue(new Error("no server")),
+vi.mock("../../src/dashboard/src/lib/api", () => ({ fetchJson }));
+vi.mock("../../src/dashboard/src/lib/memory-read", async () => ({
+  ...(await vi.importActual<typeof import("../../src/dashboard/src/lib/memory-read")>("../../src/dashboard/src/lib/memory-read")),
+  useMemoryRead: memoryHooks.useMemoryRead,
+  useMemoryDetail: memoryHooks.useMemoryDetail,
 }));
 
-afterEach(() => {
-  cleanup();
-  vi.clearAllMocks();
-});
+const scope = { kind: 'tenant' as const, tenantId: 'tenant-a', projectId: 'project-proof' };
+const revision = `sha256:${'a'.repeat(64)}`;
 
-beforeEach(() => {
-  globalThis.fetch = vi.fn().mockRejectedValue(new Error("no server"));
-});
-
-function renderWithProviders(ui: React.ReactElement) {
-  return render(<LanguageProvider>{ui}</LanguageProvider>);
+function entry(id: string, content = `Complete body for ${id}`) {
+  return {
+    entry: {
+      id,
+      type: 'memory',
+      title: `Title ${id}`,
+      content,
+      source: 'brain',
+      status: 'active',
+      sprint_id: 'sprint-9002',
+      updated_at: '2026-09-06T12:00:00.000Z',
+    },
+    contentDigest: 'sha256:shared-content-digest',
+  };
 }
 
-const MEMORY_CONTENT = `# Brain Memory
+function available(overrides: Record<string, unknown> = {}) {
+  return {
+    data: {
+      schemaVersion: 1,
+      view: {
+        state: 'AVAILABLE',
+        scope,
+        selectionRevisionDigest: revision,
+        entries: [entry('mem-1', 'Entire entry body, not a line-filtered export.')],
+        deferred: [],
+        nextCursor: null,
+        ...overrides,
+      },
+    },
+    loading: false,
+    error: null,
+  };
+}
 
-## Sprint Learnings
-
-| ID | Title | Status |
-|----|-------|--------|
-| adr-001 | TypeScript + ESM | accepted |
-| adr-002 | Node16 Module Resolution | accepted |
-| adr-073 | Routing Live Validation | accepted |
-
-Some memory content about sprint-210 learnings and task outcomes.
-Docker heartbeat fix was important.
-`;
-
-const DEBT_CONTENT = `| ID | Description | Priority | Sprint | Status |
-|----|-------------|----------|--------|--------|
-| --- | --- | --- | --- | --- |
-| DEBT-001 | Test coverage gap | NORMAL | sprint-210 | open |
-| DEBT-002 | Stale heartbeat | LOW | sprint-209 | open |
-`;
-
-// ─── parseAdrEntries ─────────────────────────────────────────────────────────
-
-describe("parseAdrEntries", () => {
-  it("extracts ADR entries from table-formatted content", () => {
-    const result = parseAdrEntries(MEMORY_CONTENT);
-    expect(result.length).toBeGreaterThanOrEqual(1);
-    const ids = result.map((e) => e.id);
-    expect(ids.some((id) => id.includes("adr-001") || id.includes("adr-002"))).toBe(true);
-  });
-
-  it("deduplicates entries with same id", () => {
-    const content = `| adr-001 | Title A | accepted |
-| adr-001 | Title A | accepted |
-| adr-002 | Title B | proposed |`;
-    const result = parseAdrEntries(content);
-    const ids = result.map((e) => e.id);
-    const unique = new Set(ids);
-    expect(unique.size).toBe(ids.length);
-  });
-
-  it("returns empty array for empty content", () => {
-    expect(parseAdrEntries("")).toHaveLength(0);
-    expect(parseAdrEntries("No ADR entries here.")).toHaveLength(0);
-  });
-
-  it("normalizes status to lowercase", () => {
-    const content = `| ADR-010 | Commander.js | Accepted |`;
-    const result = parseAdrEntries(content);
-    if (result.length > 0) {
-      expect(result[0].status).toBe(result[0].status.toLowerCase());
-    }
-  });
-});
-
-// ─── filterMemoryContent ─────────────────────────────────────────────────────
-
-describe("filterMemoryContent", () => {
-  it("returns all content when query is empty", () => {
-    const result = filterMemoryContent(MEMORY_CONTENT, "");
-    expect(result).toBe(MEMORY_CONTENT);
-  });
-
-  it("filters lines matching query (case-insensitive)", () => {
-    const result = filterMemoryContent(MEMORY_CONTENT, "docker");
-    expect(result.toLowerCase()).toContain("docker");
-    expect(result).not.toContain("Sprint Learnings");
-  });
-
-  it("returns empty string when no lines match", () => {
-    const result = filterMemoryContent(MEMORY_CONTENT, "ZZZNOMATCH999");
-    expect(result.trim()).toBe("");
-  });
-});
-
-// ─── MemoryExplorer component ─────────────────────────────────────────────────
+function renderExplorer() {
+  return render(<LanguageProvider><MemoryExplorer /></LanguageProvider>);
+}
 
 describe("MemoryExplorer", () => {
-  it("renders search tab with search input and memory content", () => {
-    renderWithProviders(
-      <MemoryExplorer memoryContent={MEMORY_CONTENT} debtContent={DEBT_CONTENT} />,
-    );
+  beforeEach(() => {
+    memoryHooks.useMemoryRead.mockReturnValue(available());
+    memoryHooks.useMemoryDetail.mockReturnValue({ data: null, loading: false, error: null });
+  });
+  afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
-    expect(screen.getByTestId("memory-explorer")).toBeTruthy();
-    expect(screen.getByTestId("search-input")).toBeTruthy();
-    expect(screen.getByTestId("memory-content")).toBeTruthy();
+  it("renders whole units with compact identity, source and scoped revision evidence", () => {
+    memoryHooks.useMemoryRead.mockReturnValue(available({
+      entries: [entry('mem-1'), entry('mem-2')],
+    }));
+    renderExplorer();
+
+    expect(screen.getByTestId("memory-content").textContent).toContain('Complete body for mem-1');
+    expect(screen.getByTestId("memory-content").textContent).toContain('Complete body for mem-2');
+    expect(screen.getByText('Record ID: mem-1')).toBeTruthy();
+    expect(screen.getAllByText('Source: brain').length).toBeGreaterThan(0);
+    expect(screen.getByTestId('memory-read-metadata').textContent).toContain('Tenant: tenant-a');
+    expect(screen.getByTestId('memory-read-metadata').textContent).toContain('Project: project-proof');
+    expect(screen.getByTestId('memory-read-metadata').textContent).toContain(revision.slice(0, 19));
+    expect(screen.getByText('Complete body for mem-1').className).toContain('whitespace-pre-wrap');
   });
 
-  it("filters memory content when user types in search box", () => {
-    renderWithProviders(
-      <MemoryExplorer memoryContent={MEMORY_CONTENT} debtContent={DEBT_CONTENT} />,
-    );
-
-    const input = screen.getByTestId("search-input") as HTMLInputElement;
-    fireEvent.change(input, { target: { value: "docker" } });
-
-    expect(input.value).toBe("docker");
-    // The content container should still exist
-    expect(screen.getByTestId("memory-content")).toBeTruthy();
+  it("changes the actual API selector when ADR or debt tabs are selected", () => {
+    renderExplorer();
+    fireEvent.click(screen.getByTestId('tab-adr'));
+    expect(memoryHooks.useMemoryRead.mock.calls.some(([request]) => request.type === 'adr')).toBe(true);
+    fireEvent.click(screen.getByTestId('tab-debt'));
+    expect(memoryHooks.useMemoryRead.mock.calls.some(([request]) => request.type === 'debt')).toBe(true);
   });
 
-  it("shows no-results message when search has no matches", () => {
-    renderWithProviders(
-      <MemoryExplorer memoryContent={MEMORY_CONTENT} debtContent={DEBT_CONTENT} />,
-    );
+  it("uses a non-overlapping responsive search form", () => {
+    renderExplorer();
+    const form = screen.getByTestId('search-container');
+    const input = screen.getByTestId('search-input');
+    const submit = screen.getByTestId('memory-search-submit');
 
-    const input = screen.getByTestId("search-input") as HTMLInputElement;
-    fireEvent.change(input, { target: { value: "ZZZNOMATCH999" } });
-
-    expect(screen.getByTestId("search-no-results")).toBeTruthy();
+    expect(form.className).toContain('flex-wrap');
+    expect(input.parentElement?.className).toContain('flex-1');
+    expect(submit.className).toContain('shrink-0');
+    fireEvent.change(input, { target: { value: 'narrow viewport proof' } });
+    expect(screen.getByTestId('search-clear').className).toContain('right-2');
+    expect(submit.className).not.toContain('absolute');
   });
 
-  it("renders ADR tab with list when memory content has ADR entries", () => {
-    renderWithProviders(
-      <MemoryExplorer memoryContent={MEMORY_CONTENT} debtContent={DEBT_CONTENT} />,
-    );
+  it("uses tab-specific empty headings without claiming a sprint will populate the reader", () => {
+    memoryHooks.useMemoryRead.mockReturnValue({
+      data: {
+        schemaVersion: 1,
+        view: { state: 'ABSENT', scope, selectionRevisionDigest: revision, entries: [], deferred: [], nextCursor: null },
+      },
+      loading: false,
+      error: null,
+    });
+    renderExplorer();
 
-    const adrTab = screen.getByTestId("tab-adr");
-    fireEvent.click(adrTab);
-
-    expect(screen.getByTestId("adr-list")).toBeTruthy();
+    expect(screen.getByTestId('memory-absent').textContent).toContain('No matching memory entries');
+    expect(screen.getByTestId('memory-absent').textContent).toContain('No records match this scoped read.');
+    expect(screen.getByTestId('memory-absent').textContent).not.toContain('sprint has completed');
+    fireEvent.click(screen.getByTestId('tab-adr'));
+    expect(screen.getByTestId('memory-absent').textContent).toContain('No matching ADR entries');
   });
 
-  it("renders debt tab with DebtTable when debt content provided", () => {
-    renderWithProviders(
-      <MemoryExplorer memoryContent={MEMORY_CONTENT} debtContent={DEBT_CONTENT} />,
-    );
+  it("retries the same request only for retryable request failures and returns focus to search", () => {
+    const retry = vi.fn();
+    memoryHooks.useMemoryRead.mockReturnValue({ data: null, loading: false, error: 'request', retry });
+    renderExplorer();
 
-    const debtTab = screen.getByTestId("tab-debt");
-    fireEvent.click(debtTab);
-
-    expect(screen.getByTestId("debt-table-container")).toBeTruthy();
+    const input = screen.getByTestId('search-input');
+    fireEvent.click(screen.getByTestId('memory-retry'));
+    expect(retry).toHaveBeenCalledOnce();
+    expect(document.activeElement).toBe(input);
   });
 
-  it("shows empty state in search tab when memory content is empty", () => {
-    renderWithProviders(<MemoryExplorer memoryContent="" debtContent="" />);
+  it("keeps one polite live status and restores search focus after navigation and detail close", () => {
+    const deferred = [{
+      candidate: { id: 'mem-focus', type: 'memory', source: 'worker', titlePreview: 'Focusable deferred entry', status: 'active', sprintId: null, candidateDigest: 'sha256:candidate' },
+      reasonCode: 'BYTE_LIMIT',
+      detailRef: 'detail-focus',
+    }];
+    memoryHooks.useMemoryRead.mockReturnValue(available({ deferred, nextCursor: 'cursor-page-2' }));
+    memoryHooks.useMemoryDetail.mockReturnValue({ data: { schemaVersion: 1, detail: { state: 'AVAILABLE', entry: entry('mem-focus').entry, contentDigest: 'sha256:focus' } }, loading: false, error: null });
+    renderExplorer();
 
-    // Should not crash and should not show memory-content
-    expect(screen.getByTestId("memory-explorer")).toBeTruthy();
-    expect(screen.queryByTestId("memory-content")).toBeNull();
+    expect(screen.getByTestId('memory-read-live-status').getAttribute('aria-live')).toBe('polite');
+    expect(screen.getByTestId('memory-read-live-status').textContent).toContain('Memory results available.');
+    fireEvent.click(screen.getByTestId('memory-next-page'));
+    expect(document.activeElement).toBe(screen.getByTestId('search-input'));
+    fireEvent.click(screen.getByText('Open complete entry'));
+    fireEvent.click(screen.getByText('Close detail'));
+    expect(document.activeElement).toBe(screen.getByTestId('search-input'));
   });
 
-  it("shows empty state in ADR tab when no ADR entries in content", () => {
-    renderWithProviders(
-      <MemoryExplorer memoryContent="No ADR data here" debtContent="" />,
-    );
+  it("projects canonical HOLD scope and required IDs, then restarts an invalid cursor from the current first page", () => {
+    memoryHooks.useMemoryRead.mockImplementation((request: { cursor?: string }) => request.cursor
+      ? {
+          data: {
+            schemaVersion: 1,
+            view: { state: 'HOLD', consumer: 'api', scope, reasonCode: 'CURSOR_INVALID', requiredIds: ['ADR-G-020'] },
+          },
+          loading: false,
+          error: null,
+        }
+      : available({ nextCursor: 'cursor-page-2' }));
+    renderExplorer();
 
-    const adrTab = screen.getByTestId("tab-adr");
-    fireEvent.click(adrTab);
-
-    expect(screen.getByTestId("adr-empty")).toBeTruthy();
-    expect(screen.queryByTestId("adr-list")).toBeNull();
+    fireEvent.click(screen.getByTestId('memory-next-page'));
+    expect(screen.getByTestId('memory-hold').textContent).toContain('CURSOR_INVALID');
+    expect(screen.getByTestId('memory-hold-scope').textContent).toContain('Tenant: tenant-a');
+    expect(screen.getByTestId('memory-hold-required-ids').textContent).toContain('ADR-G-020');
+    fireEvent.click(screen.getByTestId('memory-restart-query'));
+    expect(memoryHooks.useMemoryRead.mock.calls.at(-1)?.[0]).toMatchObject({ cursor: undefined });
+    expect(document.activeElement).toBe(screen.getByTestId('search-input'));
+    expect(screen.getByTestId('memory-read-live-status').textContent).toContain('Memory results available.');
   });
 
-  it("clears search when X button is clicked", () => {
-    renderWithProviders(
-      <MemoryExplorer memoryContent={MEMORY_CONTENT} debtContent={DEBT_CONTENT} />,
-    );
+  it("shows required-entry and oversize guidance without a cursor reset action", () => {
+    memoryHooks.useMemoryRead.mockReturnValue({
+      data: {
+        schemaVersion: 1,
+        view: { state: 'HOLD', consumer: 'api', scope, reasonCode: 'REQUIRED_ENTRY_OVERSIZE', requiredIds: ['ADR-D-007'] },
+      },
+      loading: false,
+      error: null,
+    });
+    renderExplorer();
 
-    const input = screen.getByTestId("search-input") as HTMLInputElement;
-    fireEvent.change(input, { target: { value: "docker" } });
-    expect(input.value).toBe("docker");
+    expect(screen.getByTestId('memory-hold').textContent).toContain('No limits or approvals were changed.');
+    expect(screen.getByTestId('memory-hold-required-ids').textContent).toContain('ADR-D-007');
+    expect(screen.queryByTestId('memory-restart-query')).toBeNull();
+  });
 
-    const clearBtn = screen.getByTestId("search-clear");
-    fireEvent.click(clearBtn);
-    expect(input.value).toBe("");
+  it("retries QUERY_FAILED HOLDs explicitly", () => {
+    const retry = vi.fn();
+    memoryHooks.useMemoryRead.mockReturnValue({
+      data: {
+        schemaVersion: 1,
+        view: { state: 'HOLD', consumer: 'api', scope, reasonCode: 'QUERY_FAILED', requiredIds: [] },
+      },
+      loading: false,
+      error: null,
+      retry,
+    });
+    renderExplorer();
+
+    fireEvent.click(screen.getByTestId('memory-retry'));
+    expect(retry).toHaveBeenCalledOnce();
+    expect(document.activeElement).toBe(screen.getByTestId('search-input'));
+  });
+
+  it("keeps a failed detail dismissible and invalidates it on query and page changes", () => {
+    const deferred = [{
+      candidate: { id: 'mem-deferred', type: 'memory', source: 'worker', titlePreview: 'Deferred entry', status: 'active', sprintId: null, candidateDigest: 'sha256:candidate' },
+      reasonCode: 'BYTE_LIMIT',
+      detailRef: 'detail-proof',
+    }];
+    memoryHooks.useMemoryRead.mockReturnValue(available({ deferred, nextCursor: 'cursor-page-2' }));
+    memoryHooks.useMemoryDetail.mockReturnValue({
+      data: {
+        schemaVersion: 1,
+        detail: { state: 'HOLD', consumer: 'api', scope, reasonCode: 'DETAIL_CHANGED', requiredIds: ['mem-deferred'] },
+      },
+      loading: false,
+      error: null,
+    });
+    renderExplorer();
+
+    fireEvent.click(screen.getByText('Open complete entry'));
+    expect(screen.getByTestId('memory-detail-hold').textContent).toContain('DETAIL_CHANGED');
+    fireEvent.change(screen.getByTestId('search-input'), { target: { value: 'new query' } });
+    fireEvent.submit(screen.getByTestId('search-container'));
+    expect(screen.queryByTestId('memory-detail-error')).toBeNull();
+
+    fireEvent.click(screen.getByText('Open complete entry'));
+    expect(screen.getByTestId('memory-detail-hold-scope').textContent).toContain('Project: project-proof');
+    expect(screen.getByTestId('memory-detail-hold-required-ids').textContent).toContain('mem-deferred');
+    fireEvent.click(screen.getByTestId('memory-next-page'));
+    expect(screen.queryByTestId('memory-detail-error')).toBeNull();
+
+    fireEvent.click(screen.getByText('Open complete entry'));
+    expect(screen.getByText('Close detail')).toBeTruthy();
+    fireEvent.click(screen.getByText('Close detail'));
+    expect(screen.queryByTestId('memory-detail-error')).toBeNull();
   });
 });

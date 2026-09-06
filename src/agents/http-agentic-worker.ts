@@ -65,6 +65,7 @@ import {
 } from './agentic-worker-runner.js';
 import {
   computeNumstat,
+  readHostCompiledWorkerPrompt,
   type EntryResultFile,
   type EntryTokenUsage,
 } from './agentic-worker-entry.js';
@@ -731,6 +732,17 @@ export async function runHttpWorkerEntry(
     return { exitCode: 1, resultPath: p, result: r };
   }
 
+  let compiledPrompt: string;
+  try {
+    compiledPrompt = readHostCompiledWorkerPrompt(projectDir, taskId);
+  } catch (err) {
+    const reason = `http-agentic-worker-entry: compiled prompt unavailable: ${err instanceof Error ? err.message : String(err)}`;
+    const r = buildNoGoResult(taskId, reason, provider, model);
+    const p = writeResultFile(taskId, projectDir, r);
+    writeHeartbeat(taskId, projectDir, 'NO_GO', 2, 0, provider);
+    return { exitCode: 1, resultPath: p, result: r };
+  }
+
   let send: HttpAgenticSend;
   try {
     send =
@@ -752,7 +764,7 @@ export async function runHttpWorkerEntry(
   const runnerOpts: HttpAgenticRunnerOptions = {
     taskId,
     model,
-    prompt: taskJson.description ?? '',
+    prompt: compiledPrompt,
     scope: {
       directories: taskJson.scope?.directories ?? [],
       filesRead: taskJson.scope?.filesRead ?? [],

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { mkdtempSync, mkdirSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { MemoryStore } from '../../src/core/memory-store.js';
@@ -2383,6 +2383,71 @@ Old-style task without any Priority line.`;
 // ─── buildWorkerPrompt ADR injection ────────────────────────────────────
 
 describe('buildWorkerPrompt — ADR injection', () => {
+  it('HOLDs an explicit ADR when the memory database is absent', () => {
+    const rootFixture = mkdtempSync(join(tmpdir(), 'task-builder-memory-absent-'));
+    try {
+      const task = makeTask({ description: 'Must obey ADR-G-997.' });
+      expect(() => buildWorkerPrompt(task, undefined, undefined, rootFixture))
+        .toThrow(/MEMORY_READ_CONTEXT_HOLD:REQUIRED_ENTRY_MISSING/u);
+    } finally {
+      rmSync(rootFixture, { recursive: true, force: true });
+    }
+  });
+
+  it('keeps required ADRs whole while query-only ADRs remain typed background', () => {
+    const rootFixture = mkdtempSync(join(tmpdir(), 'task-builder-memory-selection-'));
+    let store: MemoryStore | undefined;
+    try {
+      mkdirSync(join(rootFixture, '.brain'), { recursive: true });
+      store = new MemoryStore(join(rootFixture, '.brain', 'memory.db'));
+      const ids = ['ADR-G-991', 'ADR-G-992', 'ADR-G-993', 'ADR-G-994', 'ADR-G-995'];
+      for (const [index, id] of ids.entries()) {
+        store.insert({
+          id,
+          type: 'adr',
+          title: `Canonical ADR ${index}`,
+          content: `FULL_CANONICAL_ADR_${index}_BEGIN\nLow-relevance mandatory body ${index}.\nFULL_CANONICAL_ADR_${index}_END`,
+          status: 'accepted',
+        });
+      }
+      for (const id of ['adr-d-001', 'adr-d-004']) {
+        store.insert({
+          id, type: 'adr', title: `Preset ${id}`,
+          content: `FULL_PRESET_${id.toUpperCase()}_BODY`, status: 'accepted',
+        });
+      }
+      store.insert({
+        id: 'adr-g-990', type: 'adr', title: 'Quoted path memory background',
+        content: 'QUERY_ONLY_BACKGROUND_DEEP_BODY', summary: 'Query-only summary.', status: 'accepted',
+      });
+      store.insert({
+        id: 'critical-memory-1', type: 'memory', title: 'Scoped critical operational context',
+        content: 'SCOPED_CRITICAL_MEMORY_WHOLE', priority: 'critical', status: 'active',
+      });
+      store.close();
+      store = undefined;
+      const noisy = Array.from({ length: 2_000 }, (_, index) =>
+        `Change ${index}: path-${index}/unit AND OR NOT "quoted"`).join(' ');
+      const task = makeTask({ description: `${noisy}\n${ids.join(' ')}` });
+      const prompt = buildWorkerPrompt(task, undefined, undefined, rootFixture);
+
+      for (const [index, id] of ids.entries()) {
+        expect(prompt).toContain(`## ${id}: Canonical ADR ${index}`);
+        expect(prompt).toContain(`FULL_CANONICAL_ADR_${index}_BEGIN`);
+        expect(prompt).toContain(`FULL_CANONICAL_ADR_${index}_END`);
+      }
+      expect(prompt).toContain('FULL_PRESET_ADR-D-001_BODY');
+      expect(prompt).toContain('FULL_PRESET_ADR-D-004_BODY');
+      expect(prompt).toContain('SCOPED_CRITICAL_MEMORY_WHOLE');
+      expect(prompt).toContain('## adr-g-990: Quoted path memory background');
+      expect(prompt).toContain('[background constraint — full text:');
+      expect(prompt).not.toContain('QUERY_ONLY_BACKGROUND_DEEP_BODY');
+    } finally {
+      store?.close();
+      rmSync(rootFixture, { recursive: true, force: true });
+    }
+  });
+
   it('includes worker prompt structure even without DB-sourced ADRs', () => {
     const task = makeTask();
     const prompt = buildWorkerPrompt(task);
@@ -2415,6 +2480,15 @@ describe('buildWorkerPrompt — ADR injection', () => {
         sprint_id: 'sprint-999',
         sprint_num: 999,
       });
+      store.insert({
+        id: 'memory-999',
+        type: 'memory',
+        title: 'Fixture behavior memory',
+        content: 'WHOLE_MEMORY_CONTEXT_MARKER_BEGIN\nNever split this meaning unit.\nWHOLE_MEMORY_CONTEXT_MARKER_END',
+        status: 'active',
+        sprint_id: 'sprint-999',
+        sprint_num: 999,
+      });
       store.close();
       store = undefined;
 
@@ -2427,10 +2501,47 @@ describe('buildWorkerPrompt — ADR injection', () => {
       const prompt = buildWorkerPrompt(task, undefined, undefined, rootFixture);
 
       expect(prompt).toContain('FIXTURE_ADR_MARKER_CONTENT_XYZ');
+      expect(prompt).toContain('=== Relevant project memory ===');
+      expect(prompt).toContain('WHOLE_MEMORY_CONTEXT_MARKER_BEGIN');
+      expect(prompt).toContain('WHOLE_MEMORY_CONTEXT_MARKER_END');
+      expect(prompt).toMatch(/Selection revision: sha256:[a-f0-9]{64}/u);
+      const promptArtifact = readdirSync(join(rootFixture, '.tasks'))
+        .find(name => name.startsWith(`.prompt-${task.id}-`) && name.endsWith('.txt'));
+      expect(promptArtifact).toBeDefined();
+      expect(readFileSync(join(rootFixture, '.tasks', promptArtifact!), 'utf8')).toBe(prompt);
     } finally {
       store?.close();
       process.chdir(originalCwd);
       rmSync(cwdFixture, { recursive: true, force: true });
+      rmSync(rootFixture, { recursive: true, force: true });
+    }
+  });
+
+
+  it('HOLDs an explicit ADR that cannot fit the configured whole-entry budget', () => {
+    const rootFixture = mkdtempSync(join(tmpdir(), 'task-builder-memory-budget-'));
+    let store: MemoryStore | undefined;
+    try {
+      mkdirSync(join(rootFixture, '.brain'), { recursive: true });
+      store = new MemoryStore(join(rootFixture, '.brain', 'memory.db'));
+      store.insert({
+        id: 'adr-g-998',
+        type: 'adr',
+        title: 'Oversize required ADR',
+        content: `REQUIRED_WHOLE_BEGIN\n${'x'.repeat(4096)}\nREQUIRED_WHOLE_END`,
+        status: 'accepted',
+        sprint_id: 'sprint-998',
+        sprint_num: 998,
+      });
+      store.close();
+      store = undefined;
+      const task = makeTask({ description: 'Must obey ADR-G-998.' });
+      expect(() => buildWorkerPrompt(task, undefined, undefined, rootFixture, {
+        memory_read: { maxEntries: 4, maxCandidates: 8, maxBytes: 512, maxLines: 40 },
+        language: 'en',
+      })).toThrow(/MEMORY_READ_CONTEXT_HOLD:REQUIRED_ENTRY_OVERSIZE/u);
+    } finally {
+      store?.close();
       rmSync(rootFixture, { recursive: true, force: true });
     }
   });

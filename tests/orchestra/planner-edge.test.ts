@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { buildPlanPrompt, parsePlannerResponse, callBrainPlanner, type PlannerSpawnFn, type PlannerSpawnOutcome } from '../../src/orchestra/planner.js';
 import type { BrainContext, SprintSizeRecommendation, ModelType } from '../../src/core/types.js';
-import { BRAIN_PLAN_MAX_CONTEXT_LINES } from '../../src/core/constants.js';
 import type { ProviderAdapter } from '../../src/core/provider.js';
 
 // ─── Mock child_process ───────────────────────────────────────────────────
@@ -192,15 +191,12 @@ describe('buildPlanPrompt', () => {
     expect(prompt).not.toContain('src/file100.ts');
   });
 
-  it('truncates context to BRAIN_PLAN_MAX_CONTEXT_LINES', () => {
+  it('preserves complete directive authority beyond the removed outer line cap', () => {
     const longDirectives = Array.from({ length: 300 }, (_, i) => `line ${i}`).join('\n');
     const ctx = makeContext({ directives: longDirectives });
     const prompt = buildPlanPrompt(ctx, makeRecommendation(), 'proj');
-    const lines = prompt.split('\n');
-    // The prompt wraps context in fixed header + contextBlock
-    // The contextBlock itself is capped at BRAIN_PLAN_MAX_CONTEXT_LINES
-    // Total prompt may be bigger due to fixed header/footer
-    expect(lines.length).toBeGreaterThan(0);
+    expect(prompt).toContain('line 0');
+    expect(prompt).toContain('line 299');
   });
 
   it('omits file tree section when fileTree is empty', () => {

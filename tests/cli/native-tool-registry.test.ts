@@ -69,6 +69,20 @@ describe('buildNativeToolRegistry', () => {
     expect(reg.get('deckent_status')!.tier).toBe('silent');
   });
 
+  it('exposes the memory query continuation and detail-reference schema to the actual native registry', () => {
+    const reg = buildNativeToolRegistry({ cwd: () => tmpdir() });
+    const schema = reg.get('deckent_memory_query')!.inputSchema as {
+      properties?: Record<string, unknown>;
+      anyOf?: unknown[];
+    };
+    expect(schema.properties).toEqual(expect.objectContaining({
+      query: expect.anything(),
+      cursor: expect.anything(),
+      detail_ref: expect.anything(),
+    }));
+    expect(schema.anyOf).toEqual([{ required: ['query'] }, { required: ['detail_ref'] }]);
+  });
+
   it('registers MCP bridge tools as confirm-tier ToolDefinitions (single-gate dispatch)', async () => {
     const calls: Array<{ name: string; args: Record<string, unknown> }> = [];
     const mcpBridge = {

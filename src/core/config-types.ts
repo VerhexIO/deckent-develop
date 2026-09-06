@@ -6,6 +6,7 @@ import type { NotificationConfig } from './notifications.js';
 import type { ModelType, ProviderName, EvaluationRubric } from './task-types.js';
 import type { ModelStrategy } from './mode-presets.js';
 import type { ModelTier } from './model-equivalence.js';
+import type { MemoryReadConsumerV1, MemoryReadLimitsV1 } from './memory-read-contract.js';
 import type { AcceptanceMatrixOverride } from './acceptance-matrix.js';
 import type { ErpRuntimeConfig } from './erp/factory.js';
 import type { BotCapabilitiesConfig } from '../connectors/capabilities/types.js';
@@ -1044,6 +1045,14 @@ export const DEFAULT_LIFECYCLE_RECOVERY_CONFIG: Readonly<LifecycleRecoveryConfig
 /** Plugin-security rejection stance. The default remains advisory until an owner-approved flip. */
 export type PluginSecurityEnforcement = 'advisory' | 'enforce';
 
+/** Optional bounded human-view limits for guarded Memory V2 exports. */
+export interface MemoryExportConfig {
+  max_inline_lines?: number;
+  max_inline_bytes?: number;
+  summary_inline_lines?: number;
+  summary_inline_bytes?: number;
+}
+
 export interface DeckentConfig {
   mode: PlanMode;
   modes: Record<string, PlanModeConfig>;
@@ -1368,7 +1377,7 @@ export interface DeckentConfig {
 
   // ─── Memory (V1 — flat .md files) ───────────────────────────────────
   /** @deprecated Use memory.backend instead. Kept for V1 backward compat. */
-  /** Max lines in .brain/ directory (default: 600) */
+  /** Retained entry target before decay evaluation; not a context/view line budget. */
   memory_budget?: number;
   /** @deprecated Use memory.decay_after_sprints instead. Kept for V1 backward compat. */
   /** Decay entries older than N sprints (default: 5) */
@@ -1377,6 +1386,12 @@ export interface DeckentConfig {
   patterns_enabled?: boolean;
   /** Enable PROJECT-IDENTITY.md updates (default: true) */
   project_identity_enabled?: boolean;
+  /** Human-view limits only; durable Brain records are never truncated. */
+  memory_export?: MemoryExportConfig;
+  /** Whole-unit query view budgets; never a durable storage limit. */
+  memory_read?: Partial<MemoryReadLimitsV1>;
+  /** Explicit per-consumer overrides, after authored shared read budgets. */
+  memory_read_profiles?: Partial<Record<MemoryReadConsumerV1, Partial<MemoryReadLimitsV1>>>;
 
   // ─── Memory V2 ─────────────────────────────────────────────────────
   /** Memory V2 configuration. If present, DB-first mode is active. */
@@ -2170,6 +2185,9 @@ export interface ResolvedConfig {
   decay_after_sprints?: number;
   patterns_enabled?: boolean;
   project_identity_enabled?: boolean;
+  memory_export?: MemoryExportConfig;
+  memory_read?: Partial<MemoryReadLimitsV1>;
+  memory_read_profiles?: Partial<Record<MemoryReadConsumerV1, Partial<MemoryReadLimitsV1>>>;
   /** Outbound messaging connectors (BOT-001, §4G) — passed through from project config, tokens .deck-resolved. */
   notify_connectors?: DeckentConfig['notify_connectors'];
   /** Approval relay delivery channels — passed through without secrets for Telegram. */

@@ -43,6 +43,8 @@ import {
 // function bodies (routing3's top-level code builds zod schemas only), never at
 // module-initialization time.
 import { resolveRoutingV3Config } from './routing/config.js';
+import { DEFAULT_MEMORY_READ_LIMITS, MEMORY_READ_CONSUMERS, resolveMemoryReadLimits, validateMemoryReadLimitsPatch } from './memory-read-contract.js';
+import type { MemoryReadConsumerV1, MemoryReadLimitsV1 } from './memory-read-contract.js';
 // T4a: the global-config PATH resolution moved down to global-scope-resolver.ts
 // (a pure path module) so a caller that only needs the path — e.g. the API's
 // sync tenant-flag reader — does not have to import this heavyweight, widely
@@ -1002,6 +1004,48 @@ export function validateConfig(config: DeckentConfig): string[] {
 
   if (config.project_identity_enabled !== undefined && typeof config.project_identity_enabled !== 'boolean') {
     errors.push('project_identity_enabled must be a boolean');
+  }
+
+  if (config.memory_export !== undefined) {
+    const memoryExport = config.memory_export;
+    if (!memoryExport || typeof memoryExport !== 'object' || Array.isArray(memoryExport)) {
+      errors.push('memory_export must be an object');
+    } else {
+      const allowed = new Set([
+        'max_inline_lines', 'max_inline_bytes', 'summary_inline_lines', 'summary_inline_bytes',
+      ]);
+      for (const key of Object.keys(memoryExport)) {
+        if (!allowed.has(key)) errors.push(`memory_export.${key} is not supported`);
+      }
+      for (const key of ['max_inline_lines', 'max_inline_bytes'] as const) {
+        const value = memoryExport[key];
+        if (value !== undefined
+            && (typeof value !== 'number' || !Number.isSafeInteger(value) || value <= 0)) {
+          errors.push(`memory_export.${key} must be a positive integer`);
+        }
+      }
+      for (const key of ['summary_inline_lines', 'summary_inline_bytes'] as const) {
+        const value = memoryExport[key];
+        if (value !== undefined
+            && (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0)) {
+          errors.push(`memory_export.${key} must be a non-negative integer`);
+        }
+      }
+    }
+  }
+
+  if (config.memory_read !== undefined) {
+    try {
+      resolveMemoryReadLimits(config.memory_read);
+    } catch {
+      errors.push(getMessage('memory_read.invalid_limits', config.language ?? DEFAULT_LANGUAGE));
+    }
+  }
+
+  try {
+    resolveMemoryReadProfiles(config);
+  } catch {
+    errors.push(getMessage('memory_read.invalid_profiles', config.language ?? DEFAULT_LANGUAGE));
   }
 
   // ─── Auditor config validation ─────────────────────────────────────
@@ -2013,6 +2057,12 @@ export function createDefaultConfig(): DeckentConfig {
     decay_after_sprints: 20, // Sprint 140 pre-flight: 5→20 (self-analysis raporları hemen silinmesin)
     patterns_enabled: true,
     project_identity_enabled: true,
+    memory_export: {
+      max_inline_lines: 3000,
+      max_inline_bytes: 256 * 1024,
+      summary_inline_lines: 200,
+      summary_inline_bytes: 16 * 1024,
+    },
     // Auditor
     scan_interval: 30,
     heartbeat_timeout: 120,
@@ -2282,6 +2332,112 @@ export function healCorruptProjectConfig(
  * @returns Fully resolved configuration ready for use
  * @throws {ConfigValidationError} When merged config fails validation or API key is missing
  */
+/**
+ * Synchronous, read-only projection for memory readers. Uses the same global and
+ * project paths/precedence as loadConfig without config healing/default writes.
+ * No cache: the caller binds these resolved view settings to its read snapshot.
+ * Only memory_read and language are returned; this is not a policy/auth resolver.
+ */
+type MemoryReadConfigLayer = Pick<DeckentConfig, 'memory_read' | 'memory_read_profiles'>;
+
+export const DEFAULT_MEMORY_READ_PROFILES = Object.freeze({
+  worker: Object.freeze({ maxBytes: 131_072, maxLines: 512 }),
+});
+
+/**
+ * Resolve raw authored layers before shared defaults obscure which limits were
+ * explicit. A consumer default is never a floor that overrides an owner's cap.
+ * Within shared limits and named overrides, project wins over global. Explicit
+ * named overrides are most specific and win over the authored shared limits.
+ */
+export function resolveMemoryReadProfiles(
+  ...layers: readonly (MemoryReadConfigLayer | null | undefined)[]
+): Readonly<Record<MemoryReadConsumerV1, Readonly<MemoryReadLimitsV1>>> {
+  let shared: Partial<MemoryReadLimitsV1> = {};
+  const named: Partial<Record<MemoryReadConsumerV1, Partial<MemoryReadLimitsV1>>> = {};
+  for (const layer of layers) {
+    if (!layer) continue;
+    if (layer.memory_read !== undefined) {
+      validateMemoryReadLimitsPatch(layer.memory_read);
+      shared = { ...shared, ...layer.memory_read };
+    }
+    const profiles = layer.memory_read_profiles;
+    if (profiles === undefined) continue;
+    if (profiles === null || Array.isArray(profiles) || typeof profiles !== 'object') {
+      throw new TypeError('MEMORY_READ_PROFILES_INVALID');
+    }
+    for (const key of Object.keys(profiles)) {
+      if (!(MEMORY_READ_CONSUMERS as readonly string[]).includes(key)) {
+        throw new TypeError('MEMORY_READ_PROFILES_INVALID');
+      }
+      const consumer = key as MemoryReadConsumerV1;
+      const profile = profiles[consumer];
+      if (profile === undefined) throw new TypeError('MEMORY_READ_PROFILES_INVALID');
+      validateMemoryReadLimitsPatch(profile);
+      named[consumer] = { ...named[consumer], ...profile };
+    }
+  }
+  return Object.freeze(Object.fromEntries(MEMORY_READ_CONSUMERS.map(consumer => [
+    consumer,
+    resolveMemoryReadLimits({
+      ...(consumer === 'worker' ? DEFAULT_MEMORY_READ_PROFILES.worker : {}),
+      ...shared,
+      ...named[consumer],
+    }),
+  ])) as Record<MemoryReadConsumerV1, Readonly<MemoryReadLimitsV1>>);
+}
+
+/** Accepts raw or already-resolved config; resolved named profiles preserve provenance. */
+export function resolveMemoryReadLimitsForConsumer(
+  config: MemoryReadConfigLayer,
+  consumer: MemoryReadConsumerV1,
+): Readonly<MemoryReadLimitsV1> {
+  return resolveMemoryReadProfiles(config)[consumer];
+}
+
+export function resolveMemoryReadConfig(projectRoot: string, consumer: MemoryReadConsumerV1 = 'planner'): Readonly<{
+  memory_read: Readonly<MemoryReadLimitsV1>;
+  language: string;
+}> {
+  let projected: Record<string, unknown> = {
+    memory_read: { ...DEFAULT_MEMORY_READ_LIMITS },
+    language: DEFAULT_LANGUAGE,
+  };
+  const layers: MemoryReadConfigLayer[] = [];
+  for (const file of [resolveGlobalConfigReadPath(), join(resolve(projectRoot), PROJECT_CONFIG_PATH)]) {
+    let text: string;
+    try {
+      text = readFileSync(file, 'utf8');
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') continue;
+      throw new Error('MEMORY_READ_CONFIG_UNAVAILABLE');
+    }
+    let layer: unknown;
+    try {
+      layer = JSON.parse(text);
+    } catch {
+      throw new Error('MEMORY_READ_CONFIG_UNAVAILABLE');
+    }
+    if (layer === null || Array.isArray(layer) || typeof layer !== 'object') {
+      throw new Error('MEMORY_READ_CONFIG_UNAVAILABLE');
+    }
+    const values = layer as Record<string, unknown>;
+    const selected = Object.fromEntries(['memory_read', 'memory_read_profiles', 'language']
+      .filter(key => values[key] !== undefined)
+      .map(key => [key, values[key]]));
+    projected = deepMerge(projected, selected);
+    layers.push(selected as MemoryReadConfigLayer);
+  }
+  if (typeof projected['language'] !== 'string'
+    || !(SUPPORTED_LANGUAGES as readonly string[]).includes(projected['language'])) {
+    throw new Error('MEMORY_READ_CONFIG_UNAVAILABLE');
+  }
+  return Object.freeze({
+    memory_read: resolveMemoryReadProfiles(...layers)[consumer],
+    language: projected['language'],
+  });
+}
+
 export async function loadConfig(projectRoot?: string, options?: { force?: boolean }): Promise<ResolvedConfig> {
   const root = resolve(projectRoot ?? process.cwd());
 
@@ -2544,6 +2700,9 @@ export async function loadConfig(projectRoot?: string, options?: { force?: boole
     decay_after_sprints: config.decay_after_sprints,
     patterns_enabled: config.patterns_enabled,
     project_identity_enabled: config.project_identity_enabled,
+    memory_export: config.memory_export,
+    memory_read: resolveMemoryReadLimits(config.memory_read),
+    memory_read_profiles: resolveMemoryReadProfiles(globalConfig, projectConfig),
     // Auditor
     scan_interval: config.scan_interval,
     heartbeat_timeout: config.heartbeat_timeout,
@@ -3277,9 +3436,36 @@ export const CONFIG_METADATA: Readonly<Record<string, ConfigMetadataEntry>> = {
   },
   // ─── Memory ─────────────────────────────────────────────────────────
   memory_budget: {
-    description: 'Maximum total lines across all files in .brain/ directory.',
+    description: 'Maximum retained Brain entries before decay is evaluated.',
+    descriptionTr: 'Decay değerlendirilmeden önce tutulacak azami Brain kaydı.',
     type: 'number',
-    default: 600,
+    default: 5000,
+    category: 'Memory',
+  },
+  memory_read: {
+    description: 'Whole-record query view budgets with explicit continuation; never a storage retention limit.',
+    descriptionTr: 'Açık devam bağlantılı tam kayıt sorgu görünümü bütçeleri; depolama sınırı değildir.',
+    type: 'object | undefined',
+    default: { ...DEFAULT_MEMORY_READ_LIMITS },
+    category: 'Memory',
+  },
+  memory_read_profiles: {
+    description: 'Consumer-specific whole-record read budgets. Precedence: consumer default, authored shared limits, authored consumer overrides; project overrides global within each layer.',
+    descriptionTr: 'Tüketiciye özel tam kayıt okuma bütçeleri. Öncelik: tüketici varsayılanı, yazılmış ortak limitler, yazılmış tüketici ayarları; her katmanda proje globale üstün gelir.',
+    type: 'object | undefined',
+    default: DEFAULT_MEMORY_READ_PROFILES,
+    category: 'Memory',
+  },
+  memory_export: {
+    description: 'Optional bounded human-view limits for guarded Memory exports; durable records remain complete.',
+    descriptionTr: 'Korumalı Memory exportları için isteğe bağlı sınırlı insan görünümü limitleri; dayanıklı kayıtlar tam kalır.',
+    type: 'object | undefined',
+    default: {
+      max_inline_lines: 3000,
+      max_inline_bytes: 256 * 1024,
+      summary_inline_lines: 200,
+      summary_inline_bytes: 16 * 1024,
+    },
     category: 'Memory',
   },
   decay_after_sprints: {
@@ -3528,6 +3714,9 @@ export function mergeConfigs(
     // (see loadConfig + resolveBrainPlanningMode). Absent → undefined.
     brain_planning: config.brain_planning,
     auto_docs: config.auto_docs ?? { ...DEFAULT_AUTO_DOCS },
+    memory_export: config.memory_export,
+    memory_read: resolveMemoryReadLimits(config.memory_read),
+    memory_read_profiles: resolveMemoryReadProfiles(globalConfig, projectConfig),
     skills: config.skills,
     // F1-012 — pass grouped `providers` (incl. config-driven `registry`) through.
     providers: config.providers,

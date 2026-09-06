@@ -21,6 +21,11 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { McpToolDispatcher } from '../cli/commands/chat-native.js';
 import { getMessage } from '../cli/helpers/messages.js';
+import { canonicalJson } from '../core/audit-writer.js';
+import { BRAIN_DIR, MEMORY_DB_FILE } from '../core/constants.js';
+import type { MemoryReadLabelsV1, MemoryReadLimitsV1, MemoryReadScopeV1 } from '../core/memory-read-contract.js';
+import { MemoryReadRenderHoldError, readMemoryDetail, readMemoryView, renderMemoryReadView } from '../core/memory-read-service.js';
+import { MemoryStore } from '../core/memory-store.js';
 import type { PolicyResolution } from './capabilities/policy.js';
 
 /**
@@ -286,7 +291,7 @@ export const DECKENT_BOT_SYSTEM_PROMPT = [
   'Salt-okunur tool\'lar (anında çalışır): deckent_status (sprint durumu),',
   'deckent_history, deckent_retro, deckent_doctor, deckent_models,',
   'deckent_analyze_project, deckent_review, deckent_explain, deckent_agent_list,',
-  'deckent_skill_list, deckent_feature_query, deckent_memory_query{query},',
+  'deckent_skill_list, deckent_feature_query, deckent_memory_query{query|cursor|detail_ref},',
   'deckent_cost (bugünkü harcama), deckent_usage (token/limit kullanımı),',
   'deckent_kpi (KPI skor kartı).',
   '',
@@ -301,45 +306,155 @@ export const DECKENT_BOT_SYSTEM_PROMPT = [
   'Aksiyon gerekmeyen sorulara normal metinle, kullanıcının dilinde cevap ver.',
 ].join('\n');
 
-/**
- * Read a compact project-context snapshot to GROUND the bot's conversational
- * answers. Source: `.brain/exports/summary.md` — the curated, auto-generated
- * context (active ADRs, recent sprint learnings, active debt). Bounded so a large
- * summary never blows the system prompt. Absent/unreadable → a short static line.
- */
-function readProjectContextSnapshot(root: string): string {
-  const summaryPath = join(root, '.brain', 'exports', 'summary.md');
+export interface BotMemoryPromptLabelsV1 {
+  readonly heading: string;
+  readonly guidance: string;
+  readonly absent: string;
+  readonly hold: (reasonCode: string) => string;
+}
+
+export interface BotMemoryToolLabelsV1 {
+  readonly invalidRequest: string;
+  readonly absent: string;
+  readonly unavailable: (reasonCode: string) => string;
+}
+
+export type BotMemoryGroundingV1 =
+  | Readonly<{ state: 'AVAILABLE'; rendered: string; revision: string }>
+  | Readonly<{ state: 'ABSENT'; revision: string }>
+  | Readonly<{ state: 'HOLD'; reasonCode: string }>;
+
+export interface BotMemoryReadAuthorityV1 {
+  readonly root: string;
+  readonly scope: MemoryReadScopeV1;
+  readonly limits: Readonly<MemoryReadLimitsV1>;
+  readonly labels: Readonly<MemoryReadLabelsV1>;
+  readonly toolLabels: Readonly<BotMemoryToolLabelsV1>;
+}
+
+function withReadonlyMemory<T>(root: string, reader: (store: MemoryStore) => T): T {
+  const store = new MemoryStore(join(root, BRAIN_DIR, MEMORY_DB_FILE), { readOnly: true });
   try {
-    if (existsSync(summaryPath)) {
-      const raw = readFileSync(summaryPath, 'utf-8').trim();
-      const MAX = 6000; // keep the system prompt bounded (~1.5K tokens of context)
-      return raw.length > MAX ? raw.slice(0, MAX) + '\n…(kısaltıldı — tamamı için deckent_memory_query)' : raw;
-    }
-  } catch {
-    // unreadable summary → fall through to the static line (never break the bot)
+    return reader(store);
+  } finally {
+    store.close();
   }
-  return "deckent: AI agent orchestration CLI (Brain/Worker/Auditor, sprint-tabanlı). Canlı durum için deckent_status tool'unu çağır.";
+}
+
+/** Canonical, scope-bound grounding snapshot. Missing/unreadable storage is a typed HOLD. */
+export function readBotMemoryGrounding(authority: BotMemoryReadAuthorityV1): BotMemoryGroundingV1 {
+  try {
+    const view = withReadonlyMemory(authority.root, (store) => readMemoryView(store, {
+      consumer: 'bot',
+      scope: authority.scope,
+      query: {},
+      limits: authority.limits,
+      includeCritical: true,
+    }));
+    if (view.state === 'HOLD') return Object.freeze({ state: 'HOLD', reasonCode: view.reasonCode });
+    if (view.state === 'ABSENT') {
+      return Object.freeze({ state: 'ABSENT', revision: view.selectionRevisionDigest });
+    }
+    return Object.freeze({
+      state: 'AVAILABLE',
+      rendered: renderMemoryReadView(view, authority.labels),
+      revision: view.selectionRevisionDigest,
+    });
+  } catch (error: unknown) {
+    const reasonCode = error instanceof MemoryReadRenderHoldError
+      ? error.reasonCode
+      : 'MEMORY_SOURCE_UNAVAILABLE';
+    return Object.freeze({ state: 'HOLD', reasonCode });
+  }
+}
+
+function exactMemoryToolArgs(args: Record<string, unknown>): Readonly<{
+  query: string;
+  cursor: string;
+  detailRef: string;
+}> | null {
+  if (args === null || Array.isArray(args) || typeof args !== 'object'
+    || Object.keys(args).some((key) => !['query', 'cursor', 'detail_ref'].includes(key))) return null;
+  if (args['query'] !== undefined && typeof args['query'] !== 'string') return null;
+  if (args['cursor'] !== undefined && typeof args['cursor'] !== 'string') return null;
+  if (args['detail_ref'] !== undefined && typeof args['detail_ref'] !== 'string') return null;
+  const query = (args['query'] as string | undefined)?.trim() ?? '';
+  const cursor = (args['cursor'] as string | undefined)?.trim() ?? '';
+  const detailRef = (args['detail_ref'] as string | undefined)?.trim() ?? '';
+  if ((args['query'] !== undefined && query.length === 0)
+    || (args['cursor'] !== undefined && cursor.length === 0)
+    || (args['detail_ref'] !== undefined && detailRef.length === 0)
+    || (detailRef.length > 0 && (query.length > 0 || cursor.length > 0))
+    || (detailRef.length === 0 && query.length === 0)
+    || (cursor.length > 0 && query.length === 0)) return null;
+  return Object.freeze({ query, cursor, detailRef });
 }
 
 /**
- * Build the bot's conversational system prompt: the tool directives + LIVE project
- * grounding (summary.md) + a "be a genuinely helpful, accurate deckent-expert"
- * instruction. Grounding the persistent session in the project context is the fix
- * for hollow/generic answers — the model otherwise sees only the raw question with
- * ZERO project knowledge (the root cause of poor bot chat quality). Volatile state
- * (sprint progress) stays tool-driven (deckent_status), never baked into the prompt.
+ * Replace only the bot memory tool with the canonical per-turn read authority.
+ * Every other tool is delegated byte-for-byte to the existing gated dispatcher.
  */
-export function buildBotSystemPrompt(root?: string): string {
-  if (!root) return DECKENT_BOT_SYSTEM_PROMPT;
+export function makeBotMemoryReadDispatcher(
+  inner: McpToolDispatcher,
+  authority: BotMemoryReadAuthorityV1 | Readonly<{
+    state: 'HOLD';
+    reasonCode: string;
+    toolLabels: Readonly<BotMemoryToolLabelsV1>;
+  }>,
+): McpToolDispatcher {
+  return {
+    async dispatch(name, args) {
+      if (name !== 'deckent_memory_query') return inner.dispatch(name, args);
+      const parsed = exactMemoryToolArgs(args);
+      if (parsed === null) return authority.toolLabels.invalidRequest;
+      if ('state' in authority) return authority.toolLabels.unavailable(authority.reasonCode);
+      try {
+        if (parsed.detailRef.length > 0) {
+          const detail = withReadonlyMemory(authority.root, (store) => readMemoryDetail(store, {
+            consumer: 'bot', scope: authority.scope, detailRef: parsed.detailRef,
+          }));
+          return detail.state === 'AVAILABLE'
+            ? canonicalJson(detail)
+            : authority.toolLabels.unavailable(detail.reasonCode);
+        }
+        const view = withReadonlyMemory(authority.root, (store) => readMemoryView(store, {
+          consumer: 'bot', scope: authority.scope, query: { text: parsed.query },
+          limits: authority.limits,
+          ...(parsed.cursor.length > 0 ? { cursor: parsed.cursor } : {}),
+        }));
+        if (view.state === 'HOLD') return authority.toolLabels.unavailable(view.reasonCode);
+        if (view.state === 'ABSENT') return authority.toolLabels.absent;
+        return renderMemoryReadView(view, authority.labels);
+      } catch (error: unknown) {
+        const reasonCode = error instanceof MemoryReadRenderHoldError
+          ? error.reasonCode
+          : 'MEMORY_SOURCE_UNAVAILABLE';
+        return authority.toolLabels.unavailable(reasonCode);
+      }
+    },
+  };
+}
+
+/**
+ * Build the bot's conversational system prompt from a canonical bounded memory
+ * snapshot supplied by the caller. Volatile sprint progress stays tool-driven.
+ */
+export function buildBotSystemPrompt(
+  grounding?: BotMemoryGroundingV1,
+  labels?: Readonly<BotMemoryPromptLabelsV1>,
+): string {
+  if (!grounding || !labels) return DECKENT_BOT_SYSTEM_PROMPT;
+  const context = grounding.state === 'AVAILABLE'
+    ? grounding.rendered
+    : grounding.state === 'ABSENT'
+      ? labels.absent
+      : labels.hold(grounding.reasonCode);
   return [
     DECKENT_BOT_SYSTEM_PROMPT,
     '',
-    "Sen deckent'i DERİNLEMESINE bilen, yardımsever ve DOĞRU bir asistansın.",
-    'Aşağıdaki canlı proje bağlamını kullanarak somut, doğru ve kısa-öz cevap ver;',
-    'bilmediğini UYDURMA — gerekirse bir salt-okunur tool çağırıp canlı veriye bak.',
-    "Kullanıcının dilinde (Türkçe/İngilizce) yanıtla. Vague/genel laf etme; deckent'e özgü konuş.",
+    labels.guidance,
     '',
-    '## Proje Bağlamı (deckent — canlı özet; cevaplarını BUNA dayandır)',
-    readProjectContextSnapshot(root),
+    `## ${labels.heading}`,
+    context,
   ].join('\n');
 }

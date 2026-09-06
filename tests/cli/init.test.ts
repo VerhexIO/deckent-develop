@@ -89,6 +89,18 @@ describe('init.ts template references', () => {
     }
   });
 
+  it('describes memory_budget as the retained-entry decay threshold in both init locales', () => {
+    const initContent = readFileSync(
+      join(process.cwd(), 'src', 'cli', 'commands', 'init-templates.ts'),
+      'utf-8',
+    );
+
+    expect(initContent).toContain('| memory_budget | sayı | 900 | Tamamlanan sprintlerde tutulan girdiler için çürüme eşiği |');
+    expect(initContent).toContain('| memory_budget | number | 900 | Retained-entry decay threshold across completed sprints |');
+    expect(initContent).not.toContain('.brain/ total line budget');
+    expect(initContent).not.toContain('.brain/ toplam satır bütçesi');
+  });
+
   it('init.ts does not create DECISIONS.md for new projects', () => {
     // Brain files logic moved to init-steps.ts (Sprint 144 Task 1 split)
     const initContent = readFileSync(

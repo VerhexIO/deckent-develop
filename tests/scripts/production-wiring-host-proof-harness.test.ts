@@ -18,6 +18,9 @@ import {
   CLOSURE_OS_AUTHORITY_ADAPTER_ID,
   CLOSURE_OS_AUTHORITY_OBSERVATION_GROUP_ID,
   CLOSURE_OS_AUTHORITY_SCHEMA_ID,
+  MEMORY_COMPACT_READ_EXPORT_ADAPTER_ID,
+  MEMORY_COMPACT_READ_EXPORT_OBSERVATION_GROUP_ID,
+  MEMORY_COMPACT_READ_EXPORT_SCHEMA_ID,
   TERMINAL_NATIVE_PROVIDER_ADAPTER_ID,
   TERMINAL_NATIVE_PROVIDER_OBSERVATION_GROUP_ID,
   TERMINAL_NATIVE_PROVIDER_SCHEMA_ID,
@@ -54,6 +57,33 @@ const terminalAssets = [
   { path: 'scripts/production-wiring-host-proof-harness.mjs', role: 'trusted-harness' },
 ] as const;
 
+const memoryAssets = [
+  { path: 'scripts/production-wiring-host-proof-harness.mjs', role: 'trusted-harness' },
+  { path: 'scripts/memory-compact-host-proof-observer.mjs', role: 'trusted-harness' },
+] as const;
+
+const memoryTargetKeys = [
+  'affected-ingress:deckent.memory-export.write-guarded-exports',
+  'canonical-consumer:deckent.memory-export.compact-renderers',
+  'enablement-authority:deckent.memory-export.source-preserving-contract',
+  'producer:deckent.memory-store.entry-read-model',
+  'proof-target:deckent.memory-export.legacy-epoch-recency-grouping',
+  'proof-target:deckent.memory-export.meaning-unit-integrity',
+  'proof-target:deckent.memory-export.source-preservation',
+].sort();
+
+const memoryObservation = canonicalJson({
+  checks: [
+    'deterministic-projection',
+    'legacy-epoch-recency-grouping',
+    'meaning-unit-integrity',
+    'source-preservation',
+  ],
+  kind: 'deckent-memory-compact-read-export-observation-v1',
+  outcome: 'observed',
+  version: 1,
+});
+
 const terminalTargetKeys = [
   'affected-ingress:deckent.native-terminal.entry',
   'canonical-consumer:deckent.terminal.native-session-provider',
@@ -88,6 +118,17 @@ function createFixtureRoot(): string {
   return root;
 }
 
+function createMemoryFixtureRoot(): string {
+  const root = mkdtempSync(join(tmpdir(), 'deckent-memory-host-proof-harness-'));
+  roots.push(root);
+  for (const asset of memoryAssets) {
+    const absolute = join(root, asset.path);
+    mkdirSync(dirname(absolute), { recursive: true });
+    writeFileSync(absolute, `fixture:${asset.path}\n`);
+  }
+  return root;
+}
+
 function buildRequest(root: string, overrides: Record<string, unknown> = {}): string {
   const request = {
     adapterId: CLOSURE_OS_AUTHORITY_ADAPTER_ID,
@@ -109,6 +150,21 @@ function buildTerminalRequest(root: string): string {
   return canonicalJson({
     adapterId: TERMINAL_NATIVE_PROVIDER_ADAPTER_ID,
     assets: terminalAssets.map(asset => ({
+      path: asset.path,
+      role: asset.role,
+      sha256: sha256(readFileSync(join(root, asset.path))),
+    })),
+    kind: 'deckent-production-wiring-host-proof-request-v1',
+    outputLimitBytes: 64 * 1024,
+    timeoutMs: 60_000,
+    version: 1,
+  });
+}
+
+function buildMemoryRequest(root: string): string {
+  return canonicalJson({
+    adapterId: MEMORY_COMPACT_READ_EXPORT_ADAPTER_ID,
+    assets: memoryAssets.map(asset => ({
       path: asset.path,
       role: asset.role,
       sha256: sha256(readFileSync(join(root, asset.path))),
@@ -178,6 +234,105 @@ describe('canonical production-wiring host-proof harness', () => {
       },
     });
   }, 90_000);
+
+  it('maps a legacy lossy memory observer failure to typed HOLD', async () => {
+    const root = createMemoryFixtureRoot();
+    const processRunner = vi.fn(async () => commandResult({ status: 54 }));
+
+    await expect(runProductionWiringHostProofHarness(buildMemoryRequest(root), {
+      root,
+      processRunner,
+    })).resolves.toEqual({ state: 'hold', reasonCode: 'host-proof-adapter-failed' });
+    expect(processRunner).toHaveBeenCalledOnce();
+  });
+
+  it('accepts only the exact memory observer protocol as a harness parser control', async () => {
+    const root = createMemoryFixtureRoot();
+    const processRunner = vi.fn(async (input: {
+      executable: string;
+      args: readonly string[];
+      cwd: string;
+      env: Readonly<Record<string, string>>;
+    }) => {
+      expect(input).toMatchObject({
+        executable: process.execPath,
+        args: [
+          '--import',
+          'tsx',
+          join(root, 'scripts/memory-compact-host-proof-observer.mjs'),
+        ],
+        cwd: root,
+      });
+      expect(input.env).toEqual({
+        HOME: '/tmp',
+        PATH: '/usr/local/bin:/usr/bin:/bin',
+        LANG: 'C',
+        LC_ALL: 'C',
+        GIT_CONFIG_NOSYSTEM: '1',
+        GIT_TERMINAL_PROMPT: '0',
+        GIT_PAGER: 'cat',
+        PAGER: 'cat',
+      });
+      return commandResult({ stdout: Buffer.from(memoryObservation, 'utf8') });
+    });
+
+    await expect(runProductionWiringHostProofHarness(buildMemoryRequest(root), {
+      root,
+      processRunner,
+    })).resolves.toEqual({
+      state: 'observed',
+      outcome: {
+        version: 1,
+        kind: 'deckent-production-wiring-host-proof-outcome',
+        schemaId: MEMORY_COMPACT_READ_EXPORT_SCHEMA_ID,
+        observationGroupId: MEMORY_COMPACT_READ_EXPORT_OBSERVATION_GROUP_ID,
+        outcome: 'observed',
+        targetKeys: memoryTargetKeys,
+      },
+    });
+    expect(processRunner).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    ['generic outer outcome', canonicalJson({
+      kind: 'deckent-production-wiring-host-proof-outcome',
+      observationGroupId: MEMORY_COMPACT_READ_EXPORT_OBSERVATION_GROUP_ID,
+      outcome: 'observed',
+      schemaId: MEMORY_COMPACT_READ_EXPORT_SCHEMA_ID,
+      targetKeys: memoryTargetKeys,
+      version: 1,
+    })],
+    ['noncanonical observer JSON', JSON.stringify(JSON.parse(memoryObservation), null, 2)],
+    ['observer protocol with an extra newline', `${memoryObservation}\n`],
+    ['observer protocol with a missing check', canonicalJson({
+      checks: ['source-preservation'],
+      kind: 'deckent-memory-compact-read-export-observation-v1',
+      outcome: 'observed',
+      version: 1,
+    })],
+  ])('rejects %s instead of accepting a forged memory observation', async (_label, stdout) => {
+    const root = createMemoryFixtureRoot();
+    await expect(runProductionWiringHostProofHarness(buildMemoryRequest(root), {
+      root,
+      processRunner: async () => commandResult({ stdout: Buffer.from(stdout, 'utf8') }),
+    })).resolves.toEqual({
+      state: 'hold',
+      reasonCode: 'host-proof-adapter-observation-failed',
+    });
+  });
+
+  it('rejects a changed memory observer asset before invoking the adapter', async () => {
+    const root = createMemoryFixtureRoot();
+    const request = buildMemoryRequest(root);
+    writeFileSync(join(root, 'scripts/memory-compact-host-proof-observer.mjs'), 'changed\n');
+    const processRunner = vi.fn();
+
+    await expect(runProductionWiringHostProofHarness(request, {
+      root,
+      processRunner,
+    })).resolves.toEqual({ state: 'hold', reasonCode: 'host-proof-verifier-asset-invalid' });
+    expect(processRunner).not.toHaveBeenCalled();
+  });
 
   it('accepts only after the real Closure OS receipt reader validates isolated durable authority data', async () => {
     const root = createFixtureRoot();

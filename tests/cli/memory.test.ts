@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { mkdtempSync, rmSync, mkdirSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { MemoryStore } from '../../src/core/memory-store.js';
+import * as memoryExport from '../../src/core/memory-export.js';
 
 // Mock resolveProjectRoot to point to a temp dir
 let projectRoot: string;
@@ -147,20 +148,54 @@ describe('memory export command', () => {
     expect(getStderr()).toContain('memory.db not found');
   });
 
-  it('exports 4 .md files from DB', async () => {
+  it('exports all guarded Memory V2 projections from DB', async () => {
     ensureDbWithEntries(projectRoot, [
       { id: 'adr-001', type: 'adr', title: 'Test ADR', content: 'Test content', status: 'accepted' },
       { id: 'mem-001', type: 'memory', title: 'Test Memory', content: 'Learning content', sprint_id: 'sprint-140', sprint_num: 140 },
     ]);
 
     const output = await runMemory(['export']);
-    expect(output).toContain('Exported 4 .md files');
+    expect(output).toContain('Exported 5 .md files');
 
     const exportsDir = join(projectRoot, '.brain', 'exports');
     expect(existsSync(join(exportsDir, 'summary.md'))).toBe(true);
     expect(existsSync(join(exportsDir, 'decisions.md'))).toBe(true);
     expect(existsSync(join(exportsDir, 'memory.md'))).toBe(true);
+    expect(existsSync(join(exportsDir, 'memory-details.md'))).toBe(true);
     expect(existsSync(join(exportsDir, 'debt.md'))).toBe(true);
+  });
+
+  it('forwards resolved project memory_export limits to the guarded CLI writer', async () => {
+    ensureDbWithEntries(projectRoot, [
+      { id: 'mem-001', type: 'memory', title: 'Bounded render', content: 'Fixture content' },
+    ]);
+    const configDir = join(projectRoot, '.deckent');
+    mkdirSync(configDir, { recursive: true });
+    writeFileSync(join(configDir, 'config.json'), JSON.stringify({
+      language: 'tr',
+      memory_export: {
+        max_inline_lines: 901,
+        max_inline_bytes: 4097,
+        summary_inline_lines: 27,
+        summary_inline_bytes: 513,
+      },
+    }));
+    const guarded = vi.spyOn(memoryExport, 'writeGuardedExports');
+    try {
+      await runMemory(['export']);
+      expect(guarded).toHaveBeenCalledWith(
+        expect.anything(),
+        join(projectRoot, '.brain', 'exports'),
+        expect.objectContaining({
+          maxInlineLines: 901,
+          maxInlineBytes: 4097,
+          summaryInlineLines: 27,
+          summaryInlineBytes: 513,
+        }),
+      );
+    } finally {
+      guarded.mockRestore();
+    }
   });
 
   it('creates exports directory if it does not exist', async () => {
@@ -339,5 +374,50 @@ describe('memory relations list command', () => {
     expect(output).toContain('adr-002');
     expect(output).toContain('adr-001');
     expect(output).toContain('supersedes');
+  });
+});
+
+describe('memory recall query-first read contract', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    projectRoot = mkdtempSync(join(tmpdir(), 'memory-recall-read-'));
+    captureOutput();
+  });
+
+  afterEach(() => {
+    restoreOutput();
+    try { rmSync(projectRoot, { recursive: true, force: true }); } catch { /* ignore */ }
+  });
+
+  it('returns a versioned bounded view and reaches a deferred complete entry only through its detail reference', async () => {
+    ensureDbWithEntries(projectRoot, [
+      { id: 'memory-read-001', type: 'memory', title: 'First complete unit', content: 'c2-needle first complete content' },
+      { id: 'memory-read-002', type: 'memory', title: 'Second complete unit', content: 'c2-needle second complete content' },
+    ]);
+    mkdirSync(join(projectRoot, '.deckent'), { recursive: true });
+    writeFileSync(join(projectRoot, '.deckent', 'config.json'), JSON.stringify({
+      memory_read: { maxEntries: 1, maxCandidates: 2, maxBytes: 32_768, maxLines: 200 },
+    }));
+
+    await runMemory(['recall', 'c2-needle', '--json']);
+    const envelope = JSON.parse(getStdout()) as { schemaVersion: number; view: { state: string; deferred: Array<{ detailRef: string }> } };
+    expect(envelope.schemaVersion).toBe(1);
+    expect(envelope.view.state).toBe('AVAILABLE');
+    expect(envelope.view.deferred).toHaveLength(1);
+
+    stdoutData = [];
+    stderrData = [];
+    await runMemory(['recall', '--detail', envelope.view.deferred[0]!.detailRef]);
+    expect(getStdout()).toMatch(/c2-needle (first|second) complete content/);
+  });
+
+  it('holds rather than treating an empty recall query as an unbounded corpus read', async () => {
+    ensureDbWithEntries(projectRoot, [
+      { id: 'memory-read-003', type: 'memory', title: 'Entry', content: 'must not become a recall corpus' },
+    ]);
+
+    await runMemory(['recall']);
+    expect(getStderr()).toContain('INVALID_REQUEST');
+    expect(getStdout()).not.toContain('must not become a recall corpus');
   });
 });

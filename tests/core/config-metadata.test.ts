@@ -31,7 +31,15 @@ describe('getConfigHelp', () => {
     const meta = getConfigHelp('memory_budget');
     expect(meta).toBeDefined();
     expect(meta?.category).toBe('Memory');
-    expect(meta?.default).toBe(600);
+    expect(meta?.default).toBe(5000);
+    expect(meta?.descriptionTr).toContain('Brain');
+  });
+
+  it('describes bounded memory_export without treating it as durable retention', () => {
+    const meta = getConfigHelp('memory_export');
+    expect(meta).toMatchObject({ category: 'Memory', type: 'object | undefined' });
+    expect(meta?.description).toContain('human-view');
+    expect(meta?.descriptionTr).toContain('insan görünümü');
   });
 
   it('returns metadata for scan_interval with Auditor category', () => {
@@ -83,6 +91,7 @@ describe('listConfigByCategory', () => {
     expect(Memory).toContain('decay_after_sprints');
     expect(Memory).toContain('patterns_enabled');
     expect(Memory).toContain('project_identity_enabled');
+    expect(Memory).toContain('memory_export');
   });
 
   it('Auditor category contains all auditor fields', () => {

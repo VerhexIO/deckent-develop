@@ -15,6 +15,7 @@ import type { MemoryStore } from './memory-store.js';
 import { turkishNormalize } from './memory-normalize.js';
 import type { MemoryQueryParams, MemorySearchResult, MemoryEntryV2 } from './memory-types.js';
 import { createDebugLog } from './debug-log.js';
+import { parseSprintOrdinal } from './utils.js';
 
 const log = createDebugLog('memory-query');
 
@@ -40,6 +41,7 @@ export class MemoryQueryError extends Error {
  */
 export function escapeFts5Query(input: string, mode: 'and' | 'or' = 'or'): string {
   const OPERATORS = new Set(['OR', 'AND', 'NOT']);
+  const quoteLiteral = (value: string): string => `"${value.replace(/"/g, '""')}"`;
   const tokens = input
     .split(/\s+/)
     .filter(t => t.length > 0)
@@ -48,9 +50,9 @@ export function escapeFts5Query(input: string, mode: 'and' | 'or' = 'or'): strin
       // Allow trailing wildcard
       if (token.endsWith('*')) {
         const base = token.slice(0, -1);
-        return `"${base}"*`;
+        return `${quoteLiteral(base)}*`;
       }
-      return `"${token}"`;
+      return quoteLiteral(token);
     });
 
   if (mode === 'and') return tokens.join(' ');
@@ -95,6 +97,8 @@ interface FtsResultRow {
   immutable: number | null;
   source_authority: string | null;
   enforcement_level: string | null;
+  audit_prev_hmac: string | null;
+  audit_hmac: string | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
@@ -129,6 +133,8 @@ interface StructuredResultRow {
   immutable: number | null;
   source_authority: string | null;
   enforcement_level: string | null;
+  audit_prev_hmac: string | null;
+  audit_hmac: string | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
@@ -160,10 +166,286 @@ function rowToEntry(row: StructuredResultRow | FtsResultRow): MemoryEntryV2 {
     immutable: row.immutable,
     source_authority: row.source_authority,
     enforcement_level: row.enforcement_level,
+    audit_prev_hmac: row.audit_prev_hmac,
+    audit_hmac: row.audit_hmac,
     created_at: row.created_at,
     updated_at: row.updated_at,
     deleted_at: row.deleted_at,
   };
+}
+
+export interface MemoryQueryCandidateRow {
+  readonly id: string;
+  readonly type: string;
+  readonly source: string;
+  readonly titlePreview: string;
+  readonly summaryPreview: string | null;
+  readonly status: string;
+  readonly priority: string;
+  readonly sprintId: string | null;
+  readonly sprintOrdinal: number | null;
+  readonly language: string;
+  readonly tenantId: string | null;
+  readonly adrClass: string | null;
+  readonly scope: string | null;
+  readonly enforcementLevel: string | null;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+  readonly contentByteLength: number;
+  readonly contentLineCount: number;
+  readonly recordByteLengthFloor: number;
+  readonly relevance: number;
+  readonly snippet?: string;
+  /** Internal deterministic pagination key; not a complete-entry field. */
+  readonly orderRank: number;
+  readonly orderOrdinal: number;
+  /** Monotonic per-entry history anchor; internal authority, never a public preview field. */
+  readonly entryRevision: number;
+}
+
+export interface MemoryQueryCandidateCursorKey {
+  readonly rank: number;
+  readonly ordinal: number;
+  readonly id: string;
+}
+
+export type MemoryQueryTenantSelection =
+  | Readonly<{ kind: 'tenant'; tenantId: string }>
+  | Readonly<{ kind: 'all' }>;
+
+interface CandidateSqlRow {
+  id: string;
+  type: string;
+  source: string;
+  title_preview: string;
+  summary_preview: string | null;
+  status: string;
+  priority: string;
+  sprint_id: string | null;
+  sprint_ordinal: number | null;
+  sort_ordinal: number;
+  lang: string;
+  tenant_id: string | null;
+  adr_class: string | null;
+  scope: string | null;
+  enforcement_level: string | null;
+  created_at: string;
+  updated_at: string;
+  content_byte_length: number;
+  content_line_count: number;
+  record_byte_length_floor: number;
+  rank?: number;
+  snip_title?: string | null;
+  snip_content?: string | null;
+  snip_tags?: string | null;
+  entry_revision: number;
+}
+
+const CANDIDATE_COLUMNS = `
+  e.id,
+  e.type,
+  e.source,
+  substr(e.title, 1, 256) AS title_preview,
+  CASE WHEN e.summary IS NULL THEN NULL ELSE substr(e.summary, 1, 512) END AS summary_preview,
+  e.status,
+  e.priority,
+  e.sprint_id,
+  deckent_sprint_ordinal_v1(e.sprint_id) AS sprint_ordinal,
+  COALESCE(deckent_sprint_ordinal_v1(e.sprint_id), -1) AS sort_ordinal,
+  e.lang,
+  e.tenant_id,
+  e.adr_class,
+  e.scope,
+  e.enforcement_level,
+  e.created_at,
+  e.updated_at,
+  COALESCE((SELECT MAX(h.id) FROM entry_history h WHERE h.entry_id = e.id), 0) AS entry_revision,
+  length(CAST(e.content AS BLOB)) AS content_byte_length,
+  CASE
+    WHEN length(e.content) = 0 THEN 0
+    ELSE 1 + length(e.content) - length(replace(e.content, char(10), ''))
+  END AS content_line_count,
+  length(CAST(e.id AS BLOB))
+    + length(CAST(e.type AS BLOB))
+    + length(CAST(e.source AS BLOB))
+    + length(CAST(e.title AS BLOB))
+    + length(CAST(e.content AS BLOB))
+    + length(CAST(COALESCE(e.summary, '') AS BLOB))
+    + length(CAST(e.tag_text AS BLOB))
+    + length(CAST(e.metadata AS BLOB))
+    + length(CAST(COALESCE(e.source_authority, '') AS BLOB))
+    + length(CAST(COALESCE(e.enforcement_level, '') AS BLOB))
+    AS record_byte_length_floor
+`;
+
+function isNonEmptyCandidateId(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
+function candidateFromRow(row: CandidateSqlRow): MemoryQueryCandidateRow {
+  const snippet = pickBestSnippet(row.snip_content ?? null, row.snip_title ?? null, row.snip_tags ?? null);
+  return {
+    id: row.id,
+    type: row.type,
+    source: row.source,
+    titlePreview: row.title_preview,
+    summaryPreview: row.summary_preview,
+    status: row.status,
+    priority: row.priority,
+    sprintId: row.sprint_id,
+    sprintOrdinal: row.sprint_ordinal,
+    language: row.lang,
+    tenantId: row.tenant_id,
+    adrClass: row.adr_class,
+    scope: row.scope,
+    enforcementLevel: row.enforcement_level,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    contentByteLength: row.content_byte_length,
+    contentLineCount: row.content_line_count,
+    recordByteLengthFloor: row.record_byte_length_floor,
+    relevance: row.rank === undefined ? 0 : Math.abs(row.rank),
+    ...(snippet === undefined ? {} : { snippet }),
+    orderRank: row.rank ?? 0,
+    orderOrdinal: row.sort_ordinal,
+    entryRevision: row.entry_revision,
+  };
+}
+
+/**
+ * Read one bounded metadata-only candidate page. Complete entry bodies are fetched
+ * separately only after the service has admitted them against its byte/line budget.
+ */
+export function queryMemoryCandidates(
+  store: MemoryStore,
+  params: Readonly<Omit<MemoryQueryParams, 'tenantId' | 'limit'>>,
+  tenantSelection: MemoryQueryTenantSelection,
+  page: Readonly<{ limit: number; after?: MemoryQueryCandidateCursorKey; exactId?: string }>,
+): MemoryQueryCandidateRow[] {
+  if (!Number.isSafeInteger(page.limit) || page.limit <= 0
+    || (page.after !== undefined && (!Number.isFinite(page.after.rank)
+      || !Number.isSafeInteger(page.after.ordinal) || !isNonEmptyCandidateId(page.after.id)))
+    || (page.exactId !== undefined && !isNonEmptyCandidateId(page.exactId))) {
+    throw new MemoryQueryError('Memory candidate page is invalid');
+  }
+  const db = store.getRawDb();
+  db.function('deckent_sprint_ordinal_v1', { deterministic: true }, (value: unknown) => parseSprintOrdinal(value));
+  const { whereClauses, bindParams } = buildFilterClauses(db, params, 'e', tenantSelection);
+  const binds = {
+    ...bindParams,
+    limit: page.limit,
+    ...(page.after === undefined ? {} : {
+      after_rank: page.after.rank,
+      after_ordinal: page.after.ordinal,
+      after_id: page.after.id,
+    }),
+    ...(page.exactId === undefined ? {} : { exact_id: page.exactId }),
+  };
+  const exactIdClause = page.exactId === undefined ? '' : 'AND e.id = @exact_id';
+
+  try {
+    if (params.text && params.text.trim().length > 0) {
+      const mode = params.mode ?? 'or';
+      const escaped = escapeFts5Query(params.text, mode);
+      const normalized = escapeFts5Query(turkishNormalize(params.text), mode);
+      const ftsQuery = `{title content summary tag_text}: (${escaped}) OR `
+        + `{title_norm content_norm summary_norm tag_norm}: (${normalized})`;
+      const rows = db.prepare(`
+        SELECT ${CANDIDATE_COLUMNS},
+               entries_fts.rank AS rank,
+               snippet(entries_fts, 0, '>>>', '<<<', '...', 20) AS snip_title,
+               snippet(entries_fts, 1, '>>>', '<<<', '...', 20) AS snip_content,
+               snippet(entries_fts, 3, '>>>', '<<<', '...', 20) AS snip_tags
+        FROM entries_fts
+        INNER JOIN entries e ON e.rowid = entries_fts.rowid
+        WHERE entries_fts MATCH @fts_query
+          ${whereClauses.length > 0 ? `AND ${whereClauses.join(' AND ')}` : ''}
+          ${exactIdClause}
+          ${page.after === undefined ? '' : `AND (
+            entries_fts.rank > @after_rank
+            OR (entries_fts.rank = @after_rank AND COALESCE(deckent_sprint_ordinal_v1(e.sprint_id), -1) < @after_ordinal)
+            OR (entries_fts.rank = @after_rank AND COALESCE(deckent_sprint_ordinal_v1(e.sprint_id), -1) = @after_ordinal AND e.id > @after_id)
+          )`}
+        ORDER BY entries_fts.rank ASC, sprint_ordinal DESC, e.id ASC
+        LIMIT @limit
+      `).all({ fts_query: ftsQuery, ...binds }) as CandidateSqlRow[];
+      return rows.map(candidateFromRow);
+    }
+
+    const rows = db.prepare(`
+      SELECT ${CANDIDATE_COLUMNS}
+      FROM entries e
+      WHERE ${whereClauses.length > 0 ? `${whereClauses.join(' AND ')} AND` : ''} 1 = 1
+        ${exactIdClause}
+        ${page.after === undefined ? '' : `AND (
+          COALESCE(deckent_sprint_ordinal_v1(e.sprint_id), -1) < @after_ordinal
+          OR (COALESCE(deckent_sprint_ordinal_v1(e.sprint_id), -1) = @after_ordinal AND e.id > @after_id)
+        )`}
+      ORDER BY sprint_ordinal DESC, e.id ASC
+      LIMIT @limit
+    `).all(binds) as CandidateSqlRow[];
+    return rows.map(candidateFromRow);
+  } catch (error: unknown) {
+    if (error instanceof MemoryQueryError) throw error;
+    const message = error instanceof Error ? error.message : String(error);
+    throw new MemoryQueryError(`Memory candidate query failed: ${message}`, error);
+  }
+}
+
+/** Exact scoped full-entry lookup used only after metadata admission. */
+export function readMemoryEntryById(
+  store: MemoryStore,
+  id: string,
+  tenantSelection: MemoryQueryTenantSelection,
+): MemoryEntryV2 | null {
+  const db = store.getRawDb();
+  assertTenantColumn(db);
+  const tenantClause = tenantSelection.kind === 'tenant' ? 'tenant_id = @tenant_id' : '1 = 1';
+  const row = db.prepare(`
+    SELECT * FROM entries
+    WHERE id = @id AND deleted_at IS NULL AND ${tenantClause}
+  `).get({ id, ...(tenantSelection.kind === 'tenant' ? { tenant_id: tenantSelection.tenantId } : {}) }) as StructuredResultRow | undefined;
+  return row ? rowToEntry(row) : null;
+}
+
+/** Metadata-only exact-ID lookup used to admit required/detail reads. */
+export function readMemoryCandidateById(
+  store: MemoryStore,
+  id: string,
+  tenantSelection: MemoryQueryTenantSelection,
+): MemoryQueryCandidateRow | null {
+  const db = store.getRawDb();
+  db.function('deckent_sprint_ordinal_v1', { deterministic: true }, (value: unknown) => parseSprintOrdinal(value));
+  assertTenantColumn(db);
+  const tenantClause = tenantSelection.kind === 'tenant' ? 'e.tenant_id = @tenant_id' : '1 = 1';
+  const row = db.prepare(`
+    SELECT ${CANDIDATE_COLUMNS}
+    FROM entries e
+    WHERE e.id = @id AND e.deleted_at IS NULL AND ${tenantClause}
+  `).get({ id, ...(tenantSelection.kind === 'tenant' ? { tenant_id: tenantSelection.tenantId } : {}) }) as CandidateSqlRow | undefined;
+  return row ? candidateFromRow(row) : null;
+}
+
+/** Resolve one strict ADR reference to at most two scoped, accepted canonical IDs. */
+export function resolveMemoryAdrReferenceIds(
+  store: MemoryStore,
+  reference: string,
+  tenantSelection: MemoryQueryTenantSelection,
+): string[] {
+  const db = store.getRawDb();
+  if (tenantSelection.kind === 'tenant') assertTenantColumn(db);
+  const tenantClause = tenantSelection.kind === 'tenant' ? 'tenant_id = @tenant_id' : '1 = 1';
+  const rows = db.prepare(`
+    SELECT id FROM entries
+    WHERE type = 'adr'
+      AND status = 'accepted'
+      AND deleted_at IS NULL
+      AND lower(id) = lower(@reference)
+      AND ${tenantClause}
+    ORDER BY id ASC
+    LIMIT 2
+  `).all({ reference, ...(tenantSelection.kind === 'tenant' ? { tenant_id: tenantSelection.tenantId } : {}) }) as Array<{ id: string }>;
+  return rows.map((row) => row.id);
 }
 
 // ─── searchMemory ────────────────────────────────────────────────────
@@ -307,10 +589,6 @@ function structuredSearch(
 
 /**
  * Defensive existence check for `entries.tenant_id` via PRAGMA table_info.
- * `memory-store.ts` already adds this column via an additive migration on every
- * `MemoryStore` open, so in practice the column always exists — this guard exists
- * for the case `searchMemory` is ever pointed at an older/foreign DB file: the
- * predicate is skipped rather than throwing (honest no-op, per task spec).
  */
 function hasTenantColumn(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -324,6 +602,15 @@ function hasTenantColumn(
   }
 }
 
+function assertTenantColumn(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  db: any,
+): void {
+  if (!hasTenantColumn(db)) {
+    throw new MemoryQueryError('Tenant-scoped memory query requires entries.tenant_id');
+  }
+}
+
 // ─── Filter clause builder ───────────────────────────────────────────
 
 function buildFilterClauses(
@@ -331,6 +618,7 @@ function buildFilterClauses(
   db: any,
   params: MemoryQueryParams,
   alias: string,
+  explicitTenantSelection?: MemoryQueryTenantSelection,
 ): { whereClauses: string[]; bindParams: Record<string, unknown> } {
   const clauses: string[] = [];
   const binds: Record<string, unknown> = {};
@@ -340,19 +628,12 @@ function buildFilterClauses(
     clauses.push(`${alias}.deleted_at IS NULL`);
   }
 
-  // tenant filter (born-609, additive-only). Fail-closed exact match — a NULL-tenant
-  // row never matches an explicit tenantId, mirroring MemoryStore's born-563 default.
-  // Nothing runs here at all when tenantId is omitted, so the tenant-less path stays
-  // byte-identical to pre-609 behavior.
-  if (params.tenantId !== undefined) {
-    if (hasTenantColumn(db)) {
-      clauses.push(`${alias}.tenant_id = @tenant_id`);
-      binds['tenant_id'] = params.tenantId;
-    } else {
-      log.warn(
-        `tenantId="${params.tenantId}" requested but entries.tenant_id column does not exist — skipping tenant predicate (honest no-op)`,
-      );
-    }
+  const tenantSelection = explicitTenantSelection
+    ?? (params.tenantId === undefined ? undefined : { kind: 'tenant' as const, tenantId: params.tenantId });
+  if (tenantSelection !== undefined && tenantSelection.kind !== 'all') {
+    assertTenantColumn(db);
+    clauses.push(`${alias}.tenant_id = @tenant_id`);
+    binds['tenant_id'] = tenantSelection.tenantId;
   }
 
   // type filter
@@ -379,6 +660,14 @@ function buildFilterClauses(
     clauses.push(`${alias}.status IN (${placeholders.join(', ')})`);
     for (let i = 0; i < params.status.length; i++) {
       binds[`status_${i}`] = params.status[i];
+    }
+  }
+
+  if (params.priority && params.priority.length > 0) {
+    const placeholders = params.priority.map((_, i) => `@priority_${i}`);
+    clauses.push(`${alias}.priority IN (${placeholders.join(', ')})`);
+    for (let i = 0; i < params.priority.length; i++) {
+      binds[`priority_${i}`] = params.priority[i];
     }
   }
 
